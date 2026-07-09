@@ -1,0 +1,38 @@
+fragment CartLines_Cart on Cart {
+    id
+    lines(first: $first) {
+        nodes {
+            ... on CartLine {
+                id
+                quantity
+                ...CartLine_CartLine @nonreactive
+            }
+        }
+    }
+}
+
+fragment CartLine_CartLine on CartLine {
+    id
+    quantity
+    maxQuantity @client
+    merchandise {
+        ... on ProductVariant {
+            id
+            ...Variant_ProductVariant
+        }
+    }
+}
+fragment CartSummary_Cart on Cart {
+    id
+    totalQuantity
+    checkoutUrl
+    cost {
+        totalAmount {
+            amount
+        }
+        subtotalAmount {
+            amount
+        }
+        subtotalAmountEstimated
+    }
+}

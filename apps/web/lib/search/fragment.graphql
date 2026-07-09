@@ -1,0 +1,16 @@
+fragment SearchResult_Product on Product {
+    id
+    handle
+    title
+    featuredImage {
+        id
+        altText
+        url
+    }
+    priceRange {
+        minVariantPrice {
+            amount
+            currencyCode
+        }
+    }
+}

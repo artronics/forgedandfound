@@ -1,0 +1,6 @@
+directive @client on FIELD
+directive @nonreactive on FRAGMENT_SPREAD
+
+extend type CartLine {
+    maxQuantity: Int
+}

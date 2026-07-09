@@ -1,0 +1,25 @@
+query CartGetTotalQuantity($cartId: ID!) {
+    cart(id: $cartId) {
+        id
+        totalQuantity
+    }
+}
+
+query CartGet($cartId: ID!, $first: Int = 100) {
+    cart(id: $cartId) {
+        id
+        totalQuantity
+        totalQuantity
+        checkoutUrl
+        cost {
+            totalAmount {
+                amount
+            }
+            subtotalAmount {
+                amount
+            }
+            subtotalAmountEstimated
+        }
+        ...CartLines_Cart
+    }
+}

@@ -1,0 +1,11 @@
+query GetWishlistProducts(
+    $ids: [ID!]!,
+    $variantFirst: Int = 32
+) {
+    nodes(ids: $ids) {
+        ... on Product {
+            id
+            ...VariantSelector_Product @nonreactive
+        }
+    }
+}

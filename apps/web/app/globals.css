@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./styles/forge-found-theme.css";
+
+@custom-variant dark (&:is(.dark *));

@@ -1,0 +1,33 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Build and check
+    deps: [ codegen, build ]
+    cmds:
+      - echo "Done"
+
+  dev:
+    desc: Run dev server
+    cmds:
+      - pnpm run dev
+
+  build:
+    desc: Build
+    cmds:
+      - pnpm run build
+
+  deploy:preview:
+    desc: Deploy preview
+    deps: [ build ]
+    cmds:
+      - vercel env pull .env.preview.local
+      - vercel deploy --target preview
+  codegen:
+    desc: Generate GraphQL types
+    cmds:
+      - pnpm run codegen
+  codegen:watch:
+    desc: Generate GraphQL types
+    cmds:
+      - pnpm run codegen:watch

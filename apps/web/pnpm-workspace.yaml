@@ -1,0 +1,10 @@
+allowBuilds:
+  '@parcel/watcher': false
+  msw: false
+  sharp: false
+  unrs-resolver: false
+ignoredBuiltDependencies:
+  - '@parcel/watcher'
+  - msw
+  - sharp
+  - unrs-resolver

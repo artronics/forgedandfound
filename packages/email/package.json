@@ -1,0 +1,23 @@
+{
+  "name": "@forgedandfound/email",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "email dev",
+    "export": "email export",
+    "build:emails": "tsx scripts/export.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "devDependencies": {
+    "@react-email/ui": "6.6.3"
+  },
+  "dependencies": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-email": "6.6.3"
+  }
+}

@@ -1,0 +1,21 @@
+version: 3
+
+
+dotenv:
+  - .env
+  - .env.dev
+
+includes:
+  tf:
+    taskfile: terraform/Taskfile.yml
+    dir: terraform
+
+tasks:
+  admin:token:
+    cmds:
+      - node .http/auth.js
+
+  shopify:auth:
+    desc: Refresh Shopify auth token
+    cmds:
+      - shopify auth login

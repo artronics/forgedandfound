@@ -1,0 +1,54 @@
+### Get Pricacy Policy
+GRAPHQL {{storeGraphqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetPrivacyPolicy {
+    shop {
+        privacyPolicy {
+            title
+            body
+        }
+    }
+}
+
+### Get Terms of Service
+GRAPHQL {{storeGraphqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetTermsOfService {
+    shop {
+        id
+        termsOfService {
+            title
+            body
+        }
+    }
+}
+
+### Get Refund Policy
+GRAPHQL {{storeGraphqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetRefundPolicy {
+    shop {
+        id
+        refundPolicy {
+            title
+            body
+        }
+    }
+}
+
+### Get Shipping Policy
+GRAPHQL {{storeGraphqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetShippingPolicy {
+    shop {
+        id
+        shippingPolicy {
+            title
+            body
+        }
+    }
+}

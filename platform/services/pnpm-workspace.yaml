@@ -1,0 +1,4 @@
+packages:
+  - "auth"
+  - "shopify"
+  - "packages/*"

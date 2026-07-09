@@ -1,0 +1,333 @@
+/*
+ * Forged & Found theme.
+ * Naming follows shadcn conventions. Two intentional extensions have no shadcn
+ * equivalent and are relied on by DESIGN.md:
+ *   --primary-container : CTA "gemstone" gradient + glassmorphism.
+ *   --surface-container : the one mid-elevation tone between card and accent.
+ * Colours are authored as sRGB hex (fallback) and overridden with OKLCH inside
+ * an @supports gate, so older engines still get a correct colour.
+ */
+
+:root {
+    --background: #fafbe1;
+    --foreground: #1b1d0d;
+
+    --card: #f5f5db;
+    --card-foreground: #1b1d0d;
+
+    --popover: #ffffff;
+    --popover-foreground: #1b1d0d;
+
+    --primary: #464836;
+    --primary-foreground: #ffffff;
+
+    --secondary: #6f5a4d;
+    --secondary-foreground: #ffffff;
+
+    --muted: #e9ead0;
+    --muted-foreground: #47473f;
+
+    --accent: #e3e4cb;
+    --accent-foreground: #464836;
+
+    --destructive: #ba1a1a;
+    --destructive-foreground: #ffffff;
+
+    --border: #c8c7bc;
+    --input: #e3e4cb;
+    --ring: #78776e;
+
+    /* extensions (see header) */
+    --primary-container: #5e604c;
+    --surface-container: #eff0d6;
+
+    /* product finishes */
+    --metal-yellow: #e5d5b0;
+    --metal-silver: #e0e0e0;
+    --metal-rose: #f5e6e8;
+    --metal-white: #f4f2ee;
+
+    --radius: 0.125rem;
+
+    --sidebar: #303221;
+    --sidebar-foreground: #f2f3d9;
+    --sidebar-primary: #c7c8b0;
+    --sidebar-primary-foreground: #1b1d0d;
+    --sidebar-accent: #464836;
+    --sidebar-accent-foreground: #fafbe1;
+    --sidebar-border: #47473f;
+    --sidebar-ring: #c7c8b0;
+}
+
+.dark {
+    --background: #1b1d0d;
+    --foreground: #f2f3d9;
+
+    --card: #303221;
+    --card-foreground: #f2f3d9;
+
+    --popover: #303221;
+    --popover-foreground: #f2f3d9;
+
+    --primary: #c7c8b0;
+    --primary-foreground: #1b1d0d;
+
+    --secondary: #ddc1b1;
+    --secondary-foreground: #27180e;
+
+    --muted: #303221;
+    --muted-foreground: #c8c7bc;
+
+    --accent: #464836;
+    --accent-foreground: #fafbe1;
+
+    --destructive: #ffdad6;
+    --destructive-foreground: #93000a;
+
+    --border: #47473f;
+    --input: #47473f;
+    --ring: #c7c8b0;
+
+    --primary-container: #464836;
+    --surface-container: #303221;
+
+    --sidebar: #1b1d0d;
+    --sidebar-foreground: #f2f3d9;
+    --sidebar-primary: #c7c8b0;
+    --sidebar-primary-foreground: #1b1d0d;
+    --sidebar-accent: #303221;
+    --sidebar-accent-foreground: #fafbe1;
+    --sidebar-border: #47473f;
+    --sidebar-ring: #c7c8b0;
+}
+
+/* OKLCH overrides — engines without oklch() keep the sRGB hex above. */
+@supports (color: oklch(0 0 0)) {
+    :root {
+        --background: oklch(98.05% 0.034 108.8);
+        --foreground: oklch(22.36% 0.0287 114.58);
+
+        --card: oklch(96.33% 0.0341 107.02);
+        --card-foreground: oklch(22.36% 0.0287 114.58);
+
+        --popover: oklch(100% 0 0);
+        --popover-foreground: oklch(22.36% 0.0287 114.58);
+
+        --primary: oklch(39.43% 0.0291 112.89);
+        --primary-foreground: oklch(100% 0 0);
+
+        --secondary: oklch(48.49% 0.0343 53.44);
+        --secondary-foreground: oklch(100% 0 0);
+
+        --muted: oklch(92.94% 0.0344 108.85);
+        --muted-foreground: oklch(39.53% 0.0131 106.98);
+
+        --accent: oklch(91.15% 0.0332 108.91);
+        --accent-foreground: oklch(39.43% 0.0291 112.89);
+
+        --destructive: oklch(50.6% 0.1927 27.7);
+        --destructive-foreground: oklch(100% 0 0);
+
+        --border: oklch(82.74% 0.0151 102.51);
+        --input: oklch(91.15% 0.0332 108.91);
+        --ring: oklch(56.74% 0.0136 101.66);
+
+        --primary-container: oklch(48.13% 0.0309 112.2);
+        --surface-container: oklch(94.75% 0.0342 108.83);
+
+        --metal-yellow: oklch(87.67% 0.052 87.4);
+        --metal-silver: oklch(90.67% 0 0);
+        --metal-rose: oklch(93.74% 0.0165 8.18);
+        --metal-white: oklch(96.16% 0.0057 84.57);
+
+        --sidebar: oklch(30.98% 0.0289 113.56);
+        --sidebar-foreground: oklch(95.66% 0.0342 108.82);
+        --sidebar-primary: oklch(82.55% 0.0327 109.04);
+        --sidebar-primary-foreground: oklch(22.36% 0.0287 114.58);
+        --sidebar-accent: oklch(39.43% 0.0291 112.89);
+        --sidebar-accent-foreground: oklch(98.05% 0.034 108.8);
+        --sidebar-border: oklch(39.53% 0.0131 106.98);
+        --sidebar-ring: oklch(82.55% 0.0327 109.04);
+    }
+
+    .dark {
+        --background: oklch(22.36% 0.0287 114.58);
+        --foreground: oklch(95.66% 0.0342 108.82);
+
+        --card: oklch(30.98% 0.0289 113.56);
+        --card-foreground: oklch(95.66% 0.0342 108.82);
+
+        --popover: oklch(30.98% 0.0289 113.56);
+        --popover-foreground: oklch(95.66% 0.0342 108.82);
+
+        --primary: oklch(82.55% 0.0327 109.04);
+        --primary-foreground: oklch(22.36% 0.0287 114.58);
+
+        --secondary: oklch(83.04% 0.0388 51.64);
+        --secondary-foreground: oklch(22.57% 0.0302 54.27);
+
+        --muted: oklch(30.98% 0.0289 113.56);
+        --muted-foreground: oklch(82.74% 0.0151 102.51);
+
+        --accent: oklch(39.43% 0.0291 112.89);
+        --accent-foreground: oklch(98.05% 0.034 108.8);
+
+        --destructive: oklch(91.83% 0.0418 25.23);
+        --destructive-foreground: oklch(41.71% 0.1702 27.38);
+
+        --border: oklch(39.53% 0.0131 106.98);
+        --input: oklch(39.53% 0.0131 106.98);
+        --ring: oklch(82.55% 0.0327 109.04);
+
+        --primary-container: oklch(39.43% 0.0291 112.89);
+        --surface-container: oklch(30.98% 0.0289 113.56);
+
+        --sidebar: oklch(22.36% 0.0287 114.58);
+        --sidebar-foreground: oklch(95.66% 0.0342 108.82);
+        --sidebar-primary: oklch(82.55% 0.0327 109.04);
+        --sidebar-primary-foreground: oklch(22.36% 0.0287 114.58);
+        --sidebar-accent: oklch(30.98% 0.0289 113.56);
+        --sidebar-accent-foreground: oklch(98.05% 0.034 108.8);
+        --sidebar-border: oklch(39.53% 0.0131 106.98);
+        --sidebar-ring: oklch(82.55% 0.0327 109.04);
+    }
+}
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary-container: var(--primary-container);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-surface-container: var(--surface-container);
+
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Metal finishes */
+    --color-metal-yellow: var(--metal-yellow);
+    --color-metal-silver: var(--metal-silver);
+    --color-metal-rose: var(--metal-rose);
+    --color-metal-white: var(--metal-white);
+
+    --font-sans: var(--font-inter, system-ui, sans-serif);
+    --font-serif: var(--font-noto-serif, system-ui, serif);
+    --font-brand: var(--font-fiona, system-ui, serif);
+
+    --radius-sm: var(--radius);
+    --radius-md: calc(var(--radius) + 0.125rem);
+    --radius-lg: calc(var(--radius) + 0.375rem);
+    --radius-xl: calc(var(--radius) + 0.625rem);
+
+    --tracking-label: 0.0875em;
+    --tracking-heading: -0.075em;
+    --tracking-brand: -0.02em;
+    --tracking-wider: 0.16em;
+    --tracking-widest: 0.18em;
+
+    --text-xs: 10px;
+    --text-2xs: 9px;
+}
+
+@layer base {
+    * {
+        border-color: var(--border);
+    }
+
+    html {
+        font-feature-settings: 'liga' 1, 'kern' 1;
+    }
+
+    body {
+        background-color: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    .font-brand {
+        font-family: var(--font-brand);
+        letter-spacing: var(--tracking-brand);
+    }
+}
+
+/*
+ * title-* is tag-sensitive on purpose:
+ *   on h1-h6  -> Noto Serif, capitalized (editorial headline)
+ *   elsewhere -> Inter, UPPERCASE, label tracking (technical label)
+ * Use it on an <h*> for a heading; on a <p>/<div> it renders as a label.
+ */
+@utility title-* {
+    font-family: var(--font-serif);
+    letter-spacing: var(--tracking-tighter);
+    text-transform: capitalize;
+    font-size: --value(--text-*);
+    line-height: --value(--text-* --line-height);
+    &:not(h1, h2, h3, h4, h5, h6) {
+        font-family: var(--font-sans);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-label);
+    }
+}
+
+@utility bg-editorial-gradient {
+    background-image: linear-gradient(to right, var(--primary), var(--primary-container));
+}
+
+@utility bg-glass-primary {
+    background-color: color-mix(in oklab, var(--primary-container) 80%, transparent);
+    backdrop-filter: blur(12px);
+}
+
+@utility text-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+@utility ghost-border {
+    border: 1px solid color-mix(in oklab, var(--border) 20%, transparent);
+}
+@utility ghost-border-b {
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 20%, transparent);
+}
+
+@utility ghost-border-x {
+    border-left: 1px solid color-mix(in oklab, var(--border) 20%, transparent);
+    border-right: 1px solid color-mix(in oklab, var(--border) 20%, transparent);
+}
+
+@utility ambient-shadow {
+    box-shadow: 0 16px 40px color-mix(in oklab, var(--foreground) 5%, transparent);
+}
