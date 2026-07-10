@@ -306,7 +306,7 @@ function extractId(s: string) {
 
 function convertFilters(filtersFragment?: Filters_ProductFragment) {
   const filters = filtersFragment?.filters ?? [];
-  const mapFilter = (groupName: string) => (v: any) => {
+  const mapFilter = (groupName: string) => (v: Filters_ProductFragment["filters"][0]["values"][0]) => {
     const input = JSON.parse(v.input);
     return {
       id: extractId(v.id),

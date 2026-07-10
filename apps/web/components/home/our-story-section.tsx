@@ -23,7 +23,7 @@ export function OurStorySection() {
         {/* Text — right */}
         <div className="space-y-8">
           <span className="font-sans text-[10px] tracking-[0.3em] uppercase text-secondary block">
-            The Maker's Mark
+            The Maker&apos;s Mark
           </span>
 
           <h2 className="font-serif italic text-5xl font-light text-foreground leading-tight">
@@ -37,7 +37,7 @@ export function OurStorySection() {
               allowing the natural imperfections of stones to guide our design.
             </p>
             <p className="font-sans text-base font-light leading-loose text-muted-foreground">
-              Our studio isn't just a workshop; it's a sanctuary where heritage techniques
+              Our studio isn&apos;t just a workshop; it&apos;s a sanctuary where heritage techniques
               meet a modern, minimalist eye.
             </p>
           </div>

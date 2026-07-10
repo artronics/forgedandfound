@@ -203,13 +203,19 @@ export function Album({open, setOpen, images, selectedIndex = 0}: AlbumProps) {
   });
 
   const [current, setCurrent] = React.useState(selectedIndex);
+  const [prevSelectedIndex, setPrevSelectedIndex] = React.useState(selectedIndex);
+
+  if (selectedIndex !== prevSelectedIndex) {
+    setPrevSelectedIndex(selectedIndex);
+    setCurrent(selectedIndex);
+  }
+
   const {dragStyle, onTransitionEnd, touchHandlers} = useDragToClose(() => setOpen(false));
 
   React.useEffect(() => {
     if (!open) return;
     mainApi?.scrollTo(selectedIndex, true);
     thumbApi?.scrollTo(selectedIndex, true);
-    setCurrent(selectedIndex);
   }, [open, selectedIndex, mainApi, thumbApi]);
 
   React.useEffect(() => {

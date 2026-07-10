@@ -9,12 +9,14 @@ export function useSearchHistory() {
   const [history, setHistory] = useState<string[]>([]);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setHistory(JSON.parse(stored));
-    } catch {
-      // ignore
-    }
+    queueMicrotask(() => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) setHistory(JSON.parse(stored));
+      } catch {
+        // ignore
+      }
+    });
   }, []);
 
   const addToHistory = useCallback((term: string) => {

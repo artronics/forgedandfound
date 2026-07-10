@@ -71,28 +71,30 @@ function CartSummary() {
   );
 }
 
-function CartItem() {
-  const QuantityStepper = () => {
-    return (
-      <div className="inline-flex h-10.5 w-30 items-center ghost-border">
-        <Button variant="ghost" aria-label="Decrease quantity" className="w-10">-</Button>
-        <div className="flex flex-1 py-1 ghost-border-x justify-center items-center">
-          <span className="text-primary">1</span>
-        </div>
-        <Button variant="ghost" aria-label="Increase quantity" className="w-10">+</Button>
+function QuantityStepper() {
+  return (
+    <div className="inline-flex h-10.5 w-30 items-center ghost-border">
+      <Button variant="ghost" aria-label="Decrease quantity" className="w-10">-</Button>
+      <div className="flex flex-1 py-1 ghost-border-x justify-center items-center">
+        <span className="text-primary">1</span>
       </div>
-    );
-  };
-  const Footer = () => {
-    return (
-      <>
-        <QuantityStepper/>
-        <div className="grow text-right">
-          <Button variant="link" className="p-0">Save For Later</Button>
-        </div>
-      </>
-    );
-  };
+      <Button variant="ghost" aria-label="Increase quantity" className="w-10">+</Button>
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <>
+      <QuantityStepper/>
+      <div className="grow text-right">
+        <Button variant="link" className="p-0">Save For Later</Button>
+      </div>
+    </>
+  );
+}
+
+function CartItem() {
   return (
     <Item>
       <ItemImage>

@@ -23,7 +23,9 @@ export function FlexBox({children, className, index}: {
   const [colors, setColors] = useState<{ bg: string; border: string } | null>(null);
 
   useEffect(() => {
-    setColors({bg: randomColor(), border: randomColor()});
+    queueMicrotask(() => {
+      setColors({bg: randomColor(), border: randomColor()});
+    });
   }, []);
 
   return (

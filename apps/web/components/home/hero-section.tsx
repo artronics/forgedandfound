@@ -25,7 +25,7 @@ export function HeroSection() {
       <div className="relative z-20 w-full max-w-7xl mx-auto">
         <div className="max-w-2xl space-y-8">
           <p className="font-sans text-[10px] tracking-[0.3em] uppercase text-foreground/60">
-            Autumn / Winter '24 Collection
+            Autumn / Winter &apos;24 Collection
           </p>
           <h1
             className="font-serif italic text-7xl md:text-8xl font-light leading-[0.9] tracking-tight text-foreground">

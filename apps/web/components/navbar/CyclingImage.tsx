@@ -13,9 +13,14 @@ interface CyclingImageProps {
 
 export function CyclingImage({images, className}: CyclingImageProps) {
   const [index, setIndex] = useState(0);
+  const [prevImages, setPrevImages] = useState(images);
+
+  if (images !== prevImages) {
+    setPrevImages(images);
+    setIndex(0);
+  }
 
   useEffect(() => {
-    setIndex(0);
     if (images.length <= 1) return;
     const id = setInterval(() => setIndex(i => (i + 1) % images.length), 2000);
     return () => clearInterval(id);
