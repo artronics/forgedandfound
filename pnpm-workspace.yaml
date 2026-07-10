@@ -33,6 +33,8 @@ catalog:
   '@types/aws-lambda': ^8.10.162
   "@types/react": "19.2.17"
   "@types/react-dom": "19.2.3"
+  eslint: ^9.16.0
+  typescript-eslint: ^8.16.0
 
 overrides:
   "@types/react": "19.2.17"

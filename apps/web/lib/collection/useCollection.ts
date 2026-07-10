@@ -1,5 +1,6 @@
 import {GetCollectionByHandleDocument, ProductCollectionSortKeys} from "@/graphql/generated/graphql";
 import {skipToken, useQuery} from "@apollo/client/react";
+import {FilterInput} from "@/components/collection/Collection";
 
 const PAGE_SIZE = 1;
 
@@ -11,7 +12,7 @@ export function useCollection(
     reverse = true,
   }: {
     handle?: string,
-    filters?: any,
+    filters?: FilterInput[],
     sortKey?: ProductCollectionSortKeys,
     reverse?: boolean
   }) {

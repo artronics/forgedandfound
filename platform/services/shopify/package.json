@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm dlx tsx index.ts",
-    "build": "esbuild index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js"
+    "build": "esbuild index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
@@ -19,6 +20,8 @@
     "@types/aws-lambda": "catalog:",
     "@types/node": "catalog:",
     "esbuild": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "eslint": "catalog:",
+    "typescript-eslint": "catalog:"
   }
 }

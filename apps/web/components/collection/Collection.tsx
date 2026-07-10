@@ -33,7 +33,7 @@ const SORT_OPTIONS: Sort[] = [
   {value: "bestselling", label: "Bestselling", sortKey: "BEST_SELLING"},
 ];
 
-type FilterInput = {
+export type FilterInput = {
   productMetafield: {
     namespace: string;
     key: string;
@@ -71,7 +71,7 @@ type CollectionProps = {
 }
 
 export function Collection({handle}: CollectionProps) {
-  const [filters, setFilters] = useState<Filter[]>([]);
+  const [filters, setFilters] = useState<FilterInput[]>([]);
   const [sort, setSort] = useState<Sort>(SORT_OPTIONS[0]);
   const {data, loading, error, fetchMore} = useCollection({
     handle,
@@ -83,8 +83,8 @@ export function Collection({handle}: CollectionProps) {
   const products = collection?.products?.edges?.map(e => e.node);
   const pageInfo = data?.collection?.products?.pageInfo;
 
-  const onFiltersChange = (filters: any) => {
-    setFilters(filters.map((f: any) => (f.input)));
+  const onFiltersChange = (filters: Filter[]) => {
+    setFilters(filters.map((f: Filter) => (f.input)));
   };
 
   return (
