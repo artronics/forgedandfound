@@ -14,5 +14,11 @@
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1072.0",
     "@forgedandfound/lib": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "catalog:",
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "typescript": "catalog:"
   }
 }

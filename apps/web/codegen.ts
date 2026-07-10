@@ -5,6 +5,9 @@ const shopifyApiVersion = process.env.NEXT_PUBLIC_SHOPIFY_API_VERSION ?? "2026-0
 const graphqlUrl = `${shopifyUrl}/api/${shopifyApiVersion}/graphql.json`;
 
 const storefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_PUBLIC_TOKEN!;
+console.error("Storefront Access Token:", storefrontAccessToken);
+console.error("GraphQL URL:", graphqlUrl);
+// throw new Error(`Fooo: ${process.env.NEXT_PUBLIC_SHOPIFY_STORE_NAME}`);
 
 const config: CodegenConfig = {
   schema: [

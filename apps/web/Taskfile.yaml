@@ -26,7 +26,8 @@ tasks:
   codegen:
     desc: Generate GraphQL types
     cmds:
-      - pnpm run codegen
+#      - pnpm run codegen
+      - echo $NEXT_PUBLIC_SHOPIFY_STORE_NAME
   codegen:watch:
     desc: Generate GraphQL types
     cmds:

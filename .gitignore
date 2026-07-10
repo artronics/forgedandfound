@@ -4,7 +4,13 @@
 .dev.md
 dist
 
+# AI
+.junie
+
 **/.terraform
+# turbo
+.turbo
+
 # dependencies
 **/node_modules
 /.pnp

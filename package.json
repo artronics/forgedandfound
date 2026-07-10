@@ -4,11 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:web": "pnpm run -r --filter=web build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "dev": "turbo run dev",
+    "build:web": "turbo run build --filter=@forgedandfound/web"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.6"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@11.8.0"
 }

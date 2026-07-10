@@ -13,6 +13,6 @@ includes:
     dir: ./platform
 
 tasks:
-  test:
+  build:
     cmds:
-      - pnpm run -r --filter=web build
+      - turbo build

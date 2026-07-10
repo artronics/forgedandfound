@@ -1,5 +1,48 @@
 packages:
   - 'apps/*'
+  - 'apps/shopify/extensions/*'
   - 'platform/services/*'
   - 'terraform/*'
   - 'packages/*'
+
+# Native/postinstall build scripts allowed to run (pnpm 10 blocks these by
+# default). Consolidated here from the removed nested workspaces — these must
+# live at the workspace ROOT to take effect. Anything not listed (e.g. msw)
+# stays blocked.
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@prisma/client'
+  - '@prisma/engines'
+  - esbuild
+  - prisma
+  - sharp
+  - unrs-resolver
+
+# Single source of truth for shared dependency versions.
+# Any package that uses "react": "catalog:" resolves to the version below,
+# so pnpm installs ONE copy instead of one per pinned version.
+catalog:
+  react: 19.2.7
+  react-dom: 19.2.7
+  # Shared build tooling for the lambda services (formerly the devDeps of the
+  # nested @forgedandfound/services workspace root). Kept in the catalog so
+  # auth/shopify stay on identical versions instead of drifting.
+  esbuild: ^0.28.1
+  typescript: ^6.0.3
+  '@types/node': ^26.0.0
+  '@types/aws-lambda': ^8.10.162
+  "@types/react": "19.2.17"
+  "@types/react-dom": "19.2.3"
+
+overrides:
+  "@types/react": "19.2.17"
+  "@types/react-dom": "19.2.3"
+
+allowBuilds:
+  '@parcel/watcher': false
+  '@prisma/client': false
+  '@prisma/engines': false
+  esbuild: false
+  prisma: false
+  sharp: false
+  unrs-resolver: false

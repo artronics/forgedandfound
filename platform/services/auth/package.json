@@ -16,5 +16,11 @@
     "@aws-sdk/client-sesv2": "^3.1072.0",
     "@forgedandfound/email": "workspace:*",
     "@forgedandfound/lib": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "catalog:",
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "typescript": "catalog:"
   }
 }

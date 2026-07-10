@@ -1,0 +1,60 @@
+name: CI
+
+# POC monorepo CI. Runs on PRs and on pushes to main.
+# This mirrors what platform/.github/workflows/deploy.yml does (checkout ->
+# setup tooling -> run steps), but done "properly" for a monorepo:
+#   - lives at the REPO ROOT so GitHub Actions actually picks it up
+#   - validates PRs, not just pushes to main
+#   - cancels superseded runs (concurrency)
+#   - caches pnpm store + turbo, and uses turbo to build the dependency graph
+#
+# Deployment (Vercel / Shopify / Terraform) is intentionally NOT here yet.
+# Those become separate jobs that `needs: build` and run only on push to main.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel an in-progress run for the same branch/PR when a new commit lands.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # turbo compares against the previous commit to find affected packages
+          fetch-depth: 2
+
+      # Reads the `packageManager` field (pnpm@10.33.0) from the root package.json
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Cache turbo's local task cache so unchanged packages are restored, not rebuilt.
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm turbo run lint
+
+      - name: Build
+        run: pnpm turbo run build
