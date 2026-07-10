@@ -4,7 +4,7 @@ tasks:
   init:
     desc: Initialize terraform
     cmds:
-      - terraform init -backend-config="key=infra/$AWS_ACCOUNT_SUFFIX/$INFRA_ENV.tfstate" -backend-config="bucket=artronics-forgedandfound-$AWS_ACCOUNT_SUFFIX-infra-terraform-state"
+      - terraform init -backend-config="key=backend/$AWS_ACCOUNT_SUFFIX/app/$TF_VAR_environment.tfstate" -backend-config="bucket=artronics-forgedandfound-$AWS_ACCOUNT_SUFFIX-app-terraform-state"
   plan:
     desc: Plan infrastructure
     cmds:

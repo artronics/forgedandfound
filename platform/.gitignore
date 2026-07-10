@@ -1,7 +1,0 @@
-.idea
-.env*
-!.env.sample
-node_modules
-dist
-.terraform
-*private*

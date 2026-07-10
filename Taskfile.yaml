@@ -3,6 +3,7 @@ version: 3
 dotenv:
   - .env.apps.web
   - .env.infra
+  - .env.platform
 
 includes:
   web:
@@ -11,6 +12,9 @@ includes:
   infra:
     taskfile: ./infra/Taskfile.yaml
     dir: ./infra
+  platform:
+    taskfile: ./platform/terraform/Taskfile.yaml
+    dir: ./platform/terraform
   services:
     taskfile: ./services/Taskfile.yaml
     dir: ./services
