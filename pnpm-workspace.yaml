@@ -1,9 +1,8 @@
 packages:
   - 'apps/*'
-  - 'apps/shopify/extensions/*'
-  - 'platform/services/*'
-  - 'terraform/*'
+  - 'services/*'
   - 'packages/*'
+  - 'scripts'
 
 # Native/postinstall build scripts allowed to run (pnpm 10 blocks these by
 # default). Consolidated here from the removed nested workspaces — these must
@@ -24,12 +23,9 @@ onlyBuiltDependencies:
 catalog:
   react: 19.2.7
   react-dom: 19.2.7
-  # Shared build tooling for the lambda services (formerly the devDeps of the
-  # nested @forgedandfound/services workspace root). Kept in the catalog so
-  # auth/shopify stay on identical versions instead of drifting.
   esbuild: ^0.28.1
   typescript: ^6.0.3
-  '@types/node': ^26.0.0
+  '@types/node': ^26.1.1
   '@types/aws-lambda': ^8.10.162
   "@types/react": "19.2.17"
   "@types/react-dom": "19.2.3"

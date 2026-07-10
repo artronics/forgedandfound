@@ -2,15 +2,22 @@ version: 3
 
 dotenv:
   - .env.apps.web
+  - .env.infra
   - .env.platform
 
 includes:
   web:
     taskfile: ./apps/web/Taskfile.yaml
     dir: ./apps/web
+  infra:
+    taskfile: ./infra/Taskfile.yaml
+    dir: ./infra
   platform:
-    taskfile: ./platform/Taskfile.yaml
-    dir: ./platform
+    taskfile: ./platform/terraform/Taskfile.yaml
+    dir: ./platform/terraform
+  services:
+    taskfile: ./services/Taskfile.yaml
+    dir: ./services
 
 tasks:
   build:

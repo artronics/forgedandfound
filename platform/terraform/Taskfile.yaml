@@ -1,0 +1,15 @@
+version: '3'
+
+tasks:
+  init:
+    desc: Initialize terraform
+    cmds:
+      - terraform init -backend-config="key=backend/$AWS_ACCOUNT_SUFFIX/app/$TF_VAR_environment.tfstate" -backend-config="bucket=artronics-forgedandfound-$AWS_ACCOUNT_SUFFIX-app-terraform-state"
+  plan:
+    desc: Plan infrastructure
+    cmds:
+      - terraform plan -var="aws_account=$AWS_ACCOUNT_SUFFIX"
+  apply:
+    desc: Apply infrastructure
+    cmds:
+      - terraform apply -var="aws_account=$AWS_ACCOUNT_SUFFIX" -auto-approve

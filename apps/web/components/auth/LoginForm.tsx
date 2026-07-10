@@ -182,13 +182,21 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
       </form>
       <Divider/>
       <div className="flex flex-col gap-3">
-        <ShopButton/>
         <GoogleButton
           onClick={() =>
             signIn(
               "cognito",
               {callbackUrl: "/account"},
               {identity_provider: "Google"},
+            )
+          }
+        />
+        <AppleButton
+          onClick={() =>
+            signIn(
+              "cognito",
+              {callbackUrl: "/account"},
+              {identity_provider: "Apple"},
             )
           }
         />
@@ -492,25 +500,6 @@ function Divider() {
   );
 }
 
-function ShopButton({className, ...props}: React.ComponentProps<"button">) {
-  return (
-    <Button
-      asChild
-      variant="outline"
-      className={cn("w-full h-12 relative", className)}
-      {...props}
-    >
-      <Link href="/api/auth/shopify/login">
-        <img
-          src="/buy-with-shop-logo-color.svg"
-          alt="Login with Shop"
-          className="h-5 object-contain"
-        />
-      </Link>
-    </Button>
-  );
-}
-
 function GoogleButton({className, ...props}: React.ComponentProps<"button">) {
   return (
     <Button variant="outline" className={cn("w-full h-12 gap-3 text-sm", className)} {...props}>
@@ -529,6 +518,14 @@ function GoogleButton({className, ...props}: React.ComponentProps<"button">) {
           fill="#EA4335"/>
       </svg>
       Sign in with Google
+    </Button>
+  );
+}
+
+function AppleButton({className, ...props}: React.ComponentProps<"button">) {
+  return (
+    <Button>
+      Sign in with Apple
     </Button>
   );
 }
