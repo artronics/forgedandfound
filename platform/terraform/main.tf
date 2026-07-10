@@ -43,9 +43,9 @@ variable "root_domain" {
 locals {
   account_zone_name = "${var.aws_account}.${var.root_domain}"
 
-  project = "forgedandfound-backend"
+  project = "forgedandfound-app"
   tier    = "platform"
-  prefix  = "${local.project}-${local.tier}-${var.environment}"
+  prefix  = "${local.project}-${var.environment}"
 }
 
 provider "aws" {
@@ -53,8 +53,8 @@ provider "aws" {
   profile = var.aws_profile != "" ? var.aws_profile : null
   default_tags {
     tags = {
-      project = "forgedandfound-backend"
-      tier    = "backend"
+      project = "forgedandfound-app"
+      tier    = "platform"
     }
   }
 }
