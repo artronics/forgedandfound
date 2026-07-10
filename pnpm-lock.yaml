@@ -103,6 +103,9 @@ importers:
       '@shopify/api-codegen-preset':
         specifier: ^1.2.0
         version: 1.2.2(@types/node@22.20.1)(enquirer@2.4.1)(typescript@5.9.3)
+      '@shopify/app-bridge-types':
+        specifier: ^0.7.1
+        version: 0.7.1
       '@shopify/polaris-types':
         specifier: ^1.0.1
         version: 1.0.7
