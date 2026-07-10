@@ -31,7 +31,7 @@ variable "environment_variables" {
 variable "context_dir" {
   type        = string
   default     = ""
-  description = "Docker build context directory. Defaults to the service source directory when empty."
+  description = "Docker build context directory. Defaults to the project root when empty."
 }
 
 variable "permissions" {

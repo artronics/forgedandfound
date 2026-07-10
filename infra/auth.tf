@@ -93,8 +93,16 @@ data "aws_secretsmanager_secret" "idp_google" {
 data "aws_secretsmanager_secret_version" "idp_google_secret" {
   secret_id = data.aws_secretsmanager_secret.idp_google.id
 }
+
+data "aws_secretsmanager_secret" "idp_apple" {
+  name = "forgedandfound/infra/auth/idp/apple"
+}
+data "aws_secretsmanager_secret_version" "idp_apple_secret" {
+  secret_id = data.aws_secretsmanager_secret.idp_apple.id
+}
 locals {
   idp_google_creds = jsondecode(data.aws_secretsmanager_secret_version.idp_google_secret.secret_string)
+  idp_apple_creds = jsondecode(data.aws_secretsmanager_secret_version.idp_apple_secret.secret_string)
 }
 
 resource "aws_cognito_identity_provider" "google" {
@@ -125,6 +133,33 @@ resource "aws_cognito_identity_provider" "google" {
       provider_details["token_request_method"],
       provider_details["token_url"],
       provider_details["oidc_issuer"],
+    ]
+  }
+}
+resource "aws_cognito_identity_provider" "apple" {
+  user_pool_id  = aws_cognito_user_pool.main.id
+  provider_name = "SignInWithApple"
+  provider_type = "SignInWithApple"
+
+  provider_details = {
+    client_id        = local.idp_apple_creds["apple_client_id"]
+    team_id          = local.idp_apple_creds["team_id"]
+    key_id           = local.idp_apple_creds["key_id"]
+    private_key = base64decode(local.idp_apple_creds["private_key_b64"])
+    authorize_scopes = "email name"
+  }
+
+  attribute_mapping = {
+    email    = "email"
+    username = "sub"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      provider_details["authorize_url"],
+      provider_details["token_url"],
+      provider_details["attributes_url"],
+      provider_details["jwks_uri"],
     ]
   }
 }
@@ -335,7 +370,6 @@ module "shopify_lambda" {
   region      = var.region
   aws_profile = var.aws_profile
   role_arn    = aws_iam_role.shopify_lambda.arn
-  context_dir = "${path.root}/../services"
 
   environment_variables = {
     SHOPIFY_SECRET_NAME = "forgedandfound/infra/shopify"

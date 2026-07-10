@@ -93,13 +93,13 @@ export const handler = async (event: Event): Promise<Event> => {
     console.log("Skipping trigger:", e.triggerSource);
     return event;
   }
- const userPoolId = e.userPoolId;
- const userName = e.userName;
- const email = e.request.userAttributes.email;
- const firstName = e.request.userAttributes.given_name;
- const lastName = e.request.userAttributes.family_name;
- const name = e.request.userAttributes.name;
- const phone = e.request.userAttributes.phone_number;
+  const userPoolId = e.userPoolId;
+  const userName = e.userName;
+  const email = e.request.userAttributes.email;
+  const firstName = e.request.userAttributes.given_name;
+  const lastName = e.request.userAttributes.family_name;
+  const name = e.request.userAttributes.name;
+  const phone = e.request.userAttributes.phone_number;
 
   console.log("Creating Shopify customer for:", email);
   const shopifyCustomerId = await createShopifyCustomer(email, {firstName, lastName, name, phone});

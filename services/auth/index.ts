@@ -1,9 +1,6 @@
 import {buildClient, CommitmentPolicy, KmsKeyringNode} from "@aws-crypto/client-node";
-import {SESv2Client, SendEmailCommand} from "@aws-sdk/client-sesv2";
-import {
-  renderVerifyEmail,
-  renderResetPasswordEmail,
-} from "@forgedandfound/email/emails";
+import {SendEmailCommand, SESv2Client} from "@aws-sdk/client-sesv2";
+import {renderResetPasswordEmail, renderVerifyEmail} from "@forgedandfound/email/emails";
 
 const {decrypt} = buildClient(
   CommitmentPolicy.REQUIRE_ENCRYPT_ALLOW_DECRYPT,
@@ -114,6 +111,7 @@ function buildAppUrl(
 
   return url.toString();
 }
+
 async function sendEmail(
   toAddress: string,
   subject: string,

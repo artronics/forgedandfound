@@ -2,15 +2,18 @@ version: 3
 
 dotenv:
   - .env.apps.web
-  - .env.platform
+  - .env.infra
 
 includes:
   web:
     taskfile: ./apps/web/Taskfile.yaml
     dir: ./apps/web
-  platform:
-    taskfile: ./platform/Taskfile.yaml
-    dir: ./platform
+  infra:
+    taskfile: ./infra/Taskfile.yaml
+    dir: ./infra
+  services:
+    taskfile: ./services/Taskfile.yaml
+    dir: ./services
 
 tasks:
   build:

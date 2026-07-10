@@ -1,9 +1,8 @@
 locals {
   function_name    = "${var.prefix}-${var.name}"
   source_dir       = "${path.root}/../services/${var.name}"
-  context_dir      = var.context_dir != "" ? var.context_dir : "${path.root}/../services"
-  root_context_dir = "${path.root}/../../."
-  packages_dir     = "${path.root}/../../packages"
+  context_dir  = var.context_dir != "" ? var.context_dir : "${path.root}/.."
+  packages_dir = "${path.root}/../packages"
 }
 // Detecting file changes in the service directory and lib
 // ⚠️ ⚠️ ⚠️ IMPORTANT: Do not forget to add new packages to this list otherwise build won't be triggered ⚠️ ⚠️ ⚠️
@@ -68,7 +67,6 @@ resource "terraform_data" "image" {
       ECR_REPO         = aws_ecr_repository.this.repository_url
       IMAGE_TAG        = local.source_hash
       CONTEXT_DIR      = local.context_dir
-      ROOT_CONTEXT_DIR = local.root_context_dir
       DOCKERFILE       = "${local.source_dir}/Dockerfile"
     }
 
@@ -99,7 +97,6 @@ resource "terraform_data" "image" {
         -t "$ECR_REPO:$IMAGE_TAG" \
         -t "$ECR_REPO:latest" \
         --push \
-        --build-context root=$ROOT_CONTEXT_DIR \
         "$CONTEXT_DIR"
     EOT
   }
