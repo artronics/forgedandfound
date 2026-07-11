@@ -5,15 +5,15 @@ WORKDIR /usr/app
 RUN corepack enable
 
 # Workspace files
-COPY pnpm-workspace.yaml package.json tsconfig.base.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
 
 # Package manifests
 COPY services/auth/package.json ./services/auth/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/email/package.json ./packages/email/
 
-# Install auth and all workspace dependencies
-RUN pnpm --filter @forgedandfound/auth... install
+# Install auth and all workspace dependencies from the committed lockfile
+RUN pnpm --filter @forgedandfound/auth... install --frozen-lockfile
 
 # Source code
 COPY services/auth ./services/auth
