@@ -34,6 +34,10 @@ variable "shopify_app_id" {
   type = string
   description = "Shopify APP ID or client id"
 }
+variable "vercel_envs" {
+  type = list(string)
+  default = ["development","preview", "production"]
+}
 
 locals {
   app_url = var.aws_account == "prod" ? "https://${var.root_domain}" : "https://${var.aws_account}.${var.root_domain}"

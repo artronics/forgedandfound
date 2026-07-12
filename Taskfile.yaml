@@ -10,12 +10,12 @@ includes:
   web:
     taskfile: ./apps/web/Taskfile.yaml
     dir: ./apps/web
+  vercel:web:
+    taskfile: ./apps/web/Taskfile.vercel.yaml
+    dir: .
   infra:
     taskfile: ./infra/Taskfile.yaml
     dir: ./infra
-  platform:
-    taskfile: ./platform/terraform/Taskfile.yaml
-    dir: ./platform/terraform
   services:
     taskfile: ./services/Taskfile.yaml
     dir: ./services

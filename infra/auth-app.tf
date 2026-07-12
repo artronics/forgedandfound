@@ -2,7 +2,7 @@ locals {
   app_prod_callback_url = ["https://${var.root_domain}"]
   app_nonprod_callback_url = ["http://localhost:3000"]
   app_urls = concat(
-    ["https://${local.store_domain}"],
+    formatlist("https://%s", local.store_domains),
       var.aws_account == "prod" ? local.app_prod_callback_url : local.app_nonprod_callback_url
   )
 
@@ -12,7 +12,7 @@ locals {
 
 resource "aws_cognito_user_pool_client" "app" {
   name         = local.prefix
-  user_pool_id = local.cognito_user_pool_id
+  user_pool_id = aws_cognito_user_pool.main.id
 
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows = ["code"]

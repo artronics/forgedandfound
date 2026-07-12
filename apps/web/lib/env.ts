@@ -1,8 +1,7 @@
 export const oidc_config = {
   cognito_client_id: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID!,
-  cognito_client_secret: (process.env.COGNITO_CLIENT_SECRET ?? process.env.AUTH_COGNITO_SECRET)!,
+  cognito_client_secret: process.env.COGNITO_CLIENT_SECRET!,
   redirect_uri: process.env.NEXT_PUBLIC_APP_URL + "/account/callback",
-  cognito_authority: process.env.NEXT_PUBLIC_COGNITO_AUTHORITY!,
 };
 
 const accDomain = process.env.NEXT_PUBLIC_ACC_DOMAIN!;

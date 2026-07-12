@@ -10,8 +10,8 @@ locals {
 resource "aws_cognito_user_pool" "main" {
   name = "${local.prefix}-user-pool"
 
-  username_attributes      = ["email"]
-  auto_verified_attributes = ["email"]
+  username_attributes      = ["email", "phone_number"]
+  auto_verified_attributes = ["email", "phone_number"]
 
   mfa_configuration = "OFF"
 
@@ -20,6 +20,16 @@ resource "aws_cognito_user_pool" "main" {
     source_arn            = aws_sesv2_email_identity.account.arn
     from_email_address    = "noreply@${local.ses_domain}"
     configuration_set     = aws_sesv2_configuration_set.main.configuration_set_name
+  }
+
+  sms_configuration {
+    external_id    = local.cognito_sns_external_id
+    sns_caller_arn = aws_iam_role.cognito_sns.arn
+    sns_region     = var.region
+  }
+  verification_message_template {
+    default_email_option = "CONFIRM_WITH_CODE"
+    sms_message          = "Your Forged & Found verification code is {####}"
   }
 
   password_policy {
@@ -36,8 +46,12 @@ resource "aws_cognito_user_pool" "main" {
 
   account_recovery_setting {
     recovery_mechanism {
-      name     = "verified_email"
+      name     = "verified_phone_number"
       priority = 1
+    }
+    recovery_mechanism {
+      name     = "verified_email"
+      priority = 2
     }
   }
 
@@ -49,7 +63,6 @@ resource "aws_cognito_user_pool" "main" {
     kms_key_id        = aws_kms_key.cognito_email.arn
     post_confirmation = module.shopify_lambda.function_arn
   }
-
   schema {
     name                = "shopify_customer_id"
     attribute_data_type = "String"
@@ -120,9 +133,9 @@ resource "aws_cognito_identity_provider" "google" {
   provider_type = "Google"
 
   provider_details = {
-    client_id        = local.idp_google_creds["google_client_id"]
-    client_secret    = local.idp_google_creds["google_client_secret"]
-    authorize_scopes = "email profile openid"
+    client_id     = local.idp_google_creds["google_client_id"]
+    client_secret = local.idp_google_creds["google_client_secret"]
+    authorize_scopes = "email profile openid https://www.googleapis.com/auth/user.phonenumbers.read"
   }
 
   attribute_mapping = {
@@ -185,11 +198,11 @@ resource "aws_cognito_identity_provider" "facebook" {
   }
 
   attribute_mapping = {
-    username    = "id"
-    email       = "email"
-    given_name  = "first_name"
-    family_name = "last_name"
-    name        = "name"
+    username                     = "id"
+    email                        = "email"
+    given_name                   = "first_name"
+    family_name                  = "last_name"
+    name                         = "name"
     "custom:shopify_customer_id" = "shopify_customer_id"
   }
 
