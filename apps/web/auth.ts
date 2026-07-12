@@ -3,6 +3,7 @@ import Cognito from "next-auth/providers/cognito";
 import Credentials from "next-auth/providers/credentials";
 import {getOrCreateCustomer} from "@/lib/shopify/admin/customer";
 import {decodeIdToken, signInWithPassword} from "@/lib/auth/cognito";
+import {invariant} from "@apollo/client/utilities/invariant";
 
 class EmailNotVerifiedError extends CredentialsSignin {
   code = "EmailNotVerified";
@@ -14,6 +15,7 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
+  debug: true,
   providers: [
     Cognito({
       clientId: process.env.AUTH_COGNITO_ID!,

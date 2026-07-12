@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "sign": "pnpm dlx ts-node apple-sign-jwt.ts"
+    "sign": "pnpm dlx ts-node apple-sign-jwt.ts",
+    "code_flow": "pnpm dlx ts-node code_flow.ts"
   },
   "keywords": [],
   "author": "",

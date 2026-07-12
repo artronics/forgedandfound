@@ -1,0 +1,12 @@
+### get code
+GET www.facebook.com/{{api_version}}/dialog/oauth?client_id={{auth.facebook_client_id}}& redirect_uri={{auth.redirect_uri}}& scope=public_profile,email& response_type=code
+# ignore the page. Just copy/paste the request url to a browser
+
+### Exchange authorization code for access token
+POST {{graph_url}}/{{api_version}}/oauth/access_token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{auth.facebook_client_id}}&
+client_secret={{auth.facebook_client_secret}}&
+redirect_uri={{auth.redirect_uri}}&
+code={{auth.code}}

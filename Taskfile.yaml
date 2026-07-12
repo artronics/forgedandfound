@@ -4,6 +4,7 @@ dotenv:
   - .env.apps.web
   - .env.infra
   - .env.platform
+  - .env.scripts
 
 includes:
   web:
@@ -18,6 +19,9 @@ includes:
   services:
     taskfile: ./services/Taskfile.yaml
     dir: ./services
+  scripts:
+    taskfile: ./scripts/Taskfile.yaml
+    dir: ./scripts
 
 tasks:
   build:
