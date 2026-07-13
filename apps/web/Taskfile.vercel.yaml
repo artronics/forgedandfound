@@ -7,15 +7,8 @@ tasks:
     cmds:
       - pnpm run build
 
-  deploy:preview:
-    desc: Deploy preview
-    deps: [ build ]
-    cmds:
-      - vercel --cwd ./apps/web env pull .env.preview.local
-      - vercel --cwd ./apps/web deploy --target preview
   deploy:dev:
     desc: Deploy to Development
     deps: [ build ]
     cmds:
-      - vercel env pull .env.local
-      - vercel deploy --target development
+      - vercel alias set "$(vercel deploy --yes)" development.nonprod.forgedandfound.co.uk

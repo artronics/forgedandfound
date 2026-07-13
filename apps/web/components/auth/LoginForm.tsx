@@ -1,5 +1,5 @@
-import React, {useState} from "react";
-import {useRouter} from "next/navigation";
+import React, {useEffect, useState} from "react";
+import {usePathname, useRouter} from "next/navigation";
 import {signIn} from "next-auth/react";
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
@@ -98,8 +98,9 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
   const [unverified, setUnverified] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const currentPath = usePathname();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setError(null);
     setUnverified(false);
@@ -123,8 +124,8 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
         return;
       }
 
-      // Sync auth state, then redirect to where the user came from (or account page)
-      const returnTo = "/account";
+      const returnTo = window.location.href ??  "/account";
+      console.log("returnTo", returnTo);
       onSuccess?.();
       router.push(returnTo);
       router.refresh();
@@ -189,7 +190,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
           onClick={() =>
             signIn(
               "cognito",
-              {callbackUrl: "/account"},
+              {callbackUrl: currentPath ?? "/account"},
               {identity_provider: "Google"},
             )
           }
@@ -200,7 +201,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
           onClick={() =>
             signIn(
               "cognito",
-              {callbackUrl: "/account"},
+              {callbackUrl: currentPath ?? "/account"},
               {identity_provider: "Facebook"},
             )
           }
@@ -211,7 +212,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
           onClick={() =>
             signIn(
               "cognito",
-              {callbackUrl: "/account"},
+              {callbackUrl: currentPath ?? "/account"},
               {identity_provider: "SignInWithApple"},
             )
           }

@@ -5,8 +5,8 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"],
-      "inputs": ["$TURBO_DEFAULT$", ".env.apps.web"],
-      "env": ["NEXT_PUBLIC_SHOPIFY_STORE_NAME"]
+      "inputs": ["$TURBO_DEFAULT$", ".env.local", ".env.development"],
+      "env": ["NEXT_PUBLIC_SHOPIFY_STORE_NAME", "NEXT_PUBLIC_SHOPIFY_STOREFRONT_PUBLIC_TOKEN"]
     },
     "lint": {
       "dependsOn": ["^build"]

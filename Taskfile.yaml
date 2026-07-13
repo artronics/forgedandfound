@@ -1,7 +1,8 @@
 version: 3
 
 dotenv:
-  - .env.apps.web
+  - .env.development
+  - .env.local
   - .env.infra
   - .env.platform
   - .env.scripts

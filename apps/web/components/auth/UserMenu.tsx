@@ -4,17 +4,20 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {MenuItem} from "@/components/ui/menu-item";
 import {signOutWithCognito} from "@/actions/auth-actions";
 import {Icon} from "../ui/icon";
+import {usePathname} from "next/navigation";
 
 export default function UserMenu({open, setOpen, children}: {
   open: boolean,
   setOpen: (open: boolean) => void,
   children?: React.ReactNode
 }) {
+  const currentPath = usePathname();
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       {children && <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>}
@@ -22,7 +25,7 @@ export default function UserMenu({open, setOpen, children}: {
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <MenuItem icon={<Icon icon="log-out"/>}>
-              <form action={signOutWithCognito}>
+              <form action={() => signOutWithCognito(currentPath)}>
                 <button type="submit" className="cursor-pointer">
                   Log Out
                 </button>

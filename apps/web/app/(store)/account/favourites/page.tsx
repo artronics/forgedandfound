@@ -8,7 +8,7 @@ import {ProductItemCard} from "@/components/product/ProductItemCard";
 import React from "react";
 import {GalleryGrid} from "@/components/ui/gallery";
 import {GetWishlistProductsQuery} from "@/graphql/generated/graphql";
-import {signInWithCognito} from "@/actions/auth-actions";
+import {useLoginSheet} from "@/lib/auth/useLoginSheet";
 
 type FavouriteProduct = Extract<
   GetWishlistProductsQuery["nodes"][number],
@@ -24,12 +24,11 @@ export default function FavouritesPage() {
   const products = (data?.nodes ?? [])
     .filter((node): node is FavouriteProduct => node?.__typename === "Product");
 
+  const {setOpen} = useLoginSheet();
   const signIn = () => (
-    <form className="inline" action={signInWithCognito}>
-      <button type="submit" className="cursor-pointer underline underline-offset-4">
-        sign in or register
-      </button>
-    </form>
+    <button onClick={() => setOpen(true)} className="cursor-pointer underline underline-offset-4">
+      sign in or register
+    </button>
   );
 
   return (
