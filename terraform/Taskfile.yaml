@@ -1,0 +1,30 @@
+version: '3'
+
+vars:
+  STACKS: infra platform
+
+tasks:
+  fmt:
+    desc: Format all Terraform + Stack files
+    cmds:
+      - terraform fmt -recursive .
+
+  validate:
+    desc: 'Init + validate a single Stack (usage:: task validate STACK=infra)'
+    dir: '{{.STACK}}'
+    cmds:
+      - terraform stacks init
+      - terraform stacks validate
+
+  validate:all:
+    desc: Validate every Stack
+    cmds:
+      - for: { var: STACKS }
+        task: validate
+        vars: { STACK: '{{.ITEM}}' }
+
+  check:
+    desc: Format check + validate everything (use in CI)
+    cmds:
+      - terraform fmt -recursive -check .
+      - task: validate:all
