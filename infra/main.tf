@@ -20,6 +20,15 @@ variable "aws_account" {
     error_message = "AWS account must be either 'nonprod' or 'prod'"
   }
 }
+variable "deployment_env" {
+  type    = string
+  default = "development"
+  validation {
+    condition = contains(var.aws_account == "prod" ? ["staging", "production"] :
+      ["development", "preview"], var.deployment_env)
+    error_message = "Deployment environment must be one of 'development', 'preview', 'staging' or 'production'."
+  }
+}
 
 variable "aws_profile" {
   default = ""
@@ -30,24 +39,13 @@ variable "region" {
 variable "root_domain" {
   default = "forgedandfound.co.uk"
 }
-variable "shopify_app_id" {
-  type = string
-  description = "Shopify APP ID or client id"
-}
-variable "vercel_envs" {
-  type = list(string)
-  default = ["development","preview", "production"]
-}
-
 locals {
   app_url = var.aws_account == "prod" ? "https://${var.root_domain}" : "https://${var.aws_account}.${var.root_domain}"
 }
 
 locals {
   account_zone_name = "${var.aws_account}.${var.root_domain}"
-  project           = "forgedandfound"
-  tier              = "infra"
-  prefix            = "${local.project}-${local.tier}-${var.aws_account}"
+  prefix = "ff-infra-${var.deployment_env}"
 }
 
 
