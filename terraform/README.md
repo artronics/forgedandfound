@@ -140,3 +140,4 @@ task validate:all        # validate both Stacks
   (ECR + docker build/push) and the auth/shopify services.
 - Per-env Vercel DNS CNAME (was mixed into the old `dns.tf`).
 - A generated/self-service flow for ephemeral environments.
+
