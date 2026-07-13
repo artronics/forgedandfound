@@ -3,6 +3,7 @@ import Cognito from "next-auth/providers/cognito";
 import Credentials from "next-auth/providers/credentials";
 import {getOrCreateCustomer} from "@/lib/shopify/admin/customer";
 import {decodeIdToken, signInWithPassword} from "@/lib/auth/cognito";
+import {oidc_config} from "@/lib/env";
 
 class EmailNotVerifiedError extends CredentialsSignin {
   code = "EmailNotVerified";
@@ -14,11 +15,12 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
+  debug: true,
   providers: [
     Cognito({
-      clientId: process.env.AUTH_COGNITO_ID!,
-      clientSecret: process.env.AUTH_COGNITO_SECRET!,
-      issuer: process.env.AUTH_COGNITO_ISSUER!,
+      clientId: oidc_config.cognito_client_id,
+      clientSecret: oidc_config.cognito_client_secret,
+      issuer: oidc_config.cognito_issuer_url,
       // IMPORTANT: Do not delete this line otherwise, you'll get "nonce" error when login with Google
       checks: ["nonce", "pkce", "state"],
     }),

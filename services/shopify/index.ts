@@ -80,14 +80,6 @@ async function saveShopifyIdToCognito(
 }
 
 export const handler = async (event: Event): Promise<Event> => {
-  // const userPoolId: string;
-  // const userName: string;
-  // const email: string;
-  // const firstName: string | undefined;
-  // const lastName: string | undefined;
-  // const name: string | undefined;
-  // const phone: string | undefined;
-
   const e = event as PostConfirmationEvent;
   if (e.triggerSource !== "PostConfirmation_ConfirmSignUp") {
     console.log("Skipping trigger:", e.triggerSource);
@@ -101,7 +93,6 @@ export const handler = async (event: Event): Promise<Event> => {
   const name = e.request.userAttributes.name;
   const phone = e.request.userAttributes.phone_number;
 
-  console.log("Creating Shopify customer for:", email);
   const shopifyCustomerId = await createShopifyCustomer(email, {firstName, lastName, name, phone});
   if (shopifyCustomerId === null) {
     console.warn("[ShopifyCustomerCreationFailed] Failed to create Shopify customer, skipping.");

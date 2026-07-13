@@ -4,13 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "sign": "pnpm dlx ts-node apple-sign-jwt.ts"
+    "sign": "pnpm dlx ts-node apple-sign-jwt.ts",
+    "code_flow": "pnpm dlx ts-node code_flow.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "jsonwebtoken": "^9.0.3",
     "ts-node": "^10.9.2",
     "typescript": "catalog:"

@@ -75,9 +75,11 @@ resource "terraform_data" "image" {
       [ -z "$AWS_PROFILE" ] && unset AWS_PROFILE
       REGISTRY=$(echo "$ECR_REPO" | cut -d'/' -f1)
 
-      # Use an isolated, ephemeral Docker config so credentials are written
-      # inline instead of the macOS keychain. Avoids the intermittent osxkeychain
-      # fixes: "The specified item already exists in the keychain (-25299)".
+      # Use an isolated, ephemeral Docker config and write the ECR auth token
+      # straight into config.json instead of running `docker login`. An empty
+      # config dir would otherwise fall back to Docker Desktop's default
+      # credential store (osxkeychain), which intermittently fails with
+      # "The specified item already exists in the keychain (-25299)".
       DOCKER_CONFIG="$(mktemp -d)"
       export DOCKER_CONFIG
       trap 'rm -rf "$DOCKER_CONFIG"' EXIT
@@ -88,8 +90,13 @@ resource "terraform_data" "image" {
         ln -s "$HOME/.docker/cli-plugins" "$DOCKER_CONFIG/cli-plugins"
       fi
 
-      aws ecr get-login-password --region "$AWS_REGION" | \
-        docker login --username AWS --password-stdin "$REGISTRY"
+      # Base64-encode "AWS:<token>" and place it under auths.<registry>.
+      # No credential helper is invoked, so the keychain is never touched.
+      AUTH=$(aws ecr get-login-password --region "$AWS_REGION" \
+        | { printf 'AWS:'; cat; } | base64 | tr -d '\n')
+      cat > "$DOCKER_CONFIG/config.json" <<JSON
+      {"auths":{"$REGISTRY":{"auth":"$AUTH"}}}
+      JSON
       docker buildx build \
         --platform linux/amd64 \
         --provenance=false \

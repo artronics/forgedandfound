@@ -3,14 +3,9 @@ data "aws_route53_zone" "account_root_zone" {
 }
 
 locals {
-  subdomains = {
-    "shopify": {
-      cname   = [ "shops.myshopify.com."]
-    }
-    "store": {
-      cname   = [ "cf7020b26e3f4b48.vercel-dns-017.com." ]
-    }
-  }
+  store_domains = aws_route53_record.vercel_env_cname[*].fqdn
+  vercel_cname = ["cf7020b26e3f4b48.vercel-dns-017.com."]
+  shopify_cname = ["shops.myshopify.com"]
 }
 
 
@@ -25,10 +20,19 @@ resource "aws_route53_record" "account_zone_apex" {
 }
 
 resource "aws_route53_record" "shopify_cname" {
-  for_each = local.subdomains
   zone_id  = data.aws_route53_zone.account_root_zone.zone_id
-  name     = each.key
+  name     = "shopify"
   type     = "CNAME"
   ttl      = 300
-  records  = each.value["cname"]
+  records  = local.shopify_cname
 }
+
+resource "aws_route53_record" "vercel_env_cname" {
+  count = length(var.vercel_envs)
+  zone_id  = data.aws_route53_zone.account_root_zone.zone_id
+  name     = var.vercel_envs[count.index]
+  type     = "CNAME"
+  ttl      = 300
+  records  = local.vercel_cname
+}
+

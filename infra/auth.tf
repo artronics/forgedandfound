@@ -10,8 +10,8 @@ locals {
 resource "aws_cognito_user_pool" "main" {
   name = "${local.prefix}-user-pool"
 
-  username_attributes      = ["email"]
-  auto_verified_attributes = ["email"]
+  username_attributes      = ["email", "phone_number"]
+  auto_verified_attributes = ["email", "phone_number"]
 
   mfa_configuration = "OFF"
 
@@ -20,6 +20,16 @@ resource "aws_cognito_user_pool" "main" {
     source_arn            = aws_sesv2_email_identity.account.arn
     from_email_address    = "noreply@${local.ses_domain}"
     configuration_set     = aws_sesv2_configuration_set.main.configuration_set_name
+  }
+
+  sms_configuration {
+    external_id    = local.cognito_sns_external_id
+    sns_caller_arn = aws_iam_role.cognito_sns.arn
+    sns_region     = var.region
+  }
+  verification_message_template {
+    default_email_option = "CONFIRM_WITH_CODE"
+    sms_message          = "Your Forged & Found verification code is {####}"
   }
 
   password_policy {
@@ -36,8 +46,12 @@ resource "aws_cognito_user_pool" "main" {
 
   account_recovery_setting {
     recovery_mechanism {
-      name     = "verified_email"
+      name     = "verified_phone_number"
       priority = 1
+    }
+    recovery_mechanism {
+      name     = "verified_email"
+      priority = 2
     }
   }
 
@@ -49,7 +63,6 @@ resource "aws_cognito_user_pool" "main" {
     kms_key_id        = aws_kms_key.cognito_email.arn
     post_confirmation = module.shopify_lambda.function_arn
   }
-
   schema {
     name                = "shopify_customer_id"
     attribute_data_type = "String"
@@ -87,22 +100,31 @@ resource "aws_route53_record" "cognito_domain" {
   }
 }
 
+// Google
 data "aws_secretsmanager_secret" "idp_google" {
   name = "forgedandfound/infra/auth/idp/google"
 }
 data "aws_secretsmanager_secret_version" "idp_google_secret" {
   secret_id = data.aws_secretsmanager_secret.idp_google.id
 }
-
+// Apple
 data "aws_secretsmanager_secret" "idp_apple" {
   name = "forgedandfound/infra/auth/idp/apple"
 }
 data "aws_secretsmanager_secret_version" "idp_apple_secret" {
   secret_id = data.aws_secretsmanager_secret.idp_apple.id
 }
+// Facebook
+data "aws_secretsmanager_secret_version" "idp_facebook_secret" {
+  secret_id = data.aws_secretsmanager_secret.idp_facebook.id
+}
+data "aws_secretsmanager_secret" "idp_facebook" {
+  name = "forgedandfound/infra/auth/idp/facebook"
+}
 locals {
-  idp_google_creds = jsondecode(data.aws_secretsmanager_secret_version.idp_google_secret.secret_string)
-  idp_apple_creds = jsondecode(data.aws_secretsmanager_secret_version.idp_apple_secret.secret_string)
+  idp_google_creds   = jsondecode(data.aws_secretsmanager_secret_version.idp_google_secret.secret_string)
+  idp_apple_creds    = jsondecode(data.aws_secretsmanager_secret_version.idp_apple_secret.secret_string)
+  idp_facebook_creds = jsondecode(data.aws_secretsmanager_secret_version.idp_facebook_secret.secret_string)
 }
 
 resource "aws_cognito_identity_provider" "google" {
@@ -111,9 +133,9 @@ resource "aws_cognito_identity_provider" "google" {
   provider_type = "Google"
 
   provider_details = {
-    client_id        = local.idp_google_creds["google_client_id"]
-    client_secret    = local.idp_google_creds["google_client_secret"]
-    authorize_scopes = "email profile openid"
+    client_id     = local.idp_google_creds["google_client_id"]
+    client_secret = local.idp_google_creds["google_client_secret"]
+    authorize_scopes = "email profile openid https://www.googleapis.com/auth/user.phonenumbers.read"
   }
 
   attribute_mapping = {
@@ -145,13 +167,43 @@ resource "aws_cognito_identity_provider" "apple" {
     client_id        = local.idp_apple_creds["apple_client_id"]
     team_id          = local.idp_apple_creds["team_id"]
     key_id           = local.idp_apple_creds["key_id"]
-    private_key = base64decode(local.idp_apple_creds["private_key_b64"])
+    private_key      = base64decode(local.idp_apple_creds["private_key_b64"])
     authorize_scopes = "email name"
   }
 
   attribute_mapping = {
-    email    = "email"
-    username = "sub"
+    email                        = "email"
+    username                     = "sub"
+    "custom:shopify_customer_id" = "shopify_customer_id"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      provider_details["authorize_url"],
+      provider_details["token_url"],
+      provider_details["attributes_url"],
+      provider_details["jwks_uri"],
+    ]
+  }
+}
+resource "aws_cognito_identity_provider" "facebook" {
+  user_pool_id  = aws_cognito_user_pool.main.id
+  provider_name = "Facebook"
+  provider_type = "Facebook"
+
+  provider_details = {
+    client_id        = local.idp_facebook_creds["facebook_client_id"]
+    client_secret    = local.idp_facebook_creds["facebook_client_secret"]
+    authorize_scopes = "public_profile,email"
+  }
+
+  attribute_mapping = {
+    username                     = "id"
+    email                        = "email"
+    given_name                   = "first_name"
+    family_name                  = "last_name"
+    name                         = "name"
+    "custom:shopify_customer_id" = "shopify_customer_id"
   }
 
   lifecycle {
