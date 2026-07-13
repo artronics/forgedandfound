@@ -9,7 +9,7 @@ identity_token "aws" {
 
 upstream_input "infra" {
   type   = "stack"
-  source = "app.terraform.io/forgedandfound/forgedandfound/infra"
+  source = "app.terraform.io/forgedandfound/retail/infra"
 }
 
 locals {
