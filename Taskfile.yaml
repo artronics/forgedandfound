@@ -3,9 +3,8 @@ version: 3
 dotenv:
   - .env.development
   - .env.local
-  - .env.infra
-  - .env.platform
   - .env.scripts
+  - .env.terraform
 
 includes:
   web:
@@ -14,9 +13,9 @@ includes:
   vercel:web:
     taskfile: ./apps/web/Taskfile.vercel.yaml
     dir: .
-  infra:
-    taskfile: ./infra/Taskfile.yaml
-    dir: ./infra
+  tf:
+    taskfile: ./terraform/Taskfile.yaml
+    dir: ./terraform
   services:
     taskfile: ./services/Taskfile.yaml
     dir: ./services

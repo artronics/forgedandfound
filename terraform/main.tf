@@ -20,15 +20,6 @@ variable "aws_account" {
     error_message = "AWS account must be either 'nonprod' or 'prod'"
   }
 }
-variable "deployment_env" {
-  type    = string
-  default = "development"
-  validation {
-    condition = contains(var.aws_account == "prod" ? ["staging", "production"] :
-      ["development", "preview"], var.deployment_env)
-    error_message = "Deployment environment must be one of 'development', 'preview', 'staging' or 'production'."
-  }
-}
 
 variable "aws_profile" {
   default = ""
@@ -36,19 +27,20 @@ variable "aws_profile" {
 variable "region" {
   default = "eu-west-2"
 }
+
 variable "root_domain" {
   default = "forgedandfound.co.uk"
 }
 
 locals {
-  app_url = var.aws_account == "prod" ? "https://${var.root_domain}" : "https://${var.aws_account}.${var.root_domain}"
+  deployment_env    = var.aws_account == "prod" ? "live" : "dev"
+  account_zone_name = "${var.aws_account}.${var.root_domain}"
+  prefix            = "ff-${var.aws_account}-${local.deployment_env}"
 }
 
 locals {
-  account_zone_name = "${var.aws_account}.${var.root_domain}"
-  prefix = "ff-infra-${var.deployment_env}"
+  app_url = var.aws_account == "prod" ? "https://${var.root_domain}" : "https://${var.aws_account}.${var.root_domain}"
 }
-
 
 provider "aws" {
   region  = var.region
@@ -56,7 +48,7 @@ provider "aws" {
   default_tags {
     tags = {
       project = "forgedandfound"
-      tier    = "infra"
+      env     = local.deployment_env
     }
   }
 }
