@@ -32,6 +32,10 @@ variable "root_domain" {
   default = "forgedandfound.co.uk"
 }
 
+variable "store_nonprod_subdomains" {
+  default = ["preview", "development"]
+}
+
 locals {
   deployment_env    = var.aws_account == "prod" ? "live" : "dev"
   account_zone_name = "${var.aws_account}.${var.root_domain}"

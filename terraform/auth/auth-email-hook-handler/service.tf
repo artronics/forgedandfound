@@ -3,7 +3,7 @@ module "image" {
   prefix      = var.prefix
   aws_profile = var.aws_profile
 
-  service_name         = local.service_name
+  service_name = var.service_name
   package_dependencies = local.service_dependencies
 }
 
@@ -12,7 +12,7 @@ module "lambda" {
   prefix      = var.prefix
   aws_profile = var.aws_profile
 
-  function_name = local.service_name
+  function_name = var.service_name
   role_arn      = aws_iam_role.auth_lambda.arn
   image_uri     = module.image.image_uri
 
@@ -48,7 +48,7 @@ data "aws_iam_policy_document" "auth_lambda_assume" {
 }
 
 resource "aws_iam_role" "auth_lambda" {
-  name               = "${var.prefix}-${local.service_name}"
+  name = "${var.prefix}-${var.service_name}-lambda"
   assume_role_policy = data.aws_iam_policy_document.auth_lambda_assume.json
 }
 
@@ -75,7 +75,7 @@ data "aws_iam_policy_document" "auth_lambda" {
     sid    = "KMSDecrypt"
     effect = "Allow"
     actions = ["kms:Decrypt"]
-    resources = [var.ses_email_identity_arn]
+    resources = [var.cognito_email_kms_key_arn]
   }
 }
 

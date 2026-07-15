@@ -54,10 +54,10 @@ resource "aws_cognito_user_pool" "main" {
 
   lambda_config {
     custom_email_sender {
-      lambda_arn     = module.custom-email-sender-lambda.function_arn
+      lambda_arn = module.auth-email-hook-handler.function_arn
       lambda_version = "V1_0"
     }
-    kms_key_id = aws_kms_key.cognito_email.arn
+    kms_key_id = aws_kms_key.cognito_email_kms_key.arn
     post_confirmation = module.auth-shopify-customer-sync-handler.function_arn
   }
   schema {
@@ -107,7 +107,7 @@ data "aws_iam_policy_document" "cognito_kms_key" {
   }
 }
 
-resource "aws_kms_key" "cognito_email" {
+resource "aws_kms_key" "cognito_email_kms_key" {
   description             = "Cognito custom email sender – code encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
@@ -116,5 +116,5 @@ resource "aws_kms_key" "cognito_email" {
 
 resource "aws_kms_alias" "cognito_email" {
   name          = "alias/${var.prefix}-cognito-email"
-  target_key_id = aws_kms_key.cognito_email.key_id
+  target_key_id = aws_kms_key.cognito_email_kms_key.key_id
 }

@@ -8,8 +8,5 @@ module "auth" {
   ses_email_identity_arn = local.ses_email_identity_arn
   ses_email_domain       = local.ses_email_domain
   ses_email_identity     = local.ses_email_identity
-}
-
-locals {
-  cognito_user_pool_arn = module.auth.cognito_user_pool_arn
+  store_domains = formatlist("%s.${var.root_domain}", var.store_nonprod_subdomains)
 }

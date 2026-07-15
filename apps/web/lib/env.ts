@@ -5,9 +5,7 @@ export const oidc_config = {
   cognito_issuer_url: process.env.COGNITO_ISSUER_URL,
 };
 
-const accDomain = process.env.NEXT_PUBLIC_ACC_DOMAIN!;
 const shopifyUrl = `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_NAME!}.myshopify.com`;
-const accountUrl = `https://account.${accDomain}`;
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${process.env.VERCEL_URL}`;
 
 const shopifyApiVersion = process.env.NEXT_PUBLIC_SHOPIFY_API_VERSION ?? "2026-01";
@@ -16,10 +14,6 @@ export const shopifyStorefrontGql = `${shopifyUrl}/api/${shopifyApiVersion}/grap
 
 export const app = {
   url: appUrl,
-} as const;
-
-export const account = {
-  url: accountUrl,
 } as const;
 
 export const shopify = {

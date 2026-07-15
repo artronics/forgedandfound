@@ -4,11 +4,11 @@ variable "region" {
 }
 variable "aws_profile" {}
 variable "cognito_user_pool_arn" {}
+variable "service_name" {}
 
 data "aws_caller_identity" "current" {}
 
 locals {
-  service_name = "auth-shopify-customer-sync-handler"
   service_dependencies = ["shopify-admin-client", "secret-manager"]
 }
 
