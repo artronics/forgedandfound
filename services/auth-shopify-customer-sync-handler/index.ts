@@ -93,6 +93,11 @@ export const handler = async (event: Event): Promise<Event> => {
   const name = e.request.userAttributes.name;
   const phone = e.request.userAttributes.phone_number;
 
+  if (!email) {
+    console.warn("[MissingEmail] No email on user attributes, skipping Shopify customer creation.");
+    return event;
+  }
+
   const shopifyCustomerId = await createShopifyCustomer(email, {firstName, lastName, name, phone});
   if (shopifyCustomerId === null) {
     console.warn("[ShopifyCustomerCreationFailed] Failed to create Shopify customer, skipping.");

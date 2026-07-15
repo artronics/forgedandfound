@@ -5,7 +5,9 @@
 dist
 
 # AI
-.junie
+**/.junie
+**/CLAUDE.md
+
 
 **/.terraform
 # turbo
