@@ -58,7 +58,7 @@ resource "aws_cognito_user_pool" "main" {
       lambda_version = "V1_0"
     }
     kms_key_id = aws_kms_key.cognito_email.arn
-    # post_confirmation = module.shopify_lambda.function_arn
+    post_confirmation = module.auth-shopify-customer-sync-handler.function_arn
   }
   schema {
     name                = "shopify_customer_id"

@@ -13,3 +13,8 @@ tasks:
     desc: Apply infrastructure
     cmds:
       - terraform apply -var="aws_account=$TF_VAR_aws_account" -auto-approve
+
+  destroy:
+    desc: Destroy infrastructure
+    cmds:
+      - echo terraform destroy -var="aws_account=nonprod" -auto-approve
