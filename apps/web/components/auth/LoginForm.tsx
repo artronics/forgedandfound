@@ -124,7 +124,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
         return;
       }
 
-      const returnTo = window.location.href ??  "/account";
+      const returnTo = currentPath.endsWith("account/login") ? "/" : currentPath;
       onSuccess?.();
       router.push(returnTo);
       router.refresh();

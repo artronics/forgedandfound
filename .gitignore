@@ -3,7 +3,6 @@
 *.private.*
 .dev.md
 dist
-
 # AI
 **/.junie
 **/CLAUDE.md

@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
       {hostname: "cdn.shopify.com"},
       {hostname: "lh3.googleusercontent.com"},
     ],
-  },
+  }
 };
 
 export default nextConfig;
