@@ -15,7 +15,8 @@
   "dependencies": {
     "@aws-crypto/client-node": "^5.0.0",
     "@aws-sdk/client-sesv2": "^3.1072.0",
-    "@forgedandfound/email": "workspace:*"
+    "@forgedandfound/email": "workspace:*",
+    "@forgedandfound/logger": "workspace:*"
   },
   "devDependencies": {
     "@types/aws-lambda": "catalog:",

@@ -85,9 +85,9 @@ async function saveShopifyIdToCognito(
   );
 }
 
-export const handler = async (context: Context, event: Event): Promise<Event> => {
+export const handler = async (event: Event, context: Context): Promise<Event> => {
   return withLambdaLogger(context, async () => {
-    return authHandler(event);
+    return await authHandler(event);
   });
 };
 
@@ -117,7 +117,6 @@ const authHandler = async (event: Event): Promise<Event> => {
     logger.warn("[ShopifyCustomerCreationFailed] Failed to create Shopify customer, skipping.");
     return event;
   }
-  logger.info({shopifyCustomerId}, "Shopify customer created");
 
   await saveShopifyIdToCognito(userPoolId, userName, shopifyCustomerId);
   logger.info("shopify customer ID has been synced successfully");

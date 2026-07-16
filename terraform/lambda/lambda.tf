@@ -16,7 +16,7 @@ resource "aws_lambda_function" "this" {
     log_format            = "JSON"
     log_group             = aws_cloudwatch_log_group.this.name
     application_log_level = local.is_prod ? "INFO" : "DEBUG"
-    system_log_level      = local.is_prod ? "WARN" : "WARN"
+    system_log_level      = "INFO"
   }
 
   dynamic "environment" {

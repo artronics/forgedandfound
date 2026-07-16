@@ -432,6 +432,9 @@ importers:
       '@forgedandfound/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@forgedandfound/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
     devDependencies:
       '@types/aws-lambda':
         specifier: 'catalog:'

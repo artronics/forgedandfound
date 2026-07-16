@@ -1,6 +1,9 @@
 import {buildClient, CommitmentPolicy, KmsKeyringNode} from "@aws-crypto/client-node";
+import {withLambdaLogger} from "@forgedandfound/logger/lambda";
 import {SendEmailCommand, SESv2Client} from "@aws-sdk/client-sesv2";
 import {renderResetPasswordEmail, renderVerifyEmail} from "@forgedandfound/email/emails";
+import {Context} from "aws-lambda";
+import {getLogger} from "@forgedandfound/logger";
 
 const {decrypt} = buildClient(
   CommitmentPolicy.REQUIRE_ENCRYPT_ALLOW_DECRYPT,
@@ -140,15 +143,19 @@ async function sendEmail(
       },
     }),
   );
+  getLogger().debug("email sent");
 }
 
-export const handler = async (
+export const handler = async (event: CustomEmailSenderEvent, context: Context): Promise<CustomEmailSenderEvent> => {
+  return withLambdaLogger(context, async () => {
+    return await shopifyHandler(event);
+  });
+};
+
+export const shopifyHandler = async (
     event: CustomEmailSenderEvent,
   ): Promise<CustomEmailSenderEvent> => {
-    console.log(
-      "triggerSource:",
-      event.triggerSource,
-    );
+  const logger = getLogger();
 
     const supportedTriggers = [
       "CustomEmailSender_SignUp",
@@ -161,6 +168,8 @@ export const handler = async (
         event.triggerSource,
       )
     ) {
+      logger.info(
+        {triggerSource: event.triggerSource}, "unsupported event: skipping");
       return event;
     }
 
@@ -170,6 +179,13 @@ export const handler = async (
 
     const toAddress =
       event.request.userAttributes.email;
+
+  logger.debug(
+    {
+      triggerSource: event.triggerSource,
+      email: toAddress,
+      verificationCode: code,
+    }, "creating email trigger");
 
     switch (event.triggerSource) {
       case "CustomEmailSender_SignUp":
@@ -205,6 +221,10 @@ export const handler = async (
         );
 
         break;
+      }
+      default: {
+        logger.error(
+          {triggerSource: event.triggerSource}, "event wasn't filtered but wasn't handled either. This is a bug!");
       }
     }
 

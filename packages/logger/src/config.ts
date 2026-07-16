@@ -6,8 +6,26 @@ export interface CreateLoggerOptions {
 }
 
 export function createLogger({service}: CreateLoggerOptions) {
+  // Lambda's advanced logging controls export the configured application log
+  // level as AWS_LAMBDA_LOG_LEVEL (e.g. "INFO"/"DEBUG"). Honour it so pino's own
+  // threshold matches the level Lambda is filtering at, instead of always
+  // dropping debug/trace at "info". An explicit LOG_LEVEL still wins.
+  const level = (
+    process.env.LOG_LEVEL ?? process.env.AWS_LAMBDA_LOG_LEVEL ?? "info"
+  ).toLowerCase();
+
   const options: LoggerOptions = {
-    level: process.env.LOG_LEVEL ?? "info",
+    level,
+
+    // Lambda's log-level filtering reads a *string* "level" field
+    // (trace/debug/info/warn/error/fatal). Pino defaults to a numeric level,
+    // which Lambda can't parse and treats as INFO — breaking filtering. Emit the
+    // level label so Lambda routes each line to its real level.
+    formatters: {
+      level(label) {
+        return {level: label.toUpperCase()};
+      },
+    },
 
     base: {
       service,
@@ -28,6 +46,8 @@ export function createLogger({service}: CreateLoggerOptions) {
         "authorization",
         "headers.authorization",
         "cookie",
+        "email",
+        "verificationCode",
       ],
       censor: "[REDACTED]",
     },
