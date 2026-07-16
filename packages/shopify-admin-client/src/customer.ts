@@ -47,8 +47,22 @@ export async function findCustomerByEmail(
   return data.customers.nodes[0] ?? null;
 }
 
+interface EmailMarketingConsentInput {
+  marketingState: "SUBSCRIBED" | "NOT_SUBSCRIBED" | "PENDING" | "UNSUBSCRIBED";
+  marketingOptInLevel?: "SINGLE_OPT_IN" | "CONFIRMED_OPT_IN" | "UNKNOWN";
+  consentUpdatedAt?: string;
+}
+
+export interface CreateCustomerInput {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  emailMarketingConsent?: EmailMarketingConsentInput;
+}
+
 export async function createCustomer(
-  input: { email: string, firstName?: string, lastName?: string },
+  input: CreateCustomerInput,
 ): Promise<CustomerCreateResponse> {
   return await shopifyAdminFetch<CustomerCreateResponse>(
     `

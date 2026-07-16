@@ -35,18 +35,25 @@ async function createShopifyCustomer(
     lastName?: string,
     name?: string,
     phone?: string,
+    acceptsMarketing?: boolean,
   },
 ): Promise<string | null> {
   const logger = getLogger();
-  const {firstName, lastName, name, phone} = attributes;
+  const {firstName, lastName, name, phone, acceptsMarketing} = attributes;
   const input = {
     email,
     firstName: firstName ?? name ?? "",
     lastName: lastName ?? "",
     phone: phone ?? "",
-    emailMarketingConsent: {
-      marketingState: "NOT_SUBSCRIBED",
-    },
+    emailMarketingConsent: acceptsMarketing
+      ? {
+        marketingState: "SUBSCRIBED",
+        marketingOptInLevel: "SINGLE_OPT_IN",
+        consentUpdatedAt: new Date().toISOString(),
+      }
+      : {
+        marketingState: "NOT_SUBSCRIBED",
+      },
   };
   const {customer, userErrors} = (await createCustomer(input)).customerCreate;
 
@@ -105,6 +112,7 @@ const authHandler = async (event: Event): Promise<Event> => {
   const lastName = e.request.userAttributes.family_name;
   const name = e.request.userAttributes.name;
   const phone = e.request.userAttributes.phone_number;
+  const acceptsMarketing = e.request.userAttributes["custom:accepts_marketing"] === "true";
 
   if (!email) {
     logger.warn("[MissingEmail] No email on user attributes, skipping Shopify customer creation.");
@@ -112,7 +120,7 @@ const authHandler = async (event: Event): Promise<Event> => {
     return event;
   }
 
-  const shopifyCustomerId = await createShopifyCustomer(email, {firstName, lastName, name, phone});
+  const shopifyCustomerId = await createShopifyCustomer(email, {firstName, lastName, name, phone, acceptsMarketing});
   if (shopifyCustomerId === null) {
     logger.warn("[ShopifyCustomerCreationFailed] Failed to create Shopify customer, skipping.");
     return event;

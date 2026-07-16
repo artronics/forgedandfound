@@ -70,6 +70,16 @@ resource "aws_cognito_user_pool" "main" {
       max_length = "256"
     }
   }
+  schema {
+    name                = "accepts_marketing"
+    attribute_data_type = "String"
+    mutable             = true
+    required            = false
+    string_attribute_constraints {
+      min_length = "0"
+      max_length = "5"
+    }
+  }
 }
 # ---------------------------------------------------------------------------
 # KMS – encrypts codes passed to the custom email sender Lambda

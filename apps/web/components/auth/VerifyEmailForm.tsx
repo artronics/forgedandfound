@@ -103,8 +103,7 @@ export default function VerifyEmailForm({email, code, next}: VerifyEmailFormProp
   );
 }
 
-function SignInStep({email: initialEmail, redirectTo}: { email: string; redirectTo: string }) {
-  const [email, setEmail] = useState(initialEmail);
+function SignInStep({email, redirectTo}: { email: string; redirectTo: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -149,10 +148,10 @@ function SignInStep({email: initialEmail, redirectTo}: { email: string; redirect
             id="verify-email"
             type="email"
             autoComplete="email"
-            required
+            readOnly
+            aria-readonly="true"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            className="cursor-default text-muted-foreground focus-visible:ring-0"
           />
         </div>
         <div className="flex flex-col gap-1.5">

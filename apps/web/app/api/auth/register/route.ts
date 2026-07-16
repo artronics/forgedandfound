@@ -8,6 +8,7 @@ export async function POST(req: NextRequest) {
     let password: string;
     let firstName: string | undefined;
     let lastName: string | undefined;
+    let acceptsMarketing = false;
     let origin: string | undefined;
     let returnTo: string | undefined;
 
@@ -17,6 +18,7 @@ export async function POST(req: NextRequest) {
       password = body.password;
       firstName = body.firstName?.trim() || undefined;
       lastName = body.lastName?.trim() || undefined;
+      acceptsMarketing = Boolean(body.acceptsMarketing);
       origin = body.origin?.trim() || undefined;
       returnTo = body.returnTo?.trim() || undefined;
     } catch {
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
       const {userConfirmed} = await signUp(
         email,
         password,
-        {firstName, lastName},
+        {firstName, lastName, acceptsMarketing},
         buildAppMetadata(origin, returnTo),
       );
       return NextResponse.json({userConfirmed}, {status: 201});

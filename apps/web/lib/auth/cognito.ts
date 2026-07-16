@@ -59,11 +59,18 @@ export async function signInWithPassword(
 export async function signUp(
   email: string,
   password: string,
-  {firstName, lastName}: { firstName?: string; lastName?: string } = {},
+  {firstName, lastName, acceptsMarketing}: {
+    firstName?: string;
+    lastName?: string;
+    acceptsMarketing?: boolean;
+  } = {},
   clientMetadata?: Record<string, string>,
 ): Promise<{ userConfirmed: boolean }> {
   const userAttributes: { Name: string; Value: string }[] = [
     {Name: "email", Value: email},
+    // Persisted so the Post-Confirmation Lambda can set the matching Shopify
+    // email-marketing consent when it creates the customer.
+    {Name: "custom:accepts_marketing", Value: acceptsMarketing ? "true" : "false"},
   ];
   if (firstName) userAttributes.push({Name: "given_name", Value: firstName});
   if (lastName) userAttributes.push({Name: "family_name", Value: lastName});
