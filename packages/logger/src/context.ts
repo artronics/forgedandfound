@@ -19,3 +19,7 @@ export function getLogger(): Logger {
 
   return logger;
 }
+
+export function tryGetLogger(): Logger | undefined {
+  return storage.getStore();
+}

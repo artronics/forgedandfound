@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {signIn} from "next-auth/react";
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
@@ -125,7 +125,6 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
       }
 
       const returnTo = window.location.href ??  "/account";
-      console.log("returnTo", returnTo);
       onSuccess?.();
       router.push(returnTo);
       router.refresh();

@@ -3,6 +3,7 @@
 import {useEffect, useRef} from "react";
 import {useSession} from "next-auth/react";
 import {useMutation} from "@apollo/client/react";
+import {browserLogger} from "@forgedandfound/logger/browser";
 import {CartBuyerIdentityUpdateDocument} from "@/graphql/generated/graphql";
 import {useCartId} from "@/lib/cart/useCartId.store";
 
@@ -29,7 +30,7 @@ export function useCartBuyerIdentity() {
         buyerIdentity: {email: email ?? undefined},
       },
     }).catch((err) => {
-      console.error("[CartBuyerIdentity] Failed to update buyer identity", err);
+      browserLogger.error({err}, "cartBuyerIdentity: failed to update buyer identity");
     });
   }, [cartId, session, status, updateBuyerIdentity]);
 }

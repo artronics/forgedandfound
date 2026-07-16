@@ -1,5 +1,6 @@
 "use server";
 
+import {getLogger} from "@forgedandfound/logger/web";
 import {getAdminAccessToken} from "./admin-auth";
 import {shopifyAdmin} from "@/lib/env";
 
@@ -29,7 +30,7 @@ export async function shopifyAdminFetch<T>(
   }
 
   const json = await response.json();
-  console.log("shopifyAdminFetch", JSON.stringify(json, null, 2));
+  getLogger().debug({response: json}, "shopifyAdminFetch");
 
   if (json.errors) {
     throw new Error(

@@ -1,6 +1,7 @@
 import NextAuth, {CredentialsSignin} from "next-auth";
 import Cognito from "next-auth/providers/cognito";
 import Credentials from "next-auth/providers/credentials";
+import {getLogger} from "@forgedandfound/logger/web";
 import {getOrCreateCustomer} from "@/lib/shopify/admin/customer";
 import {decodeIdToken, signInWithPassword} from "@/lib/auth/cognito";
 import {oidc_config} from "@/lib/env";
@@ -15,7 +16,6 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
-  debug: true,
   providers: [
     Cognito({
       clientId: oidc_config.cognito_client_id,
@@ -78,7 +78,7 @@ export const {
 
       // TODO: this path is not tested. It should not happen since shopify user should be created in lambda
       if (user?.email) {
-        console.warn("[ShopifyCustomerIdDoesNotExist] Creating customer for user");
+        getLogger().warn("shopify customer id missing, creating customer for user");
         token.shopifyCustomerId = await getOrCreateCustomer(user.email);
       }
 

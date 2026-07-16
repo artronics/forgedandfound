@@ -3,6 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./web": "./web.ts",
+    "./browser": "./browser.ts",
+    "./lambda": "./lambda.ts",
+    "./trace": "./src/trace.ts"
+  },
   "scripts": {
     "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,6 +24,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
-    "pino": "catalog:"
+    "pino": "catalog:",
+    "pino-pretty": "catalog:"
   }
 }
