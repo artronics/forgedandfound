@@ -1,6 +1,6 @@
 resource "aws_cloudwatch_log_group" "this" {
   name              = "/aws/lambda/${var.function_name}"
-  retention_in_days = 14
+  retention_in_days = local.is_prod ? 60 : 14
 }
 
 resource "aws_lambda_function" "this" {
@@ -13,8 +13,10 @@ resource "aws_lambda_function" "this" {
   memory_size = 256
 
   logging_config {
-    log_format = "JSON"
-    log_group  = aws_cloudwatch_log_group.this.name
+    log_format            = "JSON"
+    log_group             = aws_cloudwatch_log_group.this.name
+    application_log_level = local.is_prod ? "INFO" : "DEBUG"
+    system_log_level      = local.is_prod ? "WARN" : "WARN"
   }
 
   dynamic "environment" {
@@ -30,7 +32,7 @@ resource "aws_lambda_function" "this" {
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_permission" "this" {
-  for_each = {for p in var.permissions : p.statement_id => p}
+  for_each = { for p in var.permissions : p.statement_id => p }
 
   statement_id  = each.value.statement_id
   action        = "lambda:InvokeFunction"

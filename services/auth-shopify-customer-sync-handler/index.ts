@@ -4,6 +4,9 @@ import {
   CognitoIdentityProviderClient,
 } from "@aws-sdk/client-cognito-identity-provider";
 import {createCustomer, findCustomerByEmail} from "@forgedandfound/shopify-admin-client/customer";
+import {withLambdaLogger} from "@forgedandfound/logger/lambda";
+import {Context} from "aws-lambda";
+import {getLogger} from "@forgedandfound/logger";
 
 const cognito = new CognitoIdentityProviderClient({});
 
@@ -34,6 +37,7 @@ async function createShopifyCustomer(
     phone?: string,
   },
 ): Promise<string | null> {
+  const logger = getLogger();
   const {firstName, lastName, name, phone} = attributes;
   const input = {
     email,
@@ -48,11 +52,13 @@ async function createShopifyCustomer(
 
   if (userErrors.length) {
     if (userErrors.some(e => e.message.toLowerCase().includes("email has already been taken"))) {
-      console.warn("[EmailExists] Email already exists in Shopify, getting current email.");
+      logger.warn("[EmailExists] Email already exists in Shopify, getting current email.");
       // TODO: When user exists we may have more info in here (like phone number). This should update the existing customer.
       return findCustomerIdByEmail(email);
     }
-    throw new Error(`Shopify customerCreate errors: ${JSON.stringify(userErrors)}`);
+    const e = new Error(`Shopify customerCreate errors: ${JSON.stringify(userErrors)}`);
+    logger.error(e);
+    throw e;
   }
 
   return customer!.id;
@@ -79,10 +85,17 @@ async function saveShopifyIdToCognito(
   );
 }
 
-export const handler = async (event: Event): Promise<Event> => {
+export const handler = async (context: Context, event: Event): Promise<Event> => {
+  return withLambdaLogger(context, async () => {
+    return authHandler(event);
+  });
+};
+
+const authHandler = async (event: Event): Promise<Event> => {
+  const logger = getLogger();
   const e = event as PostConfirmationEvent;
   if (e.triggerSource !== "PostConfirmation_ConfirmSignUp") {
-    console.log("Skipping trigger:", e.triggerSource);
+    logger.info({triggerSource: e.triggerSource}, "no handler for trigger: skipping");
     return event;
   }
   const userPoolId = e.userPoolId;
@@ -94,19 +107,20 @@ export const handler = async (event: Event): Promise<Event> => {
   const phone = e.request.userAttributes.phone_number;
 
   if (!email) {
-    console.warn("[MissingEmail] No email on user attributes, skipping Shopify customer creation.");
+    logger.warn("[MissingEmail] No email on user attributes, skipping Shopify customer creation.");
+    logger.debug(e, "skipping Shopify customer creation");
     return event;
   }
 
   const shopifyCustomerId = await createShopifyCustomer(email, {firstName, lastName, name, phone});
   if (shopifyCustomerId === null) {
-    console.warn("[ShopifyCustomerCreationFailed] Failed to create Shopify customer, skipping.");
+    logger.warn("[ShopifyCustomerCreationFailed] Failed to create Shopify customer, skipping.");
     return event;
   }
-  console.log("Shopify customer created:", shopifyCustomerId);
+  logger.info({shopifyCustomerId}, "Shopify customer created");
 
   await saveShopifyIdToCognito(userPoolId, userName, shopifyCustomerId);
-  console.log("Shopify ID saved to Cognito as custom:shopify_customer_id");
+  logger.info("shopify customer ID has been synced successfully");
 
   return event;
 };

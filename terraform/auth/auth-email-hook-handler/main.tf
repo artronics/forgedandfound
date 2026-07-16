@@ -1,5 +1,6 @@
 variable "prefix" {}
 variable "aws_profile" {}
+variable "aws_account" {}
 variable "region" {
   default = "eu-west-2"
 }
@@ -16,7 +17,7 @@ variable "app_url" {}
 data "aws_caller_identity" "current" {}
 
 locals {
-  service_dependencies = ["email"]
+  service_dependencies = ["logger", "email"]
 }
 
 output "function_arn" {

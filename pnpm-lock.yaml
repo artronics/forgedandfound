@@ -457,6 +457,9 @@ importers:
       '@aws-sdk/client-cognito-identity-provider':
         specifier: ^3.1072.0
         version: 3.1082.0
+      '@forgedandfound/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       '@forgedandfound/shopify-admin-client':
         specifier: workspace:*
         version: link:../../packages/shopify-admin-client

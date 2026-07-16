@@ -3,13 +3,14 @@ module "image" {
   prefix      = var.prefix
   aws_profile = var.aws_profile
 
-  service_name = var.service_name
+  service_name         = var.service_name
   package_dependencies = local.service_dependencies
 }
 
 module "lambda" {
   source      = "../../lambda"
   prefix      = var.prefix
+  aws_account = var.aws_account
   aws_profile = var.aws_profile
 
   function_name = var.service_name
@@ -41,14 +42,14 @@ data "aws_iam_policy_document" "auth_lambda_assume" {
   statement {
     actions = ["sts:AssumeRole"]
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = ["lambda.amazonaws.com"]
     }
   }
 }
 
 resource "aws_iam_role" "auth_lambda" {
-  name = "${var.prefix}-${var.service_name}-lambda"
+  name               = "${var.prefix}-${var.service_name}-lambda"
   assume_role_policy = data.aws_iam_policy_document.auth_lambda_assume.json
 }
 
@@ -72,9 +73,9 @@ data "aws_iam_policy_document" "auth_lambda" {
   }
 
   statement {
-    sid    = "KMSDecrypt"
-    effect = "Allow"
-    actions = ["kms:Decrypt"]
+    sid       = "KMSDecrypt"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt"]
     resources = [var.cognito_email_kms_key_arn]
   }
 }

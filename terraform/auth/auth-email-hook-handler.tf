@@ -1,10 +1,11 @@
 module "auth-email-hook-handler" {
-  source = "./auth-email-hook-handler"
+  source      = "./auth-email-hook-handler"
   prefix      = var.prefix
+  aws_account = var.aws_account
   aws_profile = var.aws_profile
 
   service_name              = "auth-email-hook-handler"
-  app_url = format("https://%s.${var.root_zone_name}", var.store_domains[0])
+  app_url                   = format("https://%s.${var.root_zone_name}", var.store_domains[0])
   cognito_domain            = local.cognito_domain
   cognito_email_kms_key_arn = aws_kms_key.cognito_email_kms_key.arn
   cognito_user_pool_arn     = aws_cognito_user_pool.main.arn

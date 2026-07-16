@@ -4,13 +4,14 @@ module "image" {
   region      = var.region
   aws_profile = var.aws_profile
 
-  service_name = var.service_name
+  service_name         = var.service_name
   package_dependencies = local.service_dependencies
 }
 
 module "lambda" {
   source      = "../../lambda"
   prefix      = var.prefix
+  aws_account = var.aws_account
   region      = var.region
   aws_profile = var.aws_profile
 
@@ -35,7 +36,7 @@ data "aws_iam_policy_document" "lambda_assume" {
   statement {
     actions = ["sts:AssumeRole"]
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = ["lambda.amazonaws.com"]
     }
   }
@@ -53,15 +54,15 @@ resource "aws_iam_role_policy_attachment" "policy_attachment" {
 
 data "aws_iam_policy_document" "lambda_policy_doc" {
   statement {
-    sid    = "CognitoUpdateAttributes"
-    effect = "Allow"
-    actions = ["cognito-idp:AdminUpdateUserAttributes"]
+    sid       = "CognitoUpdateAttributes"
+    effect    = "Allow"
+    actions   = ["cognito-idp:AdminUpdateUserAttributes"]
     resources = [var.cognito_user_pool_arn]
   }
 
   statement {
-    sid    = "SecretsManagerRead"
-    effect = "Allow"
+    sid     = "SecretsManagerRead"
+    effect  = "Allow"
     actions = ["secretsmanager:GetSecretValue"]
     resources = [
       "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:forgedandfound/infra/shopify-*",

@@ -1,4 +1,5 @@
 variable "prefix" {}
+variable "aws_account" {}
 variable "region" {
   default = "eu-west-2"
 }
@@ -9,7 +10,7 @@ variable "service_name" {}
 data "aws_caller_identity" "current" {}
 
 locals {
-  service_dependencies = ["shopify-admin-client", "secret-manager"]
+  service_dependencies = ["logger", "shopify-admin-client", "secret-manager"]
 }
 
 output "function_arn" {

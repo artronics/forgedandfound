@@ -9,6 +9,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
 
 # Package manifests
 COPY services/auth-email-hook-handler/package.json ./services/auth-email-hook-handler/
+COPY packages/logger/package.json ./packages/logger/
 COPY packages/email/package.json ./packages/email/
 
 # Install auth-email-hook-handler and all workspace dependencies from the committed lockfile

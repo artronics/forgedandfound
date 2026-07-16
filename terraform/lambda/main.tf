@@ -3,6 +3,7 @@ variable "region" {
   default = "eu-west-2"
 }
 variable "aws_profile" {}
+variable "aws_account" {}
 
 variable "function_name" {}
 variable "image_uri" {
@@ -11,8 +12,8 @@ variable "image_uri" {
 
 variable "role_arn" {}
 variable "environment_variables" {
-  type = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
   description = "Environment variables injected into the Lambda"
 }
 
@@ -22,8 +23,12 @@ variable "permissions" {
     principal    = string
     source_arn   = string
   }))
-  default = []
+  default     = []
   description = "Resource-based policy statements allowing principals to invoke this Lambda"
+}
+
+locals {
+  is_prod = var.aws_account == "prod"
 }
 
 output "function_name" {
