@@ -13,7 +13,7 @@ module "lambda" {
   aws_account = var.aws_account
   aws_profile = var.aws_profile
 
-  function_name = var.service_name
+  function_name = "${var.prefix}-${var.service_name}"
   role_arn      = aws_iam_role.auth_lambda.arn
   image_uri     = module.image.image_uri
 

@@ -37,3 +37,7 @@ output "function_name" {
 output "function_arn" {
   value = aws_lambda_function.this.arn
 }
+output "invoke_arn" {
+  description = "ARN for invoking the Lambda from API Gateway (integration uri)."
+  value       = aws_lambda_function.this.invoke_arn
+}

@@ -3,6 +3,7 @@ import {
   AdminUpdateUserAttributesCommand,
   CognitoIdentityProviderClient,
 } from "@aws-sdk/client-cognito-identity-provider";
+import type {CreateCustomerInput} from "@forgedandfound/shopify-admin-client/customer";
 import {createCustomer, findCustomerByEmail} from "@forgedandfound/shopify-admin-client/customer";
 import {withLambdaLogger} from "@forgedandfound/logger/lambda";
 import {Context} from "aws-lambda";
@@ -45,7 +46,7 @@ async function createShopifyCustomer(
     firstName: firstName ?? name ?? "",
     lastName: lastName ?? "",
     phone: phone ?? "",
-    emailMarketingConsent: acceptsMarketing
+    emailMarketingConsent: (acceptsMarketing
       ? {
         marketingState: "SUBSCRIBED",
         marketingOptInLevel: "SINGLE_OPT_IN",
@@ -53,7 +54,7 @@ async function createShopifyCustomer(
       }
       : {
         marketingState: "NOT_SUBSCRIBED",
-      },
+      }) as Extract<CreateCustomerInput, "emailMarketingConsent">,
   };
   const {customer, userErrors} = (await createCustomer(input)).customerCreate;
 

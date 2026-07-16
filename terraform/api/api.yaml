@@ -1,0 +1,54 @@
+openapi: 3.0.1
+info:
+  title: forgedandfound-web
+  description: Forged and Found App main API
+  version: 1.0.0
+paths:
+  /user/{id}:
+    patch:
+      summary: Update a user (e.g. add or change their email)
+      operationId: patchUser
+      security:
+        - CognitoAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Cognito user id (sub)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: User updated
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${user_service_uri}
+        passthroughBehavior: when_no_match
+components:
+  securitySchemes:
+    CognitoAuth:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: cognito_user_pools
+      x-amazon-apigateway-authorizer:
+        type: cognito_user_pools
+        providerARNs:
+          - ${cognito_user_pool_arn}

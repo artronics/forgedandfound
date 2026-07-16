@@ -16,7 +16,7 @@ variable "aws_account" {
   type    = string
   default = "nonprod"
   validation {
-    condition = contains(["nonprod", "prod"], var.aws_account)
+    condition     = contains(["nonprod", "prod"], var.aws_account)
     error_message = "AWS account must be either 'nonprod' or 'prod'"
   }
 }
@@ -37,13 +37,8 @@ variable "store_nonprod_subdomains" {
 }
 
 locals {
-  deployment_env    = var.aws_account == "prod" ? "live" : "dev"
-  account_zone_name = "${var.aws_account}.${var.root_domain}"
-  prefix            = "ff-${var.aws_account}-${local.deployment_env}"
-}
-
-locals {
-  app_url = var.aws_account == "prod" ? "https://${var.root_domain}" : "https://${var.aws_account}.${var.root_domain}"
+  deployment_env = var.aws_account == "prod" ? "live" : "dev"
+  prefix         = "ff-${var.aws_account}-${local.deployment_env}"
 }
 
 provider "aws" {
