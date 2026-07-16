@@ -14,8 +14,20 @@ const ses = new SESv2Client({});
 const FROM_ADDRESS = process.env.SES_FROM_ADDRESS!;
 const CONFIGURATION_SET = process.env.SES_CONFIGURATION_SET!;
 const KMS_KEY_ID = process.env.KMS_KEY_ID!;
-const ACCOUNT_URL = process.env.ACCOUNT_URL!;
 const APP_URL = process.env.APP_URL!;
+// Storefront origins we're willing to send links to. One Cognito pool + one
+// Lambda serve multiple nonprod storefronts, so the initiating app tells us its
+// origin via ClientMetadata; we only honour it if it's on this list, otherwise
+// we fall back to APP_URL. Prevents a crafted origin from making our email link
+// to an attacker-controlled domain.
+const ALLOWED_APP_ORIGINS = (process.env.ALLOWED_APP_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => normaliseOrigin(origin))
+  .filter(Boolean);
+
+function normaliseOrigin(origin: string): string {
+  return origin.trim().replace(/\/+$/, "");
+}
 
 type TriggerSource =
   | "CustomEmailSender_SignUp"
@@ -65,53 +77,36 @@ async function decryptCode(
   return plaintext.toString();
 }
 
-function buildAccountUrl(
-  event: CustomEmailSenderEvent,
-  code: string,
-  pathname: string,
-): string {
-  const url = new URL(
-    pathname,
-    ACCOUNT_URL,
-  );
+/**
+ * The storefront origin to build links against. The initiating app sends its own
+ * origin via ClientMetadata (so the right nonprod deployment is used); we honour
+ * it only when it's on the allowlist, otherwise fall back to APP_URL.
+ */
+function resolveAppOrigin(event: CustomEmailSenderEvent): string {
+  const requested = event.request.clientMetadata?.origin;
+  if (!requested) return APP_URL;
 
-  url.searchParams.set(
-    "client_id",
-    event.callerContext.clientId,
-  );
+  const normalised = normaliseOrigin(requested);
+  if (ALLOWED_APP_ORIGINS.includes(normalised)) {
+    return normalised;
+  }
 
-  url.searchParams.set(
-    "user_name",
-    event.userName,
+  getLogger().warn(
+    {requested},
+    "clientMetadata.origin not in allowlist; falling back to APP_URL",
   );
-
-  url.searchParams.set(
-    "confirmation_code",
-    code,
-  );
-
-  return url.toString();
+  return APP_URL;
 }
 
 function buildAppUrl(
-  event: CustomEmailSenderEvent,
-  code: string,
+  origin: string,
   pathname: string,
+  params: Record<string, string>,
 ): string {
-  const url = new URL(
-    pathname,
-    APP_URL,
-  );
-  url.searchParams.set(
-    "email",
-    event.userName,
-  );
-
-  url.searchParams.set(
-    "code",
-    code,
-  );
-
+  const url = new URL(pathname, origin);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
   return url.toString();
 }
 
@@ -155,7 +150,7 @@ export const handler = async (event: CustomEmailSenderEvent, context: Context): 
 export const shopifyHandler = async (
     event: CustomEmailSenderEvent,
   ): Promise<CustomEmailSenderEvent> => {
-  const logger = getLogger();
+    const logger = getLogger();
 
     const supportedTriggers = [
       "CustomEmailSender_SignUp",
@@ -163,13 +158,8 @@ export const shopifyHandler = async (
       "CustomEmailSender_ForgotPassword",
     ];
 
-    if (
-      !supportedTriggers.includes(
-        event.triggerSource,
-      )
-    ) {
-      logger.info(
-        {triggerSource: event.triggerSource}, "unsupported event: skipping");
+    if (!supportedTriggers.includes(event.triggerSource)) {
+      logger.info({triggerSource: event.triggerSource}, "unsupported event: skipping");
       return event;
     }
 
@@ -180,20 +170,28 @@ export const shopifyHandler = async (
     const toAddress =
       event.request.userAttributes.email;
 
-  logger.debug(
-    {
-      triggerSource: event.triggerSource,
-      email: toAddress,
-      verificationCode: code,
-    }, "creating email trigger");
+    const appOrigin = resolveAppOrigin(event);
+    const returnTo = event.request.clientMetadata?.returnTo;
+
+    logger.debug(
+      {
+        triggerSource: event.triggerSource,
+        email: toAddress,
+        verificationCode: code,
+        appOrigin,
+      }, "creating email trigger");
 
     switch (event.triggerSource) {
       case "CustomEmailSender_SignUp":
       case "CustomEmailSender_ResendCode": {
-        const verificationUrl = buildAccountUrl(
-          event,
-          code,
-          "/confirmUser",
+        const verificationUrl = buildAppUrl(
+          appOrigin,
+          "/account/verify",
+          {
+            email: event.request.userAttributes.email,
+            code,
+            ...(returnTo ? {next: returnTo} : {}),
+          },
         );
 
         await sendEmail(
@@ -208,9 +206,12 @@ export const shopifyHandler = async (
       }
       case "CustomEmailSender_ForgotPassword": {
         const verificationUrl = buildAppUrl(
-          event,
-          code,
+          appOrigin,
           "/account/login/reset",
+          {
+            email: event.request.userAttributes.email,
+            code,
+          },
         );
         await sendEmail(
           toAddress,

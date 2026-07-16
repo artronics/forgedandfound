@@ -21,8 +21,8 @@ module "lambda" {
     SES_FROM_ADDRESS      = "no-reply@${var.ses_domain}"
     SES_CONFIGURATION_SET = var.ses_config_set_name
     KMS_KEY_ID            = var.cognito_email_kms_key_arn
-    ACCOUNT_URL           = "https://${var.cognito_domain}"
     APP_URL               = var.app_url
+    ALLOWED_APP_ORIGINS   = join(",", var.allowed_app_origins)
   }
 
   permissions = [

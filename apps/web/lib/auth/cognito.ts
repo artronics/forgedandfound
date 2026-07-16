@@ -4,6 +4,7 @@ import {
   type AuthenticationResultType,
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
+  ConfirmSignUpCommand,
   ForgotPasswordCommand,
   InitiateAuthCommand,
   ResendConfirmationCodeCommand,
@@ -59,6 +60,7 @@ export async function signUp(
   email: string,
   password: string,
   {firstName, lastName}: { firstName?: string; lastName?: string } = {},
+  clientMetadata?: Record<string, string>,
 ): Promise<{ userConfirmed: boolean }> {
   const userAttributes: { Name: string; Value: string }[] = [
     {Name: "email", Value: email},
@@ -73,6 +75,7 @@ export async function signUp(
       Username: email,
       Password: password,
       UserAttributes: userAttributes,
+      ClientMetadata: clientMetadata,
     }),
   );
 
@@ -80,16 +83,38 @@ export async function signUp(
 }
 
 /**
+ * Confirm a sign-up with the code from the verification link, marking the user's
+ * email as verified. Requires the SECRET_HASH (the app client has a secret), so
+ * this must run server-side. Throws the underlying Cognito error so callers can
+ * map it (e.g. CodeMismatchException, ExpiredCodeException, or
+ * NotAuthorizedException when the user is already confirmed).
+ */
+export async function confirmSignUp(email: string, code: string): Promise<void> {
+  await cognitoClient.send(
+    new ConfirmSignUpCommand({
+      ClientId: oidc_config.cognito_client_id,
+      SecretHash: secretHash(email),
+      Username: email,
+      ConfirmationCode: code,
+    }),
+  );
+}
+
+/**
  * Resend the sign-up confirmation link/code. Cognito re-sends via the user
  * pool's Custom Message Lambda. Throws the underlying Cognito error so callers
  * can map it (e.g. InvalidParameterException when already confirmed).
  */
-export async function resendConfirmationCode(email: string): Promise<void> {
+export async function resendConfirmationCode(
+  email: string,
+  clientMetadata?: Record<string, string>,
+): Promise<void> {
   await cognitoClient.send(
     new ResendConfirmationCodeCommand({
       ClientId: oidc_config.cognito_client_id,
       SecretHash: secretHash(email),
       Username: email,
+      ClientMetadata: clientMetadata,
     }),
   );
 }
@@ -99,12 +124,16 @@ export async function resendConfirmationCode(email: string): Promise<void> {
  * pool's Custom Message Lambda, which builds the /account/login/reset link).
  * Throws the underlying Cognito error so callers can map it.
  */
-export async function forgotPassword(email: string): Promise<void> {
+export async function forgotPassword(
+  email: string,
+  clientMetadata?: Record<string, string>,
+): Promise<void> {
   await cognitoClient.send(
     new ForgotPasswordCommand({
       ClientId: oidc_config.cognito_client_id,
       SecretHash: secretHash(email),
       Username: email,
+      ClientMetadata: clientMetadata,
     }),
   );
 }
@@ -128,6 +157,22 @@ export async function confirmForgotPassword(
       Password: newPassword,
     }),
   );
+}
+
+/**
+ * Build the ClientMetadata map Cognito forwards to the Custom Email Sender
+ * Lambda, carrying the storefront the request came from so the Lambda can point
+ * the verification/reset link back at the right origin (and page). Only defined
+ * values are included — Cognito requires all ClientMetadata values to be strings.
+ */
+export function buildAppMetadata(
+  origin?: string,
+  returnTo?: string,
+): Record<string, string> | undefined {
+  const metadata: Record<string, string> = {};
+  if (origin) metadata.origin = origin;
+  if (returnTo) metadata.returnTo = returnTo;
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
 }
 
 export type CognitoIdTokenClaims = {

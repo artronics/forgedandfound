@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {getLogger, withWebLogger} from "@forgedandfound/logger/web";
-import {signUp} from "@/lib/auth/cognito";
+import {buildAppMetadata, signUp} from "@/lib/auth/cognito";
 
 export async function POST(req: NextRequest) {
   return withWebLogger(req, async () => {
@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
     let password: string;
     let firstName: string | undefined;
     let lastName: string | undefined;
+    let origin: string | undefined;
+    let returnTo: string | undefined;
 
     try {
       const body = await req.json();
@@ -15,6 +17,8 @@ export async function POST(req: NextRequest) {
       password = body.password;
       firstName = body.firstName?.trim() || undefined;
       lastName = body.lastName?.trim() || undefined;
+      origin = body.origin?.trim() || undefined;
+      returnTo = body.returnTo?.trim() || undefined;
     } catch {
       return NextResponse.json({error: "Invalid request body."}, {status: 400});
     }
@@ -24,7 +28,12 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const {userConfirmed} = await signUp(email, password, {firstName, lastName});
+      const {userConfirmed} = await signUp(
+        email,
+        password,
+        {firstName, lastName},
+        buildAppMetadata(origin, returnTo),
+      );
       return NextResponse.json({userConfirmed}, {status: 201});
     } catch (err: unknown) {
       const error = err as { name?: string; message?: string };

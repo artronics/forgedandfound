@@ -12,6 +12,10 @@ import {LoginButton} from "@/components/auth/LoginButton";
 type Tab = "signin" | "register";
 type View = "auth" | "forgot";
 
+function currentAppLocation(): { origin: string; returnTo: string } {
+  return {origin: window.location.origin, returnTo: window.location.pathname};
+}
+
 type LoginFormProps = {
   className?: string;
   onSuccess?: () => void;
@@ -253,6 +257,7 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
           firstName: firstName || undefined,
           lastName: lastName || undefined,
           acceptsMarketing,
+          ...currentAppLocation(),
         }),
       });
 
@@ -389,7 +394,7 @@ function ResendVerificationButton({email, className}: { email: string; className
       const res = await fetch("/api/auth/resend-verification", {
         method: "POST",
         headers: {"content-type": "application/json"},
-        body: JSON.stringify({email}),
+        body: JSON.stringify({email, ...currentAppLocation()}),
       });
       setState(res.ok ? "sent" : "error");
     } catch {
@@ -437,7 +442,7 @@ function ForgotPasswordForm({onBack}: { onBack: () => void }) {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: {"content-type": "application/json"},
-        body: JSON.stringify({email}),
+        body: JSON.stringify({email, ...currentAppLocation()}),
       });
 
       if (!res.ok) {

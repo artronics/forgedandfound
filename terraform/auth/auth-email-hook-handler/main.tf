@@ -8,11 +8,14 @@ variable "region" {
 variable "service_name" {}
 variable "cognito_user_pool_arn" {}
 variable "cognito_email_kms_key_arn" {}
-variable "cognito_domain" {}
 variable "ses_domain" {}
 variable "ses_config_set_name" {}
 variable "ses_email_identity_arn" {}
 variable "app_url" {}
+variable "allowed_app_origins" {
+  type        = list(string)
+  description = "Storefront origins the email Lambda will honour from ClientMetadata when building verification/reset links."
+}
 
 data "aws_caller_identity" "current" {}
 
