@@ -7,7 +7,7 @@ locals {
 resource "aws_cognito_user_pool" "main" {
   name = "${var.prefix}-user-pool"
 
-  username_attributes = ["email", "phone_number"]
+  username_attributes      = ["email", "phone_number"]
   auto_verified_attributes = ["email", "phone_number"]
 
   mfa_configuration = "OFF"
@@ -54,11 +54,14 @@ resource "aws_cognito_user_pool" "main" {
 
   lambda_config {
     custom_email_sender {
-      lambda_arn = module.auth-email-hook-handler.function_arn
+      lambda_arn     = module.auth-email-hook-handler.function_arn
       lambda_version = "V1_0"
     }
-    kms_key_id = aws_kms_key.cognito_email_kms_key.arn
+    kms_key_id        = aws_kms_key.cognito_email_kms_key.arn
     post_confirmation = module.auth-shopify-customer-sync-handler.function_arn
+    # Links an incoming social identity into an existing native account, before
+    # Cognito creates a duplicate federated user.
+    pre_sign_up = module.auth-shopify-customer-sync-handler.function_arn
   }
   schema {
     name                = "shopify_customer_id"
@@ -68,6 +71,30 @@ resource "aws_cognito_user_pool" "main" {
     string_attribute_constraints {
       min_length = "0"
       max_length = "256"
+    }
+  }
+  # "true" when the email is a synthetic stand-in (a provider gave us none) or an
+  # Apple relay — i.e. not a real address the user owns. Drives whether the UI
+  # shows an email and asks for one. Flagged explicitly rather than pattern
+  # matching the address.
+  schema {
+    name                = "email_placeholder"
+    attribute_data_type = "String"
+    mutable             = true
+    required            = false
+    string_attribute_constraints {
+      min_length = "0"
+      max_length = "8"
+    }
+  }
+  schema {
+    name                = "accepts_marketing"
+    attribute_data_type = "String"
+    mutable             = true
+    required            = false
+    string_attribute_constraints {
+      min_length = "0"
+      max_length = "5"
     }
   }
 }
@@ -80,10 +107,10 @@ data "aws_iam_policy_document" "cognito_kms_key" {
     sid    = "EnableRootAccess"
     effect = "Allow"
     principals {
-      type = "AWS"
+      type        = "AWS"
       identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
     }
-    actions = ["kms:*"]
+    actions   = ["kms:*"]
     resources = ["*"]
   }
 
@@ -91,7 +118,7 @@ data "aws_iam_policy_document" "cognito_kms_key" {
     sid    = "CognitoEncrypt"
     effect = "Allow"
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = ["cognito-idp.amazonaws.com"]
     }
     actions = [
@@ -102,7 +129,7 @@ data "aws_iam_policy_document" "cognito_kms_key" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
-      values = [data.aws_caller_identity.current.account_id]
+      values   = [data.aws_caller_identity.current.account_id]
     }
   }
 }

@@ -13,8 +13,6 @@ class EmailNotVerifiedError extends CredentialsSignin {
 export const {
   handlers,
   auth,
-  signIn,
-  signOut,
 } = NextAuth({
   providers: [
     Cognito({
@@ -50,6 +48,7 @@ export const {
             email: claims.email ?? email,
             name: name || null,
             shopifyCustomerId: claims["custom:shopify_customer_id"],
+            emailPlaceholder: claims["custom:email_placeholder"] === "true",
           };
         } catch (err) {
           const name = (err as { name?: string }).name;
@@ -66,6 +65,21 @@ export const {
 
   callbacks: {
     async jwt({token, user, profile}) {
+      // Capture the federated identity (social login) so the account-service can
+      // link it to a native account when the user adds an email.
+      const identity = firstIdentity(profile);
+      if (identity) {
+        token.provider = identity.providerName;
+        token.providerUserId = identity.userId;
+      }
+
+      const placeholder =
+        (profile as Record<string, unknown> | undefined)?.["custom:email_placeholder"] ??
+        user?.emailPlaceholder;
+      if (placeholder !== undefined) {
+        token.emailPlaceholder = placeholder === true || placeholder === "true";
+      }
+
       const customerId =
         (profile as Record<string, unknown> | undefined)?.[
           "custom:shopify_customer_id"
@@ -87,7 +101,39 @@ export const {
 
     async session({session, token}) {
       session.shopifyCustomerId = token.shopifyCustomerId as string;
+      session.userId = token.sub ?? "";
+      session.provider = token.provider;
+      session.providerUserId = token.providerUserId;
+      session.emailPlaceholder = token.emailPlaceholder ?? false;
       return session;
     },
   },
 });
+
+type FederatedIdentity = { providerName: string; userId: string };
+
+/**
+ * Cognito puts an `identities` claim on federated (Google/Facebook/Apple) users.
+ * It may arrive as an array or a JSON string; return the first entry if present.
+ */
+function firstIdentity(profile: unknown): FederatedIdentity | undefined {
+  const raw = (profile as Record<string, unknown> | undefined)?.identities;
+  if (!raw) return undefined;
+
+  let list: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      list = JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
+
+  const first = Array.isArray(list) ? list[0] : undefined;
+  const providerName = (first as Record<string, unknown> | undefined)?.providerName;
+  const userId = (first as Record<string, unknown> | undefined)?.userId;
+  if (typeof providerName === "string" && typeof userId === "string") {
+    return {providerName, userId};
+  }
+  return undefined;
+}

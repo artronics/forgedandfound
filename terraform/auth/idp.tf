@@ -29,11 +29,13 @@ resource "aws_cognito_identity_provider" "google" {
     authorize_scopes = "email profile openid https://www.googleapis.com/auth/user.phonenumbers.read"
   }
 
+  # Name attributes are deliberately NOT mapped. The native Cognito profile is the
+  # source of truth and the user sets their name in our UI; Cognito re-applies
+  # this mapping on federated sign-in, so mapping names here would let Google
+  # overwrite what the user chose on every login.
   attribute_mapping = {
     email                        = "email"
     username                     = "sub"
-    given_name                   = "given_name"
-    family_name                  = "family_name"
     phone_number                 = "phoneNumbers"
     "custom:shopify_customer_id" = "shopify_customer_id"
   }
@@ -58,7 +60,7 @@ resource "aws_cognito_identity_provider" "apple" {
     client_id        = local.idp_apple_creds["apple_client_id"]
     team_id          = local.idp_apple_creds["team_id"]
     key_id           = local.idp_apple_creds["key_id"]
-    private_key = base64decode(local.idp_apple_creds["private_key_b64"])
+    private_key      = base64decode(local.idp_apple_creds["private_key_b64"])
     authorize_scopes = "email name"
   }
 
@@ -92,12 +94,10 @@ resource "aws_cognito_identity_provider" "facebook" {
     authorize_scopes = "public_profile,email"
   }
 
+  # Names deliberately unmapped — see the Google provider above.
   attribute_mapping = {
     username                     = "id"
     email                        = "email"
-    given_name                   = "first_name"
-    family_name                  = "last_name"
-    name                         = "name"
     "custom:shopify_customer_id" = "shopify_customer_id"
   }
 

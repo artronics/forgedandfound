@@ -30,7 +30,7 @@ export function useCartBuyerIdentity() {
         buyerIdentity: {email: email ?? undefined},
       },
     }).catch((err) => {
-      browserLogger.error({err}, "cartBuyerIdentity: failed to update buyer identity");
+      browserLogger.error(err, "cartBuyerIdentity: failed to update buyer identity");
     });
   }, [cartId, session, status, updateBuyerIdentity]);
 }

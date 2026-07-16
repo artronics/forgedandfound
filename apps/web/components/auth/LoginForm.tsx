@@ -12,6 +12,10 @@ import {LoginButton} from "@/components/auth/LoginButton";
 type Tab = "signin" | "register";
 type View = "auth" | "forgot";
 
+function currentAppLocation(): { origin: string; returnTo: string } {
+  return {origin: window.location.origin, returnTo: window.location.pathname};
+}
+
 type LoginFormProps = {
   className?: string;
   onSuccess?: () => void;
@@ -231,6 +235,7 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirmationRequired, setConfirmationRequired] = useState(false);
+  const [accountExists, setAccountExists] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,12 +258,20 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
           firstName: firstName || undefined,
           lastName: lastName || undefined,
           acceptsMarketing,
+          ...currentAppLocation(),
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
+        // They already have an account — most likely created for them by a social
+        // sign-in. Setting a password (via reset) is how they add email login,
+        // rather than registering a second time.
+        if (data.type === "UsernameExistsException") {
+          setAccountExists(true);
+          return;
+        }
         setError(data.error ?? "Account creation failed.");
         return;
       }
@@ -274,6 +287,10 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
       setLoading(false);
     }
   };
+
+  if (accountExists) {
+    return <AccountExistsPrompt email={email}/>;
+  }
 
   if (confirmationRequired) {
     return (
@@ -379,6 +396,58 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
   );
 }
 
+/**
+ * Shown when registration hits an existing account. That normally means a social
+ * sign-in already created one for this address, so the way to add email/password
+ * login is to set a password — not to register again. The reset email also proves
+ * they control the address.
+ */
+function AccountExistsPrompt({email}: { email: string }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  const sendReset = async () => {
+    setState("sending");
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({email, ...currentAppLocation()}),
+      });
+      setState(res.ok ? "sent" : "error");
+    } catch {
+      setState("error");
+    }
+  };
+
+  if (state === "sent") {
+    return (
+      <div className="flex flex-col gap-4 text-center py-4">
+        <p className="text-sm font-medium">Check your email</p>
+        <p className="text-xs text-muted-foreground">
+          We sent a link to <strong>{email}</strong> to set your password. Once it&apos;s set you can sign in
+          with your email.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 text-center py-4">
+      <p className="text-sm font-medium">You already have an account</p>
+      <p className="text-xs text-muted-foreground">
+        <strong>{email}</strong> is already registered — you may have signed in with Google, Facebook or
+        Apple. Set a password to sign in with your email too.
+      </p>
+      {state === "error" && (
+        <p className="text-xs text-destructive">Couldn&apos;t send the link. Please try again.</p>
+      )}
+      <Button onClick={sendReset} disabled={state === "sending"} className="w-full">
+        {state === "sending" ? "Sending…" : "Set a password"}
+      </Button>
+    </div>
+  );
+}
+
 function ResendVerificationButton({email, className}: { email: string; className?: string }) {
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
@@ -389,7 +458,7 @@ function ResendVerificationButton({email, className}: { email: string; className
       const res = await fetch("/api/auth/resend-verification", {
         method: "POST",
         headers: {"content-type": "application/json"},
-        body: JSON.stringify({email}),
+        body: JSON.stringify({email, ...currentAppLocation()}),
       });
       setState(res.ok ? "sent" : "error");
     } catch {
@@ -437,7 +506,7 @@ function ForgotPasswordForm({onBack}: { onBack: () => void }) {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: {"content-type": "application/json"},
-        body: JSON.stringify({email}),
+        body: JSON.stringify({email, ...currentAppLocation()}),
       });
 
       if (!res.ok) {

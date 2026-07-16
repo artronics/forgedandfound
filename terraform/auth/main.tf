@@ -26,3 +26,28 @@ output "cognito_endpoint" {
 output "cognito_user_pool_arn" {
   value = aws_cognito_user_pool.main.arn
 }
+
+output "cognito_user_pool_id" {
+  value = aws_cognito_user_pool.main.id
+}
+
+# App client (SECRET_HASH self-service calls: signUp / confirmSignUp) used by the
+# account-service Lambda.
+output "cognito_app_client_id" {
+  value = aws_cognito_user_pool_client.app.id
+}
+
+output "cognito_app_client_secret" {
+  value     = aws_cognito_user_pool_client.app.client_secret
+  sensitive = true
+}
+
+# Machine-to-machine client the Next.js BFF uses to call the internal API.
+output "m2m_client_id" {
+  value = aws_cognito_user_pool_client.m2m.id
+}
+
+output "m2m_client_secret" {
+  value     = aws_cognito_user_pool_client.m2m.client_secret
+  sensitive = true
+}

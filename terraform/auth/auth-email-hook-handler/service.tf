@@ -13,7 +13,7 @@ module "lambda" {
   aws_account = var.aws_account
   aws_profile = var.aws_profile
 
-  function_name = var.service_name
+  function_name = "${var.prefix}-${var.service_name}"
   role_arn      = aws_iam_role.auth_lambda.arn
   image_uri     = module.image.image_uri
 
@@ -21,8 +21,8 @@ module "lambda" {
     SES_FROM_ADDRESS      = "no-reply@${var.ses_domain}"
     SES_CONFIGURATION_SET = var.ses_config_set_name
     KMS_KEY_ID            = var.cognito_email_kms_key_arn
-    ACCOUNT_URL           = "https://${var.cognito_domain}"
     APP_URL               = var.app_url
+    ALLOWED_APP_ORIGINS   = join(",", var.allowed_app_origins)
   }
 
   permissions = [

@@ -1,14 +1,18 @@
 import {NextRequest, NextResponse} from "next/server";
 import {getLogger, withWebLogger} from "@forgedandfound/logger/web";
-import {forgotPassword} from "@/lib/auth/cognito";
+import {buildAppMetadata, forgotPassword} from "@/lib/auth/cognito";
 
 export async function POST(req: NextRequest) {
   return withWebLogger(req, async () => {
     let email: string | undefined;
+    let origin: string | undefined;
+    let returnTo: string | undefined;
 
     try {
       const body = await req.json();
       email = body.email?.trim();
+      origin = body.origin?.trim() || undefined;
+      returnTo = body.returnTo?.trim() || undefined;
     } catch {
       return NextResponse.json({error: "Invalid request body."}, {status: 400});
     }
@@ -18,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      await forgotPassword(email);
+      await forgotPassword(email, buildAppMetadata(origin, returnTo));
     } catch (err: unknown) {
       const name = (err as { name?: string }).name;
       if (name === "LimitExceededException") {
