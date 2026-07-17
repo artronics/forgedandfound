@@ -15,6 +15,9 @@ export const {
   handlers,
   auth,
 } = NextAuth({
+  // Opt-in verbose auth logging (set AUTH_DEBUG=true in .env.local) — includes
+  // provider response bodies, which plain error logs truncate.
+  debug: process.env.AUTH_DEBUG === "true",
   // Send auth failures to our own login page. Required for the social-link
   // retry: the PreSignUp Lambda deliberately fails the sign-in that linked a
   // social identity (its tokens would carry a never-persisted sub), and the

@@ -4,7 +4,10 @@ locals {
   app_urls     = local.is_prod ? local.prod_urls : local.nonprod_urls
 
   app_callback_urls = formatlist("%s/api/auth/callback/cognito", local.app_urls)
-  app_logout_urls   = local.app_urls
+  # /account/login is registered so the federated-logout bounce (which clears
+  # the hosted-UI session between the two legs of a first social sign-in) can
+  # land straight back on the login page.
+  app_logout_urls = concat(local.app_urls, formatlist("%s/account/login", local.app_urls))
 }
 
 resource "aws_cognito_user_pool_client" "app" {

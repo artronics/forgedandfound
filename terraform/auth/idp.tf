@@ -38,11 +38,15 @@ resource "aws_cognito_identity_provider" "google" {
   # federated sign-in and stamps email_verified=false on the linked native user
   # unless the provider's claim is mapped through. Without it, social-first
   # users can never use ForgotPassword (no verified email).
+  # phone_number is deliberately NOT mapped: Google's People-API `phoneNumbers`
+  # claim isn't an E.164 string (and is an empty list when absent), and Cognito
+  # re-applies mappings on every sign-in of a linked user — a bad value there
+  # fails the whole sign-in. Nothing consumes an imported phone; the profile UI
+  # owns it, same rationale as names above.
   attribute_mapping = {
     email                        = "email"
     email_verified               = "email_verified"
     username                     = "sub"
-    phone_number                 = "phoneNumbers"
     "custom:shopify_customer_id" = "shopify_customer_id"
   }
   lifecycle {

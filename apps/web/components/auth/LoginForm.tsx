@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {signIn} from "next-auth/react";
-import {retrySocialSignInOnce, socialSignIn} from "@/lib/auth/social-sign-in";
+import {confirmPendingSignIn, resumeSocialSignIn, socialSignIn} from "@/lib/auth/social-sign-in";
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
@@ -26,16 +26,21 @@ export default function LoginForm({className, onSuccess}: LoginFormProps) {
   const [tab, setTab] = useState<Tab>("signin");
   const [view, setView] = useState<View>("auth");
   const [finishingSocial, setFinishingSocial] = useState(false);
+  const [confirmProvider, setConfirmProvider] = useState<string | null>(null);
 
   // A social sign-in that just linked an account is deliberately failed by the
-  // backend and lands back here with ?error=…; retry it once, silently.
+  // backend; the login page then walks the retry state machine (error →
+  // Cognito logout bounce → clean load → second sign-in). Runs on every mount:
+  // the middle leg lands here without an error param. Apple's second leg waits
+  // for a user click instead of redirecting automatically.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.get("error")) return;
-    // Deferred so the state swap isn't synchronous inside the effect; the retry
-    // itself starts a full-page redirect to the provider.
+    const hasError = new URLSearchParams(window.location.search).has("error");
+    // Deferred so the state swap isn't synchronous inside the effect; the
+    // machine's steps are full-page redirects.
     const timer = setTimeout(() => {
-      if (retrySocialSignInOnce()) setFinishingSocial(true);
+      const result = resumeSocialSignIn(hasError);
+      if (result.action === "redirecting") setFinishingSocial(true);
+      else if (result.action === "confirm") setConfirmProvider(result.provider);
     }, 0);
     return () => clearTimeout(timer);
   }, []);
@@ -45,6 +50,28 @@ export default function LoginForm({className, onSuccess}: LoginFormProps) {
       <Card className={cn("mx-auto bg-surface-container px-4", className)}>
         <CardContent className="px-0 py-16 text-center">
           <p className="text-sm text-muted-foreground">Finishing sign-in…</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (confirmProvider) {
+    return (
+      <Card className={cn("mx-auto bg-surface-container px-4", className)}>
+        <CardContent className="flex flex-col gap-4 px-0 py-12 text-center">
+          <p className="text-sm font-medium">Almost there</p>
+          <p className="text-xs text-muted-foreground">
+            Your account is linked. Continue to finish signing in.
+          </p>
+          <LoginButton
+            provider="apple"
+            size="lg"
+            onClick={() => {
+              setConfirmProvider(null);
+              setFinishingSocial(true);
+              confirmPendingSignIn();
+            }}
+          />
         </CardContent>
       </Card>
     );
