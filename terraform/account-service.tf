@@ -58,11 +58,9 @@ data "aws_iam_policy_document" "account_service" {
     sid    = "CognitoAdmin"
     effect = "Allow"
     actions = [
-      "cognito-idp:AdminLinkProviderForUser",
       "cognito-idp:AdminUpdateUserAttributes",
-      "cognito-idp:AdminGetUser",
       "cognito-idp:AdminDeleteUser",
-      "cognito-idp:ListUsers",
+      "cognito-idp:AdminSetUserPassword",
     ]
     resources = [module.auth.cognito_user_pool_arn]
   }

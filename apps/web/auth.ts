@@ -3,7 +3,8 @@ import Cognito from "next-auth/providers/cognito";
 import Credentials from "next-auth/providers/credentials";
 import {getLogger} from "@forgedandfound/logger/web";
 import {getOrCreateCustomer} from "@/lib/shopify/admin/customer";
-import {decodeIdToken, signInWithPassword} from "@/lib/auth/cognito";
+import {decodeIdToken, refreshTokens, signInWithPassword} from "@/lib/auth/cognito";
+import type {JWT} from "next-auth/jwt";
 import {oidc_config} from "@/lib/env";
 
 class EmailNotVerifiedError extends CredentialsSignin {
@@ -21,6 +22,11 @@ export const {
       issuer: oidc_config.cognito_issuer_url,
       // IMPORTANT: Do not delete this line otherwise, you'll get "nonce" error when login with Google
       checks: ["nonce", "pkce", "state"],
+      // aws.cognito.signin.user.admin is what lets the resulting access token call
+      // UpdateUserAttributes / VerifyUserAttribute (the email-change flow).
+      authorization: {
+        params: {scope: "openid email profile aws.cognito.signin.user.admin"},
+      },
     }),
 
     Credentials({
@@ -49,6 +55,9 @@ export const {
             name: name || null,
             shopifyCustomerId: claims["custom:shopify_customer_id"],
             emailPlaceholder: claims["custom:email_placeholder"] === "true",
+            cognitoAccessToken: tokens.AccessToken,
+            cognitoRefreshToken: tokens.RefreshToken,
+            cognitoExpiresAt: Date.now() + (tokens.ExpiresIn ?? 3600) * 1000,
           };
         } catch (err) {
           const name = (err as { name?: string }).name;
@@ -64,7 +73,26 @@ export const {
   ],
 
   callbacks: {
-    async jwt({token, user, profile}) {
+    async jwt({token, user, profile, account}) {
+      // Keep the user's Cognito tokens on the JWT (server-side only — they are
+      // deliberately never copied into the session, which the browser can read).
+      // account-service needs the access token to change an email through
+      // Cognito's own verification flow.
+      if (account?.access_token) {
+        // Social / hosted-UI sign-in.
+        token.cognitoAccessToken = account.access_token;
+        token.cognitoRefreshToken = account.refresh_token;
+        token.cognitoExpiresAt = account.expires_at
+          ? account.expires_at * 1000
+          : Date.now() + 3600_000;
+      } else if (user?.cognitoAccessToken) {
+        // Credentials sign-in.
+        token.cognitoAccessToken = user.cognitoAccessToken;
+        token.cognitoRefreshToken = user.cognitoRefreshToken;
+        token.cognitoExpiresAt = user.cognitoExpiresAt;
+      }
+
+      await refreshCognitoTokenIfExpired(token);
       // Capture the federated identity (social login) so the account-service can
       // link it to a native account when the user adds an email.
       const identity = firstIdentity(profile);
@@ -109,6 +137,27 @@ export const {
     },
   },
 });
+
+/**
+ * Cognito access tokens last an hour. Refresh in place when one is close to
+ * expiring so account operations don't fail mid-session. On failure we leave the
+ * stale token — the downstream call will 401 rather than the whole session dying.
+ */
+async function refreshCognitoTokenIfExpired(token: JWT): Promise<void> {
+  const expiresAt = token.cognitoExpiresAt;
+  if (!token.cognitoRefreshToken || !token.sub) return;
+  if (expiresAt && Date.now() < expiresAt - 60_000) return;
+
+  try {
+    const refreshed = await refreshTokens(token.sub, token.cognitoRefreshToken);
+    if (refreshed?.AccessToken) {
+      token.cognitoAccessToken = refreshed.AccessToken;
+      token.cognitoExpiresAt = Date.now() + (refreshed.ExpiresIn ?? 3600) * 1000;
+    }
+  } catch (err) {
+    getLogger().warn({err}, "cognito token refresh failed");
+  }
+}
 
 type FederatedIdentity = { providerName: string; userId: string };
 

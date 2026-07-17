@@ -156,6 +156,10 @@ export const shopifyHandler = async (
       "CustomEmailSender_SignUp",
       "CustomEmailSender_ResendCode",
       "CustomEmailSender_ForgotPassword",
+      // Raised when a signed-in user changes their email — the account-service
+      // add-email flow.
+      "CustomEmailSender_UpdateUserAttribute",
+      "CustomEmailSender_VerifyUserAttribute",
     ];
 
     if (!supportedTriggers.includes(event.triggerSource)) {
@@ -188,6 +192,27 @@ export const shopifyHandler = async (
       }, "creating email trigger");
 
     switch (event.triggerSource) {
+      // An email change by a signed-in user verifies on a dedicated page, in
+      // their existing session.
+      case "CustomEmailSender_UpdateUserAttribute":
+      case "CustomEmailSender_VerifyUserAttribute": {
+        const verificationUrl = buildAppUrl(
+          appOrigin,
+          "/account/verify-email",
+          {
+            email: event.request.userAttributes.email,
+            code,
+          },
+        );
+
+        await sendEmail(
+          toAddress,
+          "Verify your Forged & Found email",
+          await renderVerifyEmail({verificationUrl}),
+        );
+
+        break;
+      }
       case "CustomEmailSender_SignUp":
       case "CustomEmailSender_ResendCode": {
         const verificationUrl = buildAppUrl(

@@ -173,7 +173,7 @@ function EmailSection({initial}: { initial: Initial }) {
   return (
     <Section
       title="Email"
-      description="Add an email and password so you can sign in with them and receive order updates."
+      description="Add an email so you can receive order updates. We'll send a link to confirm it's yours."
     >
       <AddEmailForm/>
     </Section>
@@ -182,8 +182,6 @@ function EmailSection({initial}: { initial: Initial }) {
 
 function AddEmailForm() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -191,20 +189,14 @@ function AddEmailForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-
     setLoading(true);
+
     try {
       const res = await fetch("/api/account/email", {
         method: "POST",
         headers: {"content-type": "application/json"},
         body: JSON.stringify({
           email,
-          password,
           origin: window.location.origin,
           returnTo: window.location.pathname,
         }),
@@ -245,28 +237,6 @@ function AddEmailForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
       />
-      <div className="grid grid-cols-2 gap-3">
-        <Field
-          id="add-password"
-          label="Password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-        />
-        <Field
-          id="add-confirm"
-          label="Confirm password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          placeholder="••••••••"
-        />
-      </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
       <div>
         <Button type="submit" disabled={loading}>
@@ -382,42 +352,87 @@ function AddressSection() {
   );
 }
 
-// ─── Password reset ─────────────────────────────────────────────────────────
+// ─── Password ───────────────────────────────────────────────────────────────
 
 function PasswordSection() {
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleReset = async () => {
-    setState("sending");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setStatus("saving");
     try {
-      const res = await fetch("/api/account/password", {method: "POST"});
-      setState(res.ok ? "sent" : "error");
+      const res = await fetch("/api/account/password", {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({password}),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Could not set your password.");
+        setStatus("idle");
+        return;
+      }
+      setStatus("saved");
+      setPassword("");
+      setConfirm("");
     } catch {
-      setState("error");
+      setError("Something went wrong. Please try again.");
+      setStatus("idle");
     }
   };
 
   return (
     <Section
       title="Password"
-      description="We'll email you a secure link to choose a new password."
+      description="Set a password so you can sign in with your email. Signed in with Google, Facebook or Apple? This adds email sign-in too."
     >
-      {state === "sent" ? (
-        <p className="text-xs text-muted-foreground">
-          Reset link sent. Check your inbox to finish setting a new password.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <div>
-            <Button variant="outline" onClick={handleReset} disabled={state === "sending"}>
-              {state === "sending" ? "Sending…" : "Reset password"}
-            </Button>
-          </div>
-          {state === "error" && (
-            <p className="text-xs text-destructive">Couldn&apos;t send the link. Please try again.</p>
-          )}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <Field
+            id="pwd-new"
+            label="New password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setStatus("idle");
+            }}
+            placeholder="••••••••"
+          />
+          <Field
+            id="pwd-confirm"
+            label="Confirm password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={confirm}
+            onChange={(e) => {
+              setConfirm(e.target.value);
+              setStatus("idle");
+            }}
+            placeholder="••••••••"
+          />
         </div>
-      )}
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={status === "saving"}>
+            {status === "saving" ? "Saving…" : "Set password"}
+          </Button>
+          {status === "saved" && <span className="text-xs text-muted-foreground">Password updated.</span>}
+        </div>
+      </form>
     </Section>
   );
 }

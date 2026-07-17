@@ -397,53 +397,31 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
 }
 
 /**
- * Shown when registration hits an existing account. That normally means a social
- * sign-in already created one for this address, so the way to add email/password
- * login is to set a password — not to register again. The reset email also proves
- * they control the address.
+ * Shown when registration hits an existing account. That means a social sign-in
+ * already created one for this address. A linked account can't have a verified
+ * email, so a password-reset email won't reach them — they continue with their
+ * provider, then add a password from account settings.
  */
 function AccountExistsPrompt({email}: { email: string }) {
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const currentPath = usePathname();
 
-  const sendReset = async () => {
-    setState("sending");
-    try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: {"content-type": "application/json"},
-        body: JSON.stringify({email, ...currentAppLocation()}),
-      });
-      setState(res.ok ? "sent" : "error");
-    } catch {
-      setState("error");
-    }
-  };
-
-  if (state === "sent") {
-    return (
-      <div className="flex flex-col gap-4 text-center py-4">
-        <p className="text-sm font-medium">Check your email</p>
-        <p className="text-xs text-muted-foreground">
-          We sent a link to <strong>{email}</strong> to set your password. Once it&apos;s set you can sign in
-          with your email.
-        </p>
-      </div>
-    );
-  }
+  const continueWith = (provider: string) =>
+    signIn("cognito", {callbackUrl: currentPath ?? "/account"}, {identity_provider: provider});
 
   return (
-    <div className="flex flex-col gap-4 text-center py-4">
-      <p className="text-sm font-medium">You already have an account</p>
-      <p className="text-xs text-muted-foreground">
-        <strong>{email}</strong> is already registered — you may have signed in with Google, Facebook or
-        Apple. Set a password to sign in with your email too.
-      </p>
-      {state === "error" && (
-        <p className="text-xs text-destructive">Couldn&apos;t send the link. Please try again.</p>
-      )}
-      <Button onClick={sendReset} disabled={state === "sending"} className="w-full">
-        {state === "sending" ? "Sending…" : "Set a password"}
-      </Button>
+    <div className="flex flex-col gap-4 py-4">
+      <div className="text-center">
+        <p className="text-sm font-medium">You already have an account</p>
+        <p className="text-xs text-muted-foreground pt-1">
+          <strong>{email}</strong> is already registered — you signed up with Google, Facebook or Apple.
+          Continue with that provider; you can add a password in your account settings afterwards.
+        </p>
+      </div>
+      <div className="flex flex-col gap-3">
+        <LoginButton provider="google" size="lg" onClick={() => continueWith("Google")}/>
+        <LoginButton provider="facebook" size="lg" onClick={() => continueWith("Facebook")}/>
+        <LoginButton provider="apple" size="lg" onClick={() => continueWith("SignInWithApple")}/>
+      </div>
     </div>
   );
 }

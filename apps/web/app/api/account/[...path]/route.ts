@@ -1,5 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import type {Session} from "next-auth";
+import {getToken} from "next-auth/jwt";
 import {withWebLogger} from "@forgedandfound/logger/web";
 import {auth} from "@/auth";
 import {accountApiFetch} from "@/lib/account/api-client";
@@ -26,10 +27,23 @@ async function proxy(
     const hasBody = req.method !== "GET" && req.method !== "HEAD" && req.method !== "DELETE";
     const body = hasBody ? await req.text() : undefined;
 
+    // Read the raw JWT rather than the session: the Cognito access token is kept
+    // off the session precisely so the browser can never see it.
+    const jwt = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET!,
+      secureCookie: process.env.NODE_ENV === "production",
+    });
+
+    const headers = identityHeaders(session);
+    if (jwt?.cognitoAccessToken) {
+      headers["x-cognito-access-token"] = jwt.cognitoAccessToken as string;
+    }
+
     const res = await accountApiFetch(target, {
       method: req.method,
       ...(body ? {body} : {}),
-      headers: identityHeaders(session),
+      headers,
     });
 
     const payload = await res.text();

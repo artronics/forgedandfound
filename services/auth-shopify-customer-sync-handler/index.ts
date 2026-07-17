@@ -338,19 +338,10 @@ async function linkExternalProviderToNativeUser(e: PreSignUpEvent): Promise<void
   );
   logger.info({provider: providerName}, "[PreSignUp] linked social identity into native user");
 
-  // Linking resets email_verified to false, which leaves the account unable to
-  // reset its password ("no registered/verified email"). The provider vouched for
-  // this address, so restore it — but never for a placeholder, which is not an
-  // address the user owns. Must run after the link, not before.
-  if (!isPlaceholder) {
-    await cognito.send(
-      new AdminUpdateUserAttributesCommand({
-        UserPoolId: e.userPoolId,
-        Username: nativeUsername,
-        UserAttributes: [{Name: "email_verified", Value: "true"}],
-      }),
-    );
-  }
+  // NOTE: we can't set email_verified=true here — Cognito forces it false for a
+  // user with a linked external provider, and won't let it be overridden. That
+  // means ForgotPassword is unavailable for linked users; they set a password
+  // directly from the (authenticated) account page instead.
 }
 
 export const handler = async (event: Event, context: Context): Promise<Event> => {

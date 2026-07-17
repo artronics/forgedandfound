@@ -3,12 +3,14 @@ import {
   AdminDeleteUserCommand,
   AdminGetUserCommand,
   AdminLinkProviderForUserCommand,
+  AdminSetUserPasswordCommand,
   AdminUpdateUserAttributesCommand,
   CognitoIdentityProviderClient,
   ConfirmSignUpCommand,
-  ForgotPasswordCommand,
-  ListUsersCommand,
+  GetUserAttributeVerificationCodeCommand,
   SignUpCommand,
+  UpdateUserAttributesCommand,
+  VerifyUserAttributeCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 
 const REGION = process.env.AWS_REGION ?? "eu-west-2";
@@ -117,22 +119,6 @@ export async function setShopifyCustomerId(
 }
 
 /**
- * Resolve a user's real `Username` from their `sub`. Works for federated users
- * too (whose username is provider-prefixed, not the email), so it's the reliable
- * way to target the caller for admin operations.
- */
-export async function getUsernameBySub(sub: string): Promise<string | undefined> {
-  const res = await cognito.send(
-    new ListUsersCommand({
-      UserPoolId: USER_POOL_ID,
-      Filter: `sub = "${sub}"`,
-      Limit: 1,
-    }),
-  );
-  return res.Users?.[0]?.Username;
-}
-
-/**
  * Set the user's display name. The profile UI collects a single `name`, which we
  * store in `given_name` (our canonical name field) and clear `family_name` so the
  * two can't drift or end up concatenated downstream.
@@ -150,13 +136,75 @@ export async function updateName(username: string, name: string): Promise<void> 
   );
 }
 
-/** Start a self-service password reset (Cognito emails a reset link). */
-export async function forgotPassword(email: string): Promise<void> {
+/**
+ * Set a permanent password for the signed-in user. Used instead of the
+ * email-reset flow: it works even for users with a linked social identity (whose
+ * email can't be verified, so ForgotPassword is unavailable to them). The caller
+ * is already authenticated via their session, which is the proof of ownership.
+ */
+export async function setPassword(username: string, password: string): Promise<void> {
   await cognito.send(
-    new ForgotPasswordCommand({
-      ClientId: CLIENT_ID,
-      SecretHash: secretHash(email),
-      Username: email,
+    new AdminSetUserPasswordCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: username,
+      Password: password,
+      Permanent: true,
+    }),
+  );
+}
+
+/**
+ * Set a new email on the signed-in user using their own access token. Because
+ * email is an auto-verified attribute, Cognito emails a verification code to the
+ * NEW address and leaves email_verified false until it's confirmed — so nothing
+ * is applied to an address the user hasn't proven they own.
+ */
+export async function requestEmailChange(
+  accessToken: string,
+  email: string,
+  clientMetadata?: Record<string, string>,
+): Promise<void> {
+  await cognito.send(
+    new UpdateUserAttributesCommand({
+      AccessToken: accessToken,
+      UserAttributes: [{Name: "email", Value: email}],
+      ClientMetadata: clientMetadata,
+    }),
+  );
+}
+
+/** Re-send the verification code for a pending email change. */
+export async function resendEmailVerificationCode(
+  accessToken: string,
+  clientMetadata?: Record<string, string>,
+): Promise<void> {
+  await cognito.send(
+    new GetUserAttributeVerificationCodeCommand({
+      AccessToken: accessToken,
+      AttributeName: "email",
+      ClientMetadata: clientMetadata,
+    }),
+  );
+}
+
+/** Confirm the emailed code, marking the new email verified. */
+export async function confirmEmailChange(accessToken: string, code: string): Promise<void> {
+  await cognito.send(
+    new VerifyUserAttributeCommand({
+      AccessToken: accessToken,
+      AttributeName: "email",
+      Code: code,
+    }),
+  );
+}
+
+/** Clear the placeholder marker once the user has a real, verified address. */
+export async function clearEmailPlaceholder(username: string): Promise<void> {
+  await cognito.send(
+    new AdminUpdateUserAttributesCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: username,
+      UserAttributes: [{Name: "custom:email_placeholder", Value: "false"}],
     }),
   );
 }

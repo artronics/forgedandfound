@@ -7,13 +7,11 @@ import {
   updateCustomerEmail,
 } from "@forgedandfound/shopify-admin-client/customer";
 import {
-  confirmSignUp,
+  clearEmailPlaceholder,
+  confirmEmailChange,
   deleteUser,
-  forgotPassword,
-  getUsername,
-  getUsernameBySub,
-  linkProvider,
-  signUp,
+  requestEmailChange,
+  setPassword,
   updateName,
 } from "./cognito";
 
@@ -28,6 +26,8 @@ interface Identity {
   shopifyCustomerId?: string;
   provider?: string;
   providerUserId?: string;
+  /** The caller's own Cognito access token, for user-pool self-service APIs. */
+  accessToken?: string;
 }
 
 function json(statusCode: number, body: unknown): APIGatewayProxyResult {
@@ -54,6 +54,7 @@ function getIdentity(event: APIGatewayProxyEvent): Identity {
     shopifyCustomerId: get("x-shopify-customer-id"),
     provider: get("x-user-provider"),
     providerUserId: get("x-user-provider-id"),
+    accessToken: get("x-cognito-access-token"),
   };
 }
 
@@ -85,7 +86,7 @@ const accountService = async (
     case "POST addresses":
       return addAddress(identity, body);
     case "POST password":
-      return passwordReset(identity);
+      return changePassword(identity, body);
     case "POST delete":
       return deleteAccount(identity);
     default:
@@ -99,14 +100,16 @@ const accountService = async (
  */
 async function startEmail(
   identity: Identity,
-  body: { email?: string; password?: string; origin?: string; returnTo?: string },
+  body: { email?: string; origin?: string; returnTo?: string },
 ): Promise<APIGatewayProxyResult> {
   const logger = getLogger();
   const email = body.email?.trim();
-  const password = body.password;
 
-  if (!email || !password) {
-    return json(400, {error: "Email and password are required."});
+  if (!email) {
+    return json(400, {error: "Email is required."});
+  }
+  if (!identity.accessToken) {
+    return json(401, {error: "Not signed in."});
   }
 
   const clientMetadata: Record<string, string> = {flow: "account-email"};
@@ -114,17 +117,20 @@ async function startEmail(
   if (body.returnTo) clientMetadata.returnTo = body.returnTo;
 
   try {
-    await signUp(email, password, identity.shopifyCustomerId, clientMetadata);
+    await requestEmailChange(identity.accessToken, email, clientMetadata);
     return json(200, {verificationRequired: true});
   } catch (err) {
     logger.warn({err}, "account start-email failed");
     switch (errName(err)) {
+      case "AliasExistsException":
       case "UsernameExistsException":
-        return json(409, {error: "That email is already registered."});
-      case "InvalidPasswordException":
-        return json(400, {error: "Password does not meet the requirements."});
+        return json(409, {error: "That email is already in use."});
+      case "NotAuthorizedException":
+        return json(401, {error: "Your session has expired. Please sign in again."});
       case "InvalidParameterException":
-        return json(400, {error: "Invalid email or password."});
+        return json(400, {error: "That email address isn't valid."});
+      case "LimitExceededException":
+        return json(429, {error: "Too many attempts. Please try again later."});
       default:
         return json(500, {error: "Could not start email verification."});
     }
@@ -132,8 +138,11 @@ async function startEmail(
 }
 
 /**
- * Confirm the emailed code, then apply: link the caller's federated identity
- * into the new native account and propagate the email to Shopify.
+ * Confirm the emailed code. Cognito marks the new email verified; we then clear
+ * the placeholder marker and mirror the address to Shopify.
+ *
+ * Consent is deliberately NOT carried over here: a placeholder was never a real
+ * address the user consented on, so they opt in fresh.
  */
 async function verifyEmail(
   identity: Identity,
@@ -146,44 +155,30 @@ async function verifyEmail(
   if (!email || !code) {
     return json(400, {error: "Email and code are required."});
   }
+  if (!identity.accessToken || !identity.sub) {
+    return json(401, {error: "Not signed in."});
+  }
 
-  // 1. Confirm the code. Already-confirmed is fine (idempotent re-submits).
   try {
-    await confirmSignUp(email, code);
+    await confirmEmailChange(identity.accessToken, code);
   } catch (err) {
     const name = errName(err);
-    const alreadyConfirmed =
-      name === "NotAuthorizedException" &&
-      /status is confirmed/i.test((err as { message?: string })?.message ?? "");
-    if (!alreadyConfirmed) {
-      logger.warn({err}, "account verify: confirmSignUp failed");
-      if (name === "CodeMismatchException" || name === "ExpiredCodeException") {
+    logger.warn({err}, "account verify: confirmEmailChange failed");
+    switch (name) {
+      case "CodeMismatchException":
+      case "ExpiredCodeException":
         return json(400, {error: "This verification code is invalid or has expired."});
-      }
-      return json(400, {error: "Could not verify your email."});
+      case "NotAuthorizedException":
+        return json(401, {error: "Your session has expired. Please sign in again."});
+      default:
+        return json(400, {error: "Could not verify your email."});
     }
   }
 
-  const nativeUsername = await getUsername(email);
+  await clearEmailPlaceholder(identity.sub);
 
-  // 2. Link the federated identity into the native account (best-effort;
-  //    already-linked is not an error).
-  if (identity.provider && identity.providerUserId) {
-    try {
-      await linkProvider(nativeUsername, identity.provider, identity.providerUserId);
-    } catch (err) {
-      const name = errName(err);
-      if (name !== "InvalidParameterException" && name !== "AliasExistsException") {
-        logger.error({err}, "account verify: linkProvider failed");
-        throw err;
-      }
-      logger.info({name}, "account verify: identity already linked, continuing");
-    }
-  }
-
-  // 3. Propagate to Shopify. When a customer id was carried, update it here; the
-  //    post-confirmation Lambda skips creation in that case. When absent, that
-  //    Lambda creates + links the customer, so nothing to do here.
+  // Mirror to Shopify. The customer already exists (created against the
+  // placeholder address when the account was made), so this is an update.
   if (identity.shopifyCustomerId) {
     const {userErrors} = (await updateCustomerEmail(identity.shopifyCustomerId, email)).customerUpdate;
     if (userErrors.length) {
@@ -210,12 +205,9 @@ async function updateProfile(
     return json(400, {error: "Name is required."});
   }
 
-  const username = await getUsernameBySub(identity.sub);
-  if (!username) {
-    return json(404, {error: "User not found."});
-  }
-
-  await updateName(username, name);
+  // In this pool the native user's Username is the sub, and Cognito's admin APIs
+  // accept the sub as the Username for local users — so no lookup is needed.
+  await updateName(identity.sub, name);
 
   if (identity.shopifyCustomerId) {
     const {userErrors} = (
@@ -266,22 +258,36 @@ async function addAddress(
   return json(200, {address: {...body, id: customerAddress.id}});
 }
 
-/** Start a self-service password reset (Cognito emails a reset link). */
-async function passwordReset(identity: Identity): Promise<APIGatewayProxyResult> {
-  if (!identity.email) {
-    return json(400, {error: "No email on file to reset."});
+/**
+ * Set a new password for the signed-in user. Works for social users (who have no
+ * usable password and can't use the email-reset flow because their linked
+ * identity blocks email verification). The session is the proof of ownership, so
+ * we don't require the current password — social users don't have one to give.
+ */
+async function changePassword(
+  identity: Identity,
+  body: { password?: string },
+): Promise<APIGatewayProxyResult> {
+  const password = body.password;
+
+  if (!identity.sub) {
+    return json(401, {error: "Not signed in."});
+  }
+  if (!password) {
+    return json(400, {error: "A new password is required."});
   }
 
   try {
-    await forgotPassword(identity.email);
+    await setPassword(identity.sub, password);
   } catch (err) {
-    // Swallow to avoid revealing whether an account exists; still report generic ok.
-    getLogger().warn({err}, "password reset request failed");
-    if (errName(err) === "LimitExceededException") {
-      return json(429, {error: "Too many attempts. Please try again later."});
+    getLogger().warn({err}, "set password failed");
+    if (errName(err) === "InvalidPasswordException") {
+      return json(400, {error: "Password does not meet the requirements."});
     }
+    return json(500, {error: "Could not set your password."});
   }
-  return json(200, {sent: true});
+
+  return json(200, {ok: true});
 }
 
 /** Permanently delete the user's Cognito account. */
@@ -290,12 +296,14 @@ async function deleteAccount(identity: Identity): Promise<APIGatewayProxyResult>
     return json(400, {error: "Missing user id."});
   }
 
-  const username = await getUsernameBySub(identity.sub);
-  if (!username) {
-    // Nothing to delete — treat as success so the client can proceed to sign-out.
-    return json(200, {deleted: true});
+  try {
+    await deleteUser(identity.sub);
+  } catch (err) {
+    // Already gone — treat as success so the client can proceed to sign-out.
+    if (errName(err) !== "UserNotFoundException") {
+      getLogger().error({err}, "delete account failed");
+      return json(500, {error: "Could not delete your account."});
+    }
   }
-
-  await deleteUser(username);
   return json(200, {deleted: true});
 }

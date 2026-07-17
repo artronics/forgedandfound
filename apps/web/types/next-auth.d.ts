@@ -14,6 +14,9 @@ declare module "next-auth" {
   interface User {
     shopifyCustomerId?: string;
     emailPlaceholder?: boolean;
+    cognitoAccessToken?: string;
+    cognitoRefreshToken?: string;
+    cognitoExpiresAt?: number;
   }
 }
 
@@ -23,5 +26,12 @@ declare module "next-auth/jwt" {
     provider?: string;
     providerUserId?: string;
     emailPlaceholder?: boolean;
+    /**
+     * Cognito tokens live on the JWT only — never mirrored into the Session,
+     * which is readable by the browser.
+     */
+    cognitoAccessToken?: string;
+    cognitoRefreshToken?: string;
+    cognitoExpiresAt?: number;
   }
 }
