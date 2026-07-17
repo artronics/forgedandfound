@@ -1,5 +1,5 @@
 ### [page] Product Collection
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetProductsByCollectionHandle(
@@ -66,7 +66,7 @@ query GetProductsByCollectionHandle(
 }
 
 ### Get Collection With Filter
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetCollectionFilters(
@@ -133,7 +133,7 @@ query GetCollectionFilters(
 }
 
 ### Get All Filters for a Collection
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetCollectionFilters(

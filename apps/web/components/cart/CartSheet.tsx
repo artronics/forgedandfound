@@ -44,7 +44,7 @@ export default function CartSheet() {
             </section>
             {/*// TODO: the loading requires to be notified from mutations. useQuery is not getting updated until mutation is completed*/}
             <Button asChild onClick={() => setOpen(false)}>
-              <Link href={checkoutUrl ?? "/shop/checkout/cart"}>
+              <Link href={checkoutUrl ?? "/app/(store)/checkout/cart"}>
                 checkout
                 {loading ? (<Spinner/>) : (<Icon icon="arrow-right"/>)}
               </Link>

@@ -1,5 +1,5 @@
 ### Get Main Menu
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 cache-control: no-cache
 

@@ -1,0 +1,13 @@
+projects:
+  storefront:
+    schema:
+      - "./strorefront.schema.graphql"
+    extensions:
+      endpoints:
+        storefront:
+          url: https://${SHOPIFY_STORE_NAME}.myshopify.com/api/2026-01/graphql.json
+          schema: ./storefront.schema.graphql
+          headers:
+            Content-Type: "application/json"
+            X-Shopify-Storefront-Access-Token: ${SHOPIFY_STOREFRONT_PUBLIC_TOKEN}
+

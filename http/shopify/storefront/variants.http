@@ -1,5 +1,5 @@
 ### Get Product by ID and variants
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetProductVariants($id: ID!) {
@@ -30,7 +30,7 @@ query GetProductVariants($id: ID!) {
 }
 
 ### Get variant by ID
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query VariantPrimaryImage($variantId: ID!) {
@@ -54,7 +54,7 @@ query VariantPrimaryImage($variantId: ID!) {
 }
 
 ### Get variants by selected options
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetVariantByMaterial($productId: ID!, $selectedOptions: [SelectedOptionInput!]!) {

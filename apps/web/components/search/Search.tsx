@@ -173,7 +173,7 @@ export function Search({onClose}: SearchProps) {
         {!loading && hasResults && products.slice(0, 3).map(product => (
           <Link
             key={product.id}
-            href={`/shop/${product.handle}`}
+            href={`/products/${product.handle}`}
             onClick={handleProductClick}
             className="flex gap-4 group py-3 border-b border-muted/30 last:border-0"
           >
