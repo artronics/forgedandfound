@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@aws-sdk/client-sesv2':
+      specifier: ^3.1072.0
+      version: 3.1082.0
     '@types/aws-lambda':
       specifier: ^8.10.162
       version: 8.10.162
@@ -426,6 +429,12 @@ importers:
       '@aws-sdk/client-cognito-identity-provider':
         specifier: ^3.1072.0
         version: 3.1082.0
+      '@aws-sdk/client-sesv2':
+        specifier: 'catalog:'
+        version: 3.1082.0
+      '@forgedandfound/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@forgedandfound/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -458,7 +467,7 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0
       '@aws-sdk/client-sesv2':
-        specifier: ^3.1072.0
+        specifier: 'catalog:'
         version: 3.1082.0
       '@forgedandfound/email':
         specifier: workspace:*

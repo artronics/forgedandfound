@@ -83,6 +83,28 @@ export async function getUsername(email: string): Promise<string> {
   return res.Username!;
 }
 
+export interface UserEmailProfile {
+  email?: string;
+  emailVerified: boolean;
+  emailPlaceholder: boolean;
+}
+
+/**
+ * The user's email state as Cognito holds it, for deciding whether a security
+ * notification can actually reach them (placeholder/unverified addresses can't).
+ */
+export async function getUserEmailProfile(username: string): Promise<UserEmailProfile> {
+  const res = await cognito.send(
+    new AdminGetUserCommand({UserPoolId: USER_POOL_ID, Username: username}),
+  );
+  const attrs = new Map(res.UserAttributes?.map((a) => [a.Name, a.Value]));
+  return {
+    email: attrs.get("email"),
+    emailVerified: attrs.get("email_verified") === "true",
+    emailPlaceholder: attrs.get("custom:email_placeholder") === "true",
+  };
+}
+
 /**
  * Link a federated identity (e.g. Facebook/Apple) into the native user so both
  * sign-in paths resolve to one Cognito account.

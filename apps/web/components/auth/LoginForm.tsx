@@ -1,6 +1,7 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {signIn} from "next-auth/react";
+import {retrySocialSignInOnce, socialSignIn} from "@/lib/auth/social-sign-in";
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
@@ -24,6 +25,25 @@ type LoginFormProps = {
 export default function LoginForm({className, onSuccess}: LoginFormProps) {
   const [tab, setTab] = useState<Tab>("signin");
   const [view, setView] = useState<View>("auth");
+  const [finishingSocial, setFinishingSocial] = useState(false);
+
+  // A social sign-in that just linked an account is deliberately failed by the
+  // backend and lands back here with ?error=…; retry it once, silently.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get("error")) return;
+    if (retrySocialSignInOnce()) setFinishingSocial(true);
+  }, []);
+
+  if (finishingSocial) {
+    return (
+      <Card className={cn("mx-auto bg-surface-container px-4", className)}>
+        <CardContent className="px-0 py-16 text-center">
+          <p className="text-sm text-muted-foreground">Finishing sign-in…</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={cn("mx-auto bg-surface-container px-4", className)}>
@@ -190,35 +210,17 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
         <LoginButton
           provider="google"
           size="lg"
-          onClick={() =>
-            signIn(
-              "cognito",
-              {callbackUrl: currentPath ?? "/account"},
-              {identity_provider: "Google"},
-            )
-          }
+          onClick={() => socialSignIn("Google", currentPath ?? "/account")}
         />
         <LoginButton
           provider="facebook"
           size="lg"
-          onClick={() =>
-            signIn(
-              "cognito",
-              {callbackUrl: currentPath ?? "/account"},
-              {identity_provider: "Facebook"},
-            )
-          }
+          onClick={() => socialSignIn("Facebook", currentPath ?? "/account")}
         />
         <LoginButton
           provider="apple"
           size="lg"
-          onClick={() =>
-            signIn(
-              "cognito",
-              {callbackUrl: currentPath ?? "/account"},
-              {identity_provider: "SignInWithApple"},
-            )
-          }
+          onClick={() => socialSignIn("SignInWithApple", currentPath ?? "/account")}
         />
       </div>
     </div>
@@ -397,30 +399,62 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
 }
 
 /**
- * Shown when registration hits an existing account. That means a social sign-in
- * already created one for this address. A linked account can't have a verified
- * email, so a password-reset email won't reach them — they continue with their
- * provider, then add a password from account settings.
+ * Shown when registration hits an existing account — most likely one a social
+ * sign-in created for this address. They can continue with their provider, or
+ * (since linked Google/Apple accounts keep a verified email) have a reset link
+ * emailed to set a password for email sign-in.
  */
 function AccountExistsPrompt({email}: { email: string }) {
   const currentPath = usePathname();
+  const [resetState, setResetState] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
-  const continueWith = (provider: string) =>
-    signIn("cognito", {callbackUrl: currentPath ?? "/account"}, {identity_provider: provider});
+  const sendResetLink = async () => {
+    if (resetState === "sending" || resetState === "sent") return;
+    setResetState("sending");
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({email, ...currentAppLocation()}),
+      });
+      setResetState(res.ok ? "sent" : "error");
+    } catch {
+      setResetState("error");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4 py-4">
       <div className="text-center">
         <p className="text-sm font-medium">You already have an account</p>
         <p className="text-xs text-muted-foreground pt-1">
-          <strong>{email}</strong> is already registered — you signed up with Google, Facebook or Apple.
-          Continue with that provider; you can add a password in your account settings afterwards.
+          <strong>{email}</strong> is already registered. Continue with the provider you signed up
+          with, or set a password to enable email sign-in.
         </p>
       </div>
       <div className="flex flex-col gap-3">
-        <LoginButton provider="google" size="lg" onClick={() => continueWith("Google")}/>
-        <LoginButton provider="facebook" size="lg" onClick={() => continueWith("Facebook")}/>
-        <LoginButton provider="apple" size="lg" onClick={() => continueWith("SignInWithApple")}/>
+        <LoginButton provider="google" size="lg" onClick={() => socialSignIn("Google", currentPath ?? "/account")}/>
+        <LoginButton provider="facebook" size="lg" onClick={() => socialSignIn("Facebook", currentPath ?? "/account")}/>
+        <LoginButton provider="apple" size="lg" onClick={() => socialSignIn("SignInWithApple", currentPath ?? "/account")}/>
+      </div>
+      <div className="text-center">
+        {resetState === "sent" ? (
+          <p className="text-xs text-muted-foreground">
+            If this account can receive email, we&apos;ve sent a link to set your password.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={sendResetLink}
+            disabled={resetState === "sending"}
+            className="text-xs text-muted-foreground underline hover:text-foreground disabled:opacity-60"
+          >
+            {resetState === "sending" ? "Sending…" : "Email me a link to set a password"}
+          </button>
+        )}
+        {resetState === "error" && (
+          <p className="pt-1 text-xs text-destructive">Couldn&apos;t send the link. Please try again.</p>
+        )}
       </div>
     </div>
   );

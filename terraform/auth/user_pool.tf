@@ -36,8 +36,10 @@ resource "aws_cognito_user_pool" "main" {
     sms_message          = "Your Forged & Found verification code is {####}"
   }
 
+  # Length over composition (NIST 800-63B): 10+ chars, no forced symbol soup.
+  # Only affects newly set passwords.
   password_policy {
-    minimum_length    = 8
+    minimum_length    = 10
     require_lowercase = true
     require_uppercase = false
     require_numbers   = false

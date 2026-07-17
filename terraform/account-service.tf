@@ -7,7 +7,7 @@ module "account_service_image" {
   aws_profile = var.aws_profile
 
   service_name         = local.account_service_name
-  package_dependencies = ["logger", "shopify-admin-client", "secret-manager"]
+  package_dependencies = ["logger", "email", "shopify-admin-client", "secret-manager"]
 }
 
 module "account_service_lambda" {

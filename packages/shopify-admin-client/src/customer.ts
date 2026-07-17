@@ -190,6 +190,42 @@ export async function updateCustomerEmailMarketingConsent(
   );
 }
 
+interface CustomerRequestDataErasureResponse {
+  customerRequestDataErasure: {
+    customerId?: string;
+    userErrors: {
+      field?: string[];
+      message: string;
+    }[];
+  };
+}
+
+/**
+ * Queue GDPR-style erasure of a customer's personal data. Unlike customerDelete
+ * this also works for customers with order history (Shopify redacts after its
+ * retention window), which is why it's what account deletion uses.
+ */
+export async function requestCustomerDataErasure(
+  customerId: string,
+): Promise<CustomerRequestDataErasureResponse> {
+  return await shopifyAdminFetch<CustomerRequestDataErasureResponse>(
+    `
+      mutation RequestCustomerErasure($customerId: ID!) {
+        customerRequestDataErasure(customerId: $customerId) {
+          customerId
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+      `,
+    {
+      customerId,
+    },
+  );
+}
+
 export interface AddressInput {
   firstName?: string;
   lastName?: string;

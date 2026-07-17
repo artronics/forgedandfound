@@ -15,6 +15,14 @@ export const {
   handlers,
   auth,
 } = NextAuth({
+  // Send auth failures to our own login page. Required for the social-link
+  // retry: the PreSignUp Lambda deliberately fails the sign-in that linked a
+  // social identity (its tokens would carry a never-persisted sub), and the
+  // login page auto-retries the provider sign-in once (see LoginForm).
+  pages: {
+    signIn: "/account/login",
+    error: "/account/login",
+  },
   providers: [
     Cognito({
       clientId: oidc_config.cognito_client_id,

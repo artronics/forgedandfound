@@ -23,6 +23,22 @@ const cognito = new CognitoIdentityProviderClient({});
 
 const PLACEHOLDER_EMAIL_DOMAIN = process.env.PLACEHOLDER_EMAIL_DOMAIN!;
 
+/**
+ * Thrown (deliberately) after a successful AdminLinkProviderForUser to abort the
+ * sign-in that triggered the linking. Cognito mints the tokens for THIS sign-in
+ * from the transient federated identity whose sub is never persisted — a session
+ * built on them fails every user-pool operation with UserNotFoundException. By
+ * failing this sign-in, the client retries and the retry resolves the linked
+ * identity to the native user, issuing tokens with the real sub. The web app
+ * auto-retries when it sees this marker (see apps/web LoginForm).
+ */
+class AccountLinkedRetryError extends Error {
+  constructor() {
+    super("ACCOUNT_LINKED_RETRY");
+    this.name = "AccountLinkedRetryError";
+  }
+}
+
 interface PostConfirmationEvent {
   triggerSource: "PostConfirmation_ConfirmSignUp" | "PostConfirmation_ConfirmForgotPassword";
   userPoolId: string;
@@ -354,6 +370,10 @@ async function linkExternalProviderToNativeUser(e: PreSignUpEvent): Promise<void
   // which maps it for Google and Apple). Providers without the claim (Facebook)
   // are treated as placeholders above, so their native user correctly stays
   // unverified until the user adds an email themselves.
+
+  // The linking sign-in itself must not complete — its tokens would carry a
+  // ghost sub. Abort it; the client auto-retries into the linked native user.
+  throw new AccountLinkedRetryError();
 }
 
 export const handler = async (event: Event, context: Context): Promise<Event> => {
@@ -372,6 +392,10 @@ const authHandler = async (event: Event): Promise<Event> => {
     try {
       await linkExternalProviderToNativeUser(event as PreSignUpEvent);
     } catch (err) {
+      // A successful link aborts this sign-in on purpose — the client retries
+      // and signs into the native user with a real sub. Everything else stays
+      // best-effort: the sign-in proceeds rather than locking the user out.
+      if (err instanceof AccountLinkedRetryError) throw err;
       logger.error({err}, "[PreSignUp] linking social identity failed (non-fatal)");
     }
     return event;

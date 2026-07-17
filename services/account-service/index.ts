@@ -3,6 +3,7 @@ import {withLambdaLogger} from "@forgedandfound/logger/lambda";
 import {getLogger} from "@forgedandfound/logger";
 import {
   createCustomerAddress,
+  requestCustomerDataErasure,
   updateCustomer,
   updateCustomerEmail,
 } from "@forgedandfound/shopify-admin-client/customer";
@@ -15,6 +16,7 @@ import {
   setPassword,
   updateName,
 } from "./cognito";
+import {notifyPasswordChanged} from "./notifications";
 
 /**
  * The authenticated caller, forwarded by the Next.js BFF in X-User-* headers.
@@ -291,13 +293,38 @@ async function changePassword(
     return json(500, {error: "Could not set your password."});
   }
 
+  // Security notification — the owner must hear about a password change they
+  // didn't make. Best-effort; never fails the operation.
+  await notifyPasswordChanged(identity.sub);
+
   return json(200, {ok: true});
 }
 
-/** Permanently delete the user's Cognito account. */
+/**
+ * Permanently delete the user's Cognito account and queue erasure of their
+ * Shopify customer data — the UI promises "all associated data", and the
+ * Shopify record holds the PII (name, addresses, phone).
+ */
 async function deleteAccount(identity: Identity): Promise<APIGatewayProxyResult> {
+  const logger = getLogger();
   if (!identity.sub) {
     return json(400, {error: "Missing user id."});
+  }
+
+  // Best-effort: the Cognito deletion must not be blocked by a Shopify hiccup.
+  // customerRequestDataErasure works even when the customer has orders (Shopify
+  // redacts after its retention window).
+  if (identity.shopifyCustomerId) {
+    try {
+      const {userErrors} = (
+        await requestCustomerDataErasure(identity.shopifyCustomerId)
+      ).customerRequestDataErasure;
+      if (userErrors.length) {
+        logger.error({userErrors}, "delete: shopify data-erasure request failed");
+      }
+    } catch (err) {
+      logger.error({err}, "delete: shopify data-erasure request threw (non-fatal)");
+    }
   }
 
   try {
