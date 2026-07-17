@@ -32,7 +32,12 @@ export default function LoginForm({className, onSuccess}: LoginFormProps) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.get("error")) return;
-    if (retrySocialSignInOnce()) setFinishingSocial(true);
+    // Deferred so the state swap isn't synchronous inside the effect; the retry
+    // itself starts a full-page redirect to the provider.
+    const timer = setTimeout(() => {
+      if (retrySocialSignInOnce()) setFinishingSocial(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   if (finishingSocial) {

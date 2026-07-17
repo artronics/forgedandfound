@@ -25,6 +25,8 @@ module "account_service_lambda" {
     COGNITO_CLIENT_ID     = module.auth.cognito_app_client_id
     COGNITO_CLIENT_SECRET = module.auth.cognito_app_client_secret
     SHOPIFY_SECRET_NAME   = "forgedandfound/infra/shopify"
+    # Sender for security notifications (password changed).
+    SES_FROM_ADDRESS = "no-reply@${local.ses_email_domain}"
   }
 }
 
@@ -58,6 +60,7 @@ data "aws_iam_policy_document" "account_service" {
     sid    = "CognitoAdmin"
     effect = "Allow"
     actions = [
+      "cognito-idp:AdminGetUser",
       "cognito-idp:AdminUpdateUserAttributes",
       "cognito-idp:AdminDeleteUser",
       "cognito-idp:AdminSetUserPassword",
@@ -70,6 +73,13 @@ data "aws_iam_policy_document" "account_service" {
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue"]
     resources = ["arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:forgedandfound/infra/shopify-*"]
+  }
+
+  statement {
+    sid       = "SesSendNotification"
+    effect    = "Allow"
+    actions   = ["ses:SendEmail"]
+    resources = [local.ses_email_identity_arn]
   }
 }
 

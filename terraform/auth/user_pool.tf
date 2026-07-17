@@ -10,13 +10,13 @@ resource "aws_cognito_user_pool" "main" {
   username_attributes      = ["email", "phone_number"]
   auto_verified_attributes = ["email", "phone_number"]
 
-  # Keep the current email active until the new one is verified. Without this,
-  # UpdateUserAttributes swaps the address immediately (unverified), which can
-  # lock the user out of email sign-in and puts unproven addresses on record.
-  user_attribute_update_settings {
-    attributes_require_verification_before_update = ["email"]
-  }
-
+  # ⚠ Do NOT enable user_attribute_update_settings / verify-email-before-update
+  # here. Cognito re-writes the mapped `email` attribute on every federated
+  # sign-in of a linked user, and with verification-before-update enabled that
+  # write is rejected — which breaks sign-in for every Google/Apple-linked
+  # account at the token step. The trade-off is that a self-service email change
+  # swaps the address immediately (unverified); the account-service mitigates by
+  # only ever syncing the address Cognito reports as verified.
   mfa_configuration = "OFF"
 
   email_configuration {
