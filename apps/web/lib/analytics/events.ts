@@ -18,19 +18,19 @@ import {pushEvent} from "@/lib/analytics/index";
 
  */
 
-export function viewItem(product: ProductVariant) {
+export function viewItem(product: Product) {
   pushEvent({
     event: "view_item",
     ecommerce: {
       currency: "GBP",
-      value: Number(product.price.amount),
+      value: Number(product.priceRange.minVariantPrice.amount),
       items: [
         {
           item_id: product.id,
           item_name: product.title,
-          item_category: product.product.category,
-          item_brand: "Forged & Found",
-          price: Number(product.price.amount),
+          item_category: product.category?.name ?? "jewellery",
+          item_brand: product.vendor ?? "Forged & Found",
+          price: Number(product.priceRange.minVariantPrice.amount),
         },
       ],
     },

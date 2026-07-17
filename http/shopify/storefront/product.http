@@ -27,6 +27,7 @@ query GetProductByHanle($handle: String) {
             name
             id
         }
+        vendor
         images(first: 1) {
             edges {
                 node {
