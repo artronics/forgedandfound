@@ -154,6 +154,24 @@ async function refreshCognitoTokenIfExpired(token: JWT): Promise<void> {
       token.cognitoAccessToken = refreshed.AccessToken;
       token.cognitoExpiresAt = Date.now() + (refreshed.ExpiresIn ?? 3600) * 1000;
     }
+    // The fresh ID token carries the user's current attributes. Re-read the
+    // claims that can change mid-session (add-email, profile edits) — otherwise
+    // the session shows sign-in-time values until the user logs in again.
+    if (refreshed?.IdToken) {
+      const claims = decodeIdToken(refreshed.IdToken);
+      if (claims.email) token.email = claims.email;
+      if (claims["custom:shopify_customer_id"]) {
+        token.shopifyCustomerId = claims["custom:shopify_customer_id"];
+      }
+      if (claims["custom:email_placeholder"] !== undefined) {
+        token.emailPlaceholder = claims["custom:email_placeholder"] === "true";
+      }
+      const name = [claims.given_name, claims.family_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      if (name) token.name = name;
+    }
   } catch (err) {
     getLogger().warn({err}, "cognito token refresh failed");
   }

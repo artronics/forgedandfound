@@ -183,11 +183,12 @@ export const shopifyHandler = async (
       ? "/account/verify-email"
       : "/account/verify";
 
+  // The decrypted code must never be logged — a reset code in CloudWatch is an
+  // account takeover for anyone with log access.
     logger.debug(
       {
         triggerSource: event.triggerSource,
         email: toAddress,
-        verificationCode: code,
         appOrigin,
       }, "creating email trigger");
 

@@ -8,6 +8,7 @@ import {
   CognitoIdentityProviderClient,
   ConfirmSignUpCommand,
   GetUserAttributeVerificationCodeCommand,
+  GetUserCommand,
   SignUpCommand,
   UpdateUserAttributesCommand,
   VerifyUserAttributeCommand,
@@ -185,6 +186,16 @@ export async function resendEmailVerificationCode(
       ClientMetadata: clientMetadata,
     }),
   );
+}
+
+/**
+ * Read the user's email as Cognito currently holds it. Used after a
+ * verification so downstream sync uses the address that was actually verified,
+ * never a client-supplied value.
+ */
+export async function getEmail(accessToken: string): Promise<string | undefined> {
+  const res = await cognito.send(new GetUserCommand({AccessToken: accessToken}));
+  return res.UserAttributes?.find((a) => a.Name === "email")?.Value;
 }
 
 /** Confirm the emailed code, marking the new email verified. */

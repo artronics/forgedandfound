@@ -10,6 +10,13 @@ resource "aws_cognito_user_pool" "main" {
   username_attributes      = ["email", "phone_number"]
   auto_verified_attributes = ["email", "phone_number"]
 
+  # Keep the current email active until the new one is verified. Without this,
+  # UpdateUserAttributes swaps the address immediately (unverified), which can
+  # lock the user out of email sign-in and puts unproven addresses on record.
+  user_attribute_update_settings {
+    attributes_require_verification_before_update = ["email"]
+  }
+
   mfa_configuration = "OFF"
 
   email_configuration {

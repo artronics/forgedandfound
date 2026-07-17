@@ -224,8 +224,11 @@ function placeholderEmail(providerName: string, providerUserId: string): string 
 
 /** Find a native (non-federated) user for this email, if one exists. */
 async function findNativeUserByEmail(userPoolId: string, email: string) {
+  // The filter value is a quoted string and the address came from an external
+  // IdP — strip anything that could break out of the quotes.
+  const safeEmail = email.replace(/["\\]/g, "");
   const {Users} = await cognito.send(
-    new ListUsersCommand({UserPoolId: userPoolId, Filter: `email = "${email}"`}),
+    new ListUsersCommand({UserPoolId: userPoolId, Filter: `email = "${safeEmail}"`}),
   );
   // Only ever link into a CONFIRMED native user whose email is verified —
   // otherwise someone could pre-register an unverified account on somebody
@@ -302,10 +305,17 @@ async function linkExternalProviderToNativeUser(e: PreSignUpEvent): Promise<void
   const {providerName, providerUserId} = parsed;
 
   const providerEmail = e.request.userAttributes.email;
+  // Only trust an address the provider itself verified (mapped from the IdP's
+  // email_verified claim — Google and Apple send it; Facebook doesn't). An
+  // unverified claim could be someone else's address: matching or creating a
+  // native account on it would let an attacker link into a victim's account.
+  const providerEmailVerified = e.request.userAttributes.email_verified === "true";
   // Apple relay addresses are real but we treat them as placeholders: they're not
   // an address we show or ask the user to rely on.
   const isPlaceholder =
-    !providerEmail || providerEmail.toLowerCase().endsWith(APPLE_RELAY_SUFFIX);
+    !providerEmail ||
+    !providerEmailVerified ||
+    providerEmail.toLowerCase().endsWith(APPLE_RELAY_SUFFIX);
   const email = providerEmail ?? placeholderEmail(providerName, providerUserId);
 
   // An existing native account only matters for a real address — placeholders are
@@ -338,10 +348,12 @@ async function linkExternalProviderToNativeUser(e: PreSignUpEvent): Promise<void
   );
   logger.info({provider: providerName}, "[PreSignUp] linked social identity into native user");
 
-  // NOTE: we can't set email_verified=true here — Cognito forces it false for a
-  // user with a linked external provider, and won't let it be overridden. That
-  // means ForgotPassword is unavailable for linked users; they set a password
-  // directly from the (authenticated) account page instead.
+  // NOTE: Cognito re-applies the IdP attribute mapping to the linked native user
+  // on every federated sign-in, stamping email_verified=false unless the
+  // provider's email_verified claim is mapped through (see terraform/auth/idp.tf,
+  // which maps it for Google and Apple). Providers without the claim (Facebook)
+  // are treated as placeholders above, so their native user correctly stays
+  // unverified until the user adds an email themselves.
 }
 
 export const handler = async (event: Event, context: Context): Promise<Event> => {

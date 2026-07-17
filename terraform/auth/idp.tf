@@ -33,8 +33,14 @@ resource "aws_cognito_identity_provider" "google" {
   # source of truth and the user sets their name in our UI; Cognito re-applies
   # this mapping on federated sign-in, so mapping names here would let Google
   # overwrite what the user chose on every login.
+  #
+  # email_verified MUST be mapped: Cognito re-applies this mapping on every
+  # federated sign-in and stamps email_verified=false on the linked native user
+  # unless the provider's claim is mapped through. Without it, social-first
+  # users can never use ForgotPassword (no verified email).
   attribute_mapping = {
     email                        = "email"
+    email_verified               = "email_verified"
     username                     = "sub"
     phone_number                 = "phoneNumbers"
     "custom:shopify_customer_id" = "shopify_customer_id"
@@ -64,8 +70,10 @@ resource "aws_cognito_identity_provider" "apple" {
     authorize_scopes = "email name"
   }
 
+  # email_verified mapped for the same reason as the Google provider above.
   attribute_mapping = {
     email                        = "email"
+    email_verified               = "email_verified"
     username                     = "sub"
     "custom:shopify_customer_id" = "shopify_customer_id"
   }

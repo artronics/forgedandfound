@@ -8,7 +8,6 @@ resource "aws_api_gateway_rest_api" "this" {
 
   body = templatefile("${path.module}/api.yaml", {
     cognito_user_pool_arn = var.cognito_user_pool_arn
-    user_service_uri      = var.user_service_invoke_arn
     account_service_uri   = var.account_service_invoke_arn
   })
 
@@ -36,16 +35,8 @@ resource "aws_api_gateway_stage" "this" {
   stage_name    = "v1"
 }
 
-# Allow API Gateway to invoke the user-service Lambda. Created here (not in
-# user-service.tf) to avoid a dependency cycle on the REST API's execution ARN.
-resource "aws_lambda_permission" "user_service_invoke" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = var.user_service_function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.this.execution_arn}/*/*"
-}
-
+# Allow API Gateway to invoke the account-service Lambda. Created here (not in
+# account-service.tf) to avoid a dependency cycle on the REST API's execution ARN.
 resource "aws_lambda_permission" "account_service_invoke" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"

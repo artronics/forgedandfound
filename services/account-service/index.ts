@@ -10,6 +10,7 @@ import {
   clearEmailPlaceholder,
   confirmEmailChange,
   deleteUser,
+  getEmail,
   requestEmailChange,
   setPassword,
   updateName,
@@ -149,11 +150,10 @@ async function verifyEmail(
   body: { email?: string; code?: string },
 ): Promise<APIGatewayProxyResult> {
   const logger = getLogger();
-  const email = body.email?.trim();
   const code = body.code?.trim();
 
-  if (!email || !code) {
-    return json(400, {error: "Email and code are required."});
+  if (!code) {
+    return json(400, {error: "Verification code is required."});
   }
   if (!identity.accessToken || !identity.sub) {
     return json(401, {error: "Not signed in."});
@@ -178,9 +178,13 @@ async function verifyEmail(
   await clearEmailPlaceholder(identity.sub);
 
   // Mirror to Shopify. The customer already exists (created against the
-  // placeholder address when the account was made), so this is an update.
-  if (identity.shopifyCustomerId) {
-    const {userErrors} = (await updateCustomerEmail(identity.shopifyCustomerId, email)).customerUpdate;
+  // placeholder address when the account was made), so this is an update. The
+  // address is read back from Cognito — the body's email is never trusted, or a
+  // caller could attach an address they don't own to their customer record.
+  const verifiedEmail = await getEmail(identity.accessToken);
+
+  if (identity.shopifyCustomerId && verifiedEmail) {
+    const {userErrors} = (await updateCustomerEmail(identity.shopifyCustomerId, verifiedEmail)).customerUpdate;
     if (userErrors.length) {
       logger.error({userErrors}, "account verify: shopify customerUpdate failed");
       return json(502, {error: "Email verified, but updating your customer profile failed."});
