@@ -19,6 +19,10 @@ module "user_service_lambda" {
   function_name = "${local.prefix}-${local.user_service_name}"
   image_uri     = module.user_service_image.image_uri
   role_arn      = aws_iam_role.user_service.arn
+
+  environment_variables = {
+    USER_POOL_ID = module.auth.cognito_user_pool_id
+  }
 }
 
 data "aws_iam_policy_document" "user_service_assume" {
@@ -39,4 +43,22 @@ resource "aws_iam_role" "user_service" {
 resource "aws_iam_role_policy_attachment" "user_service_basic" {
   role       = aws_iam_role.user_service.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# The service applies users' own profile edits (name, email + email_verified,
+# marketing consent) — the admin call lives here because the web app runs on
+# Vercel with no AWS credentials.
+data "aws_iam_policy_document" "user_service_cognito" {
+  statement {
+    sid       = "CognitoUpdateAttributes"
+    effect    = "Allow"
+    actions   = ["cognito-idp:AdminUpdateUserAttributes"]
+    resources = [module.auth.cognito_user_pool_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "user_service_cognito" {
+  name   = "${local.prefix}-${local.user_service_name}-cognito"
+  role   = aws_iam_role.user_service.id
+  policy = data.aws_iam_policy_document.user_service_cognito.json
 }

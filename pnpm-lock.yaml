@@ -506,6 +506,9 @@ importers:
 
   services/user-service:
     dependencies:
+      '@aws-sdk/client-cognito-identity-provider':
+        specifier: ^3.1072.0
+        version: 3.1089.0
       '@forgedandfound/logger':
         specifier: workspace:*
         version: link:../../packages/logger

@@ -222,10 +222,15 @@ export function buildAppMetadata(
 export type CognitoIdTokenClaims = {
   sub?: string;
   email?: string;
+  /** Full display name — social IdPs may provide only this, with no given/family split. */
+  name?: string;
   given_name?: string;
   family_name?: string;
+  /** Present (non-empty) only on federated users — its absence marks a native user. */
+  identities?: unknown;
   "cognito:username"?: string;
   "custom:shopify_customer_id"?: string;
+  "custom:accepts_marketing"?: string;
   "custom:email_placeholder"?: string;
 };
 
