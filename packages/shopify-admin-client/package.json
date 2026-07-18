@@ -1,0 +1,21 @@
+{
+  "name": "@forgedandfound/shopify-admin-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "eslint": "catalog:",
+    "typescript-eslint": "catalog:"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@forgedandfound/secret-manager": "workspace:*"
+  }
+}

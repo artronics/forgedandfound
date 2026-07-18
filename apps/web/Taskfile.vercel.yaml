@@ -11,4 +11,4 @@ tasks:
     desc: Deploy to Development
     deps: [ build ]
     cmds:
-      - vercel alias set "$(vercel deploy --yes)" development.nonprod.forgedandfound.co.uk
+      - vercel alias set "$(vercel deploy --yes)" development.forgedandfound.co.uk

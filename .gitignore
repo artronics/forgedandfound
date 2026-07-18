@@ -3,9 +3,10 @@
 *.private.*
 .dev.md
 dist
-
 # AI
-.junie
+**/.junie
+**/CLAUDE.md
+
 
 **/.terraform
 # turbo

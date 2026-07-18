@@ -1,0 +1,199 @@
+### Get Products
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetProducts {
+    products(first: 10) {
+        edges {
+            node {
+                id
+                title
+                handle
+            }
+        }
+    }
+}
+
+### [page] Single Product by handle
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetProductByHanle($handle: String) {
+    product(handle: $handle) {
+        id
+        title
+        handle
+        category {
+            name
+            id
+        }
+        vendor
+        images(first: 1) {
+            edges {
+                node {
+                    id
+                    url
+                }
+            }
+        }
+        options {
+            name
+            optionValues {
+                name
+            }
+        }
+        selectedOrFirstAvailableVariant {
+            id
+            title
+            availableForSale
+            selectedOptions {
+                name
+                value
+            }
+        }
+        variants(first: 10) {
+            edges {
+                node {
+                    id
+                    product {
+                        title
+                    }
+                    availableForSale
+                    currentlyNotInStock
+                    image {
+                        thumbhash
+                        id
+                        altText
+                        url
+                        width
+                        height
+                    }
+                    price {
+                        amount
+                        currencyCode
+                    }
+                    compareAtPrice {
+                        amount
+                        currencyCode
+                    }
+                    selectedOptions {
+                        name
+                        value
+                    }
+                }
+            }
+        }
+    }
+}
+{
+  "handle": "{{sample_product_handle}}"
+}
+
+### Simple product
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetProductByHanle {
+    product(handle: "necklace-1") {
+        id
+        title
+        handle
+        variants(first: 32) {
+            edges {
+                node {
+                    id
+                    title
+                    selectedOptions {
+                        name
+                        value
+                    }
+                    price {
+                        amount
+                    }
+                }
+            }
+        }
+    }
+}
+### Product Query
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+cache-control: no-cache
+
+query GetProducts {
+    products(
+        first: 20
+        query:  "category_id:\"aa-6-9\""
+    ) {
+        edges {
+            node {
+                id
+                handle
+                title
+                tags
+                category {
+                    id
+                    name
+                }
+                metafield(namespace: "custom", key: "styles") {
+                    value
+                    type
+                    key
+                    reference {
+                        ... on Metaobject {
+                            id
+                            handle
+                            type
+                        }
+                    }
+                    references(first: 10) {
+                        edges {
+                            node {
+                                ... on Metaobject {
+                                    id
+                                    handle
+                                    type
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+### Product Query
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query WishlistProducts($ids: [ID!]!) {
+    nodes(ids: $ids) {
+        ... on Product {
+            id
+            handle
+            title
+            featuredImage {
+                url
+                altText
+            }
+            priceRange {
+                minVariantPrice {
+                    amount
+                    currencyCode
+                }
+            }
+            availableForSale
+        }
+    }
+
+}
+
+{
+  "ids": [
+    "gid://shopify/Product/10922922475857",
+    "gid://shopify/Product/1234567890",
+    "gid://shopify/Product/2345678901",
+    "gid://shopify/Product/3456789012"
+  ]
+}

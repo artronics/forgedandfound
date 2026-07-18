@@ -1,0 +1,25 @@
+### Get Products
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+mutation customerCreate($input: CustomerCreateInput!) {
+    customerCreate(input: $input) {
+        customer {
+            id
+            email
+            acceptsMarketing
+        }
+        customerUserErrors {
+            field
+            message
+            code
+        }
+    }
+}
+
+{
+  "input": {
+    "email": "test@example.com",
+    "acceptsMarketing": true
+  }
+}

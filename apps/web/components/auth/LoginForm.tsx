@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {signIn} from "next-auth/react";
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
@@ -8,9 +8,33 @@ import {Input} from "@/components/ui/input";
 import {cn} from "@/lib/utils";
 import {SlideDeck} from "@/components/auth/SlideDeck";
 import {LoginButton} from "@/components/auth/LoginButton";
+import {RATE_LIMITED_ERROR} from "@/lib/auth/messages";
 
 type Tab = "signin" | "register";
 type View = "auth" | "forgot";
+
+/**
+ * Where to land after a successful sign-in (or after following a verification
+ * link): the `?next=` param when it's a safe in-app path, otherwise the page
+ * the form is on — except the login page itself, which falls back to home.
+ * Absolute and protocol-relative values are rejected so a crafted link can't
+ * turn the post-login redirect into an off-site redirect.
+ */
+function resolveDestination(currentPath: string | null): string {
+  if (typeof window !== "undefined") {
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+  }
+  if (!currentPath || currentPath.endsWith("/account/login")) return "/";
+  return currentPath;
+}
+
+function currentAppLocation(): { origin: string; returnTo: string } {
+  return {
+    origin: window.location.origin,
+    returnTo: resolveDestination(window.location.pathname),
+  };
+}
 
 type LoginFormProps = {
   className?: string;
@@ -124,10 +148,8 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
         return;
       }
 
-      const returnTo = window.location.href ??  "/account";
-      console.log("returnTo", returnTo);
       onSuccess?.();
-      router.push(returnTo);
+      router.push(resolveDestination(currentPath));
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -190,7 +212,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
           onClick={() =>
             signIn(
               "cognito",
-              {callbackUrl: currentPath ?? "/account"},
+              {callbackUrl: resolveDestination(currentPath)},
               {identity_provider: "Google"},
             )
           }
@@ -201,7 +223,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
           onClick={() =>
             signIn(
               "cognito",
-              {callbackUrl: currentPath ?? "/account"},
+              {callbackUrl: resolveDestination(currentPath)},
               {identity_provider: "Facebook"},
             )
           }
@@ -212,7 +234,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
           onClick={() =>
             signIn(
               "cognito",
-              {callbackUrl: currentPath ?? "/account"},
+              {callbackUrl: resolveDestination(currentPath)},
               {identity_provider: "SignInWithApple"},
             )
           }
@@ -232,6 +254,7 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirmationRequired, setConfirmationRequired] = useState(false);
+  const [accountExists, setAccountExists] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,13 +277,26 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
           firstName: firstName || undefined,
           lastName: lastName || undefined,
           acceptsMarketing,
+          ...currentAppLocation(),
         }),
       });
 
-      const data = await res.json();
+      // A firewall rate-limit 429 has a plain-text body, not our JSON shape.
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setError(data.error ?? "Account creation failed.");
+        // They already have an email/password account for this address.
+        // Signing in (or resetting the password) is the way forward, not
+        // registering a second time.
+        if (data.type === "UsernameExistsException") {
+          setAccountExists(true);
+          return;
+        }
+        setError(
+          res.status === 429
+            ? RATE_LIMITED_ERROR
+            : data.error ?? "Account creation failed.",
+        );
         return;
       }
 
@@ -275,6 +311,10 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
       setLoading(false);
     }
   };
+
+  if (accountExists) {
+    return <AccountExistsPrompt email={email}/>;
+  }
 
   if (confirmationRequired) {
     return (
@@ -380,8 +420,105 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
   );
 }
 
+/**
+ * Shown when registration hits an existing email/password account for this
+ * address. They can have a reset link emailed to (re)set the password, or
+ * continue with a social provider they've used before (on this branch a social
+ * sign-in is its own separate account — the accepted trade-off).
+ */
+function AccountExistsPrompt({email}: { email: string }) {
+  const currentPath = usePathname();
+  const [resetState, setResetState] =
+    useState<"idle" | "sending" | "sent" | "limited" | "error">("idle");
+
+  const sendResetLink = async () => {
+    if (resetState === "sending" || resetState === "sent") return;
+    setResetState("sending");
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({email, ...currentAppLocation()}),
+      });
+      setResetState(res.ok ? "sent" : res.status === 429 ? "limited" : "error");
+    } catch {
+      setResetState("error");
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 py-4">
+      <div className="text-center">
+        <p className="text-sm font-medium">You already have an account</p>
+        <p className="text-xs text-muted-foreground pt-1">
+          <strong>{email}</strong> is already registered. Sign in with your password, or continue
+          with a provider you&apos;ve used before.
+        </p>
+      </div>
+      <div className="flex flex-col gap-3">
+        <LoginButton
+          provider="google"
+          size="lg"
+          onClick={() =>
+            signIn(
+              "cognito",
+              {callbackUrl: resolveDestination(currentPath)},
+              {identity_provider: "Google"},
+            )
+          }
+        />
+        <LoginButton
+          provider="facebook"
+          size="lg"
+          onClick={() =>
+            signIn(
+              "cognito",
+              {callbackUrl: resolveDestination(currentPath)},
+              {identity_provider: "Facebook"},
+            )
+          }
+        />
+        <LoginButton
+          provider="apple"
+          size="lg"
+          onClick={() =>
+            signIn(
+              "cognito",
+              {callbackUrl: resolveDestination(currentPath)},
+              {identity_provider: "SignInWithApple"},
+            )
+          }
+        />
+      </div>
+      <div className="text-center">
+        {resetState === "sent" ? (
+          <p className="text-xs text-muted-foreground">
+            If this account can receive email, we&apos;ve sent a link to set your password.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={sendResetLink}
+            disabled={resetState === "sending"}
+            className="text-xs text-muted-foreground underline hover:text-foreground disabled:opacity-60"
+          >
+            {resetState === "sending" ? "Sending…" : "Email me a link to set a password"}
+          </button>
+        )}
+        {resetState === "error" && (
+          <p className="pt-1 text-xs text-destructive">Couldn&apos;t send the link. Please try again.</p>
+        )}
+        {resetState === "limited" && (
+          <p className="pt-1 text-xs text-destructive">{RATE_LIMITED_ERROR}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ResendVerificationButton({email, className}: { email: string; className?: string }) {
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [state, setState] =
+    useState<"idle" | "sending" | "sent" | "limited" | "error">("idle");
 
   const resend = async () => {
     if (!email || state === "sending" || state === "sent") return;
@@ -390,9 +527,9 @@ function ResendVerificationButton({email, className}: { email: string; className
       const res = await fetch("/api/auth/resend-verification", {
         method: "POST",
         headers: {"content-type": "application/json"},
-        body: JSON.stringify({email}),
+        body: JSON.stringify({email, ...currentAppLocation()}),
       });
-      setState(res.ok ? "sent" : "error");
+      setState(res.ok ? "sent" : res.status === 429 ? "limited" : "error");
     } catch {
       setState("error");
     }
@@ -419,6 +556,9 @@ function ResendVerificationButton({email, className}: { email: string; className
       {state === "error" && (
         <p className="text-xs text-destructive">Couldn&apos;t resend. Please try again.</p>
       )}
+      {state === "limited" && (
+        <p className="text-xs text-destructive">{RATE_LIMITED_ERROR}</p>
+      )}
     </div>
   );
 }
@@ -438,12 +578,16 @@ function ForgotPasswordForm({onBack}: { onBack: () => void }) {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: {"content-type": "application/json"},
-        body: JSON.stringify({email}),
+        body: JSON.stringify({email, ...currentAppLocation()}),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Something went wrong. Please try again.");
+        setError(
+          res.status === 429
+            ? RATE_LIMITED_ERROR
+            : data.error ?? "Something went wrong. Please try again.",
+        );
         return;
       }
 

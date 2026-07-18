@@ -6,6 +6,7 @@ import {useRouter} from "next/navigation";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {RATE_LIMITED_ERROR} from "@/lib/auth/messages";
 
 type ResetPasswordFormProps = {
   email: string;
@@ -42,7 +43,11 @@ export default function ResetPasswordForm({email, code}: ResetPasswordFormProps)
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Something went wrong. Please try again.");
+        setError(
+          res.status === 429
+            ? RATE_LIMITED_ERROR
+            : data.error ?? "Something went wrong. Please try again.",
+        );
         return;
       }
 

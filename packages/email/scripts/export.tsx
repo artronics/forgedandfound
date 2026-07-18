@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { render } from "@react-email/render";
+import {render} from "react-email";
 
-import VerifyEmailTemplate  from "../emails/VerifyEmail";
+import VerifyEmailTemplate from "../emails/VerifyEmail";
 
 async function main() {
   const html = await render(

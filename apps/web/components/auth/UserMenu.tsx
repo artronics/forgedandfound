@@ -7,29 +7,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {MenuItem} from "@/components/ui/menu-item";
-import {signOutWithCognito} from "@/actions/auth-actions";
 import {Icon} from "../ui/icon";
-import {usePathname} from "next/navigation";
+import {useRouter} from "next/navigation";
+import {signOut} from "next-auth/react";
 
 export default function UserMenu({open, setOpen, children}: {
   open: boolean,
   setOpen: (open: boolean) => void,
   children?: React.ReactNode
 }) {
-  const currentPath = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    // Client-side sign out clears the session cookie and immediately updates
+    // useSession() everywhere, so the UI reflects the logged-out state right
+    // away. router.refresh() then re-renders server components to match.
+    await signOut({redirect: false});
+    router.refresh();
+  };
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       {children && <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>}
       <DropdownMenuContent className="px-4 bg-surface-container" align="end">
         <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleLogout} className="cursor-pointer">
             <MenuItem icon={<Icon icon="log-out"/>}>
-              <form action={() => signOutWithCognito(currentPath)}>
-                <button type="submit" className="cursor-pointer">
-                  Log Out
-                </button>
-              </form>
+              Log Out
             </MenuItem>
           </DropdownMenuItem>
         </DropdownMenuGroup>

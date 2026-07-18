@@ -16,7 +16,9 @@
   "devDependencies": {
     "@react-email/ui": "6.6.3",
     "eslint": "catalog:",
-    "typescript-eslint": "catalog:"
+    "typescript-eslint": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:"
   },
   "dependencies": {
     "react": "catalog:",

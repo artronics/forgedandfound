@@ -1,30 +1,20 @@
 version: '3'
 
-vars:
-  STACKS: infra platform
-
 tasks:
-  fmt:
-    desc: Format all Terraform + Stack files
+  init:
+    desc: Initialize terraform
     cmds:
-      - terraform fmt -recursive .
+      - terraform init -backend-config="key=forgedandfound/$TF_VAR_aws_account/$TF_VAR_deployment_env.tfstate" -backend-config="bucket=artronics-forgedandfound-$TF_VAR_aws_account-terraform-state"
+  plan:
+    desc: Plan infrastructure
+    cmds:
+      - terraform plan -var="aws_account=$TF_VAR_aws_account"
+  apply:
+    desc: Apply infrastructure
+    cmds:
+      - terraform apply -var="aws_account=$TF_VAR_aws_account" -auto-approve
 
-  validate:
-    desc: 'Init + validate a single Stack (usage:: task validate STACK=infra)'
-    dir: '{{.STACK}}'
+  destroy:
+    desc: Destroy infrastructure
     cmds:
-      - terraform stacks init
-      - terraform stacks validate
-
-  validate:all:
-    desc: Validate every Stack
-    cmds:
-      - for: { var: STACKS }
-        task: validate
-        vars: { STACK: '{{.ITEM}}' }
-
-  check:
-    desc: Format check + validate everything (use in CI)
-    cmds:
-      - terraform fmt -recursive -check .
-      - task: validate:all
+      - echo terraform destroy -var="aws_account=nonprod" -auto-approve

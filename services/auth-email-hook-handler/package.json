@@ -1,0 +1,29 @@
+{
+  "name": "@forgedandfound/auth-email-hook-handler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "pnpm dlx tsx index.ts",
+    "build": "esbuild index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
+    "lint": "eslint ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@aws-crypto/client-node": "^5.0.0",
+    "@aws-sdk/client-sesv2": "^3.1072.0",
+    "@forgedandfound/email": "workspace:*",
+    "@forgedandfound/logger": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "catalog:",
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "typescript": "catalog:",
+    "eslint": "catalog:",
+    "typescript-eslint": "catalog:"
+  }
+}

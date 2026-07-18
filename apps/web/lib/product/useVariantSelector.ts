@@ -1,6 +1,7 @@
 "use client";
 import {VariantSelector_ProductFragment, VariantSelector_ProductFragmentDoc} from "@/graphql/generated/graphql";
 import {useMemo, useState} from "react";
+import {browserLogger} from "@forgedandfound/logger/browser";
 import {unique} from "@/lib/utils";
 import {FragmentType, useFragment} from "@/graphql/generated";
 import {VariantModel} from "@/lib/model";
@@ -128,9 +129,9 @@ export function useVariantSelector({fragment}: UseVariantSelectorProps) {
     // narrow to a single variant.  This should not normally happen if the
     // product data is well-formed — log it so it surfaces during development.
     if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        "[useVariantSelector] Multiple variants match the current selection.",
+      browserLogger.warn(
         {resolvedColour, resolvedMaterial, selectedSize, candidates},
+        "useVariantSelector: multiple variants match the current selection",
       );
     }
     return null;

@@ -2,6 +2,7 @@
 
 import {useEffect, useSyncExternalStore} from "react";
 import {ApolloClient} from "@apollo/client-integration-nextjs";
+import {browserLogger} from "@forgedandfound/logger/browser";
 import {
   CartCreateDocument,
   CartCreateMutation,
@@ -134,7 +135,7 @@ export function useCartId(): string | null {
       writeStoredCartId(currentCartId);
     })()
       .catch((error) => {
-        console.error("Failed to ensure cart id", error);
+        browserLogger.error({err: error}, "failed to ensure cart id");
       })
       .finally(() => {
         ensureCartPromise = null;

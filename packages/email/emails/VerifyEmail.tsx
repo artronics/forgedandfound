@@ -1,8 +1,4 @@
-import {
-  Button, Link,
-  Text,
-} from "react-email";
-import {render} from "react-email";
+import {Button, Link, render, Text} from "react-email";
 
 import {EmailLayout} from "./components/EmailLayout";
 import {Header} from "./components/Header";
@@ -39,3 +35,4 @@ export default function VerifyEmail(
 }
 
 export const toHtml = async (props: VerifyEmailProps) => await render((<VerifyEmail {...props}/>));
+
