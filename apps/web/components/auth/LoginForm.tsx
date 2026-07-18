@@ -13,8 +13,27 @@ import {LoginButton} from "@/components/auth/LoginButton";
 type Tab = "signin" | "register";
 type View = "auth" | "forgot";
 
+/**
+ * Where to land after a successful sign-in (or after following a verification
+ * link): the `?next=` param when it's a safe in-app path, otherwise the page
+ * the form is on — except the login page itself, which falls back to home.
+ * Absolute and protocol-relative values are rejected so a crafted link can't
+ * turn the post-login redirect into an off-site redirect.
+ */
+function resolveDestination(currentPath: string | null): string {
+  if (typeof window !== "undefined") {
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+  }
+  if (!currentPath || currentPath.endsWith("/account/login")) return "/";
+  return currentPath;
+}
+
 function currentAppLocation(): { origin: string; returnTo: string } {
-  return {origin: window.location.origin, returnTo: window.location.pathname};
+  return {
+    origin: window.location.origin,
+    returnTo: resolveDestination(window.location.pathname),
+  };
 }
 
 type LoginFormProps = {
@@ -180,9 +199,8 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
         return;
       }
 
-      const returnTo = currentPath.endsWith("account/login") ? "/" : currentPath;
       onSuccess?.();
-      router.push(returnTo);
+      router.push(resolveDestination(currentPath));
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -242,17 +260,17 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
         <LoginButton
           provider="google"
           size="lg"
-          onClick={() => socialSignIn("Google", currentPath ?? "/account")}
+          onClick={() => socialSignIn("Google", resolveDestination(currentPath))}
         />
         <LoginButton
           provider="facebook"
           size="lg"
-          onClick={() => socialSignIn("Facebook", currentPath ?? "/account")}
+          onClick={() => socialSignIn("Facebook", resolveDestination(currentPath))}
         />
         <LoginButton
           provider="apple"
           size="lg"
-          onClick={() => socialSignIn("SignInWithApple", currentPath ?? "/account")}
+          onClick={() => socialSignIn("SignInWithApple", resolveDestination(currentPath))}
         />
       </div>
     </div>
@@ -465,9 +483,9 @@ function AccountExistsPrompt({email}: { email: string }) {
         </p>
       </div>
       <div className="flex flex-col gap-3">
-        <LoginButton provider="google" size="lg" onClick={() => socialSignIn("Google", currentPath ?? "/account")}/>
-        <LoginButton provider="facebook" size="lg" onClick={() => socialSignIn("Facebook", currentPath ?? "/account")}/>
-        <LoginButton provider="apple" size="lg" onClick={() => socialSignIn("SignInWithApple", currentPath ?? "/account")}/>
+        <LoginButton provider="google" size="lg" onClick={() => socialSignIn("Google", resolveDestination(currentPath))}/>
+        <LoginButton provider="facebook" size="lg" onClick={() => socialSignIn("Facebook", resolveDestination(currentPath))}/>
+        <LoginButton provider="apple" size="lg" onClick={() => socialSignIn("SignInWithApple", resolveDestination(currentPath))}/>
       </div>
       <div className="text-center">
         {resetState === "sent" ? (

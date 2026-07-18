@@ -9,14 +9,35 @@ import {
 } from "@forgedandfound/shopify-admin-client/customer";
 import {
   clearEmailPlaceholder,
-  confirmEmailChange,
   deleteUser,
-  getEmail,
-  requestEmailChange,
+  findUserByEmail,
+  getPoolUser,
+  linkProvider,
   setPassword,
+  setVerifiedEmail,
+  unlinkProvider,
   updateName,
 } from "./cognito";
-import {notifyPasswordChanged} from "./notifications";
+import {
+  notifyPasswordChanged,
+  sendEmailChangeVerification,
+  sendLinkAccountsEmail,
+} from "./notifications";
+import {signEmailToken, verifyEmailToken} from "./tokens";
+
+const APP_URL = process.env.APP_URL!;
+// Origins we're willing to put in emailed links; anything else falls back to
+// APP_URL so a crafted request body can't point our email at another domain.
+const ALLOWED_APP_ORIGINS = (process.env.ALLOWED_APP_ORIGINS ?? "")
+  .split(",")
+  .map((o) => o.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
+
+function resolveAppOrigin(requested?: string): string {
+  if (!requested) return APP_URL;
+  const normalised = requested.trim().replace(/\/+$/, "");
+  return ALLOWED_APP_ORIGINS.includes(normalised) ? normalised : APP_URL;
+}
 
 /**
  * The authenticated caller, forwarded by the Next.js BFF in X-User-* headers.
@@ -98,102 +119,162 @@ const accountService = async (
 };
 
 /**
- * Begin an add-email flow: create a native account for the new address. Cognito
- * emails the verification link; nothing is applied until it's confirmed.
+ * Begin an add/change-email flow. Nothing is written to Cognito here — we email
+ * a signed link and the change is applied only when it's confirmed:
+ *
+ * - Address is free → "change": verification link to the new address; on
+ *   confirm it replaces the current (or placeholder) email, already verified.
+ * - Address belongs to another CONFIRMED, verified account → "merge": approval
+ *   link to that address; on confirm (signed in as that account) the caller's
+ *   social identities are linked into it and the caller's leftover account is
+ *   removed. This is how a Facebook/Apple placeholder account consolidates with
+ *   an existing email or Google account.
  */
 async function startEmail(
   identity: Identity,
-  body: { email?: string; origin?: string; returnTo?: string },
+  body: { email?: string; origin?: string },
 ): Promise<APIGatewayProxyResult> {
   const logger = getLogger();
-  const email = body.email?.trim();
+  const email = body.email?.trim().toLowerCase();
 
-  if (!email) {
-    return json(400, {error: "Email is required."});
+  if (!email || !email.includes("@")) {
+    return json(400, {error: "A valid email is required."});
   }
-  if (!identity.accessToken) {
+  if (!identity.sub) {
     return json(401, {error: "Not signed in."});
   }
 
-  const clientMetadata: Record<string, string> = {flow: "account-email"};
-  if (body.origin) clientMetadata.origin = body.origin;
-  if (body.returnTo) clientMetadata.returnTo = body.returnTo;
+  const origin = resolveAppOrigin(body.origin);
+  const holder = await findUserByEmail(email);
 
-  try {
-    await requestEmailChange(identity.accessToken, email, clientMetadata);
-    return json(200, {verificationRequired: true});
-  } catch (err) {
-    logger.warn({err}, "account start-email failed");
-    switch (errName(err)) {
-      case "AliasExistsException":
-      case "UsernameExistsException":
-        return json(409, {error: "That email is already in use."});
-      case "NotAuthorizedException":
-        return json(401, {error: "Your session has expired. Please sign in again."});
-      case "InvalidParameterException":
-        return json(400, {error: "That email address isn't valid."});
-      case "LimitExceededException":
-        return json(429, {error: "Too many attempts. Please try again later."});
-      default:
-        return json(500, {error: "Could not start email verification."});
+  if (holder && holder.username !== identity.sub) {
+    // Only a fully-owned address can absorb new sign-ins.
+    if (holder.status !== "CONFIRMED" || !holder.emailVerified) {
+      return json(409, {error: "That email is already in use."});
     }
+    const token = signEmailToken({
+      action: "merge",
+      sub: identity.sub,
+      email,
+      targetSub: holder.username,
+    });
+    await sendLinkAccountsEmail(email, buildVerifyUrl(origin, token));
+    logger.info("start-email: merge link sent");
+    return json(200, {verificationRequired: true});
   }
+
+  const token = signEmailToken({action: "change", sub: identity.sub, email});
+  await sendEmailChangeVerification(email, buildVerifyUrl(origin, token));
+  logger.info("start-email: change verification sent");
+  return json(200, {verificationRequired: true});
+}
+
+function buildVerifyUrl(origin: string, token: string): string {
+  const url = new URL("/account/verify-email", origin);
+  url.searchParams.set("token", token);
+  return url.toString();
 }
 
 /**
- * Confirm the emailed code. Cognito marks the new email verified; we then clear
- * the placeholder marker and mirror the address to Shopify.
- *
- * Consent is deliberately NOT carried over here: a placeholder was never a real
- * address the user consented on, so they opt in fresh.
+ * Complete an email change or an account merge from the emailed signed token.
+ * The token proves the email was received; the session (enforced against the
+ * sub inside the token) proves who's acting — a stray click on the link alone
+ * can never change or hand over an account.
  */
 async function verifyEmail(
   identity: Identity,
-  body: { email?: string; code?: string },
+  body: { token?: string },
 ): Promise<APIGatewayProxyResult> {
   const logger = getLogger();
-  const code = body.code?.trim();
 
-  if (!code) {
-    return json(400, {error: "Verification code is required."});
-  }
-  if (!identity.accessToken || !identity.sub) {
+  if (!identity.sub) {
     return json(401, {error: "Not signed in."});
   }
-
-  try {
-    await confirmEmailChange(identity.accessToken, code);
-  } catch (err) {
-    const name = errName(err);
-    logger.warn({err}, "account verify: confirmEmailChange failed");
-    switch (name) {
-      case "CodeMismatchException":
-      case "ExpiredCodeException":
-        return json(400, {error: "This verification code is invalid or has expired."});
-      case "NotAuthorizedException":
-        return json(401, {error: "Your session has expired. Please sign in again."});
-      default:
-        return json(400, {error: "Could not verify your email."});
-    }
+  const payload = body.token ? verifyEmailToken(body.token) : null;
+  if (!payload) {
+    return json(400, {error: "This verification link is invalid or has expired."});
   }
 
-  await clearEmailPlaceholder(identity.sub);
-
-  // Mirror to Shopify. The customer already exists (created against the
-  // placeholder address when the account was made), so this is an update. The
-  // address is read back from Cognito — the body's email is never trusted, or a
-  // caller could attach an address they don't own to their customer record.
-  const verifiedEmail = await getEmail(identity.accessToken);
-
-  if (identity.shopifyCustomerId && verifiedEmail) {
-    const {userErrors} = (await updateCustomerEmail(identity.shopifyCustomerId, verifiedEmail)).customerUpdate;
-    if (userErrors.length) {
-      logger.error({userErrors}, "account verify: shopify customerUpdate failed");
-      return json(502, {error: "Email verified, but updating your customer profile failed."});
+  if (payload.action === "change") {
+    if (payload.sub !== identity.sub) {
+      return json(403, {
+        error: "This link was requested from a different account. Sign in with that account to finish.",
+        code: "WRONG_ACCOUNT",
+      });
     }
+
+    try {
+      await setVerifiedEmail(identity.sub, payload.email);
+    } catch (err) {
+      logger.warn({err}, "account verify: setVerifiedEmail failed");
+      if (errName(err) === "AliasExistsException") {
+        return json(409, {error: "That email is already in use by another account."});
+      }
+      return json(500, {error: "Could not verify your email."});
+    }
+    await clearEmailPlaceholder(identity.sub);
+
+    // Mirror the verified address to Shopify — it comes from the signed token,
+    // never from a client-editable field.
+    if (identity.shopifyCustomerId) {
+      const {userErrors} = (
+        await updateCustomerEmail(identity.shopifyCustomerId, payload.email)
+      ).customerUpdate;
+      if (userErrors.length) {
+        logger.error({userErrors}, "account verify: shopify customerUpdate failed");
+        return json(502, {error: "Email verified, but updating your customer profile failed."});
+      }
+    }
+
+    return json(200, {ok: true, email: payload.email});
   }
 
-  return json(200, {ok: true});
+  // Merge: must be approved by the OWNER of the target account.
+  if (payload.targetSub !== identity.sub) {
+    // If the target account no longer exists (deleted or re-created since the
+    // email was sent), no sign-in can ever approve this link — say so instead
+    // of sending the user hunting for the "right" account.
+    const target = await getPoolUser(payload.targetSub).catch(() => null);
+    if (!target) {
+      return json(400, {error: "This link is no longer valid. Request a new one from your account page."});
+    }
+    return json(403, {
+      error: "To approve this, sign in with the account this email belongs to.",
+      code: "WRONG_ACCOUNT",
+    });
+  }
+
+  const source = await getPoolUser(payload.sub).catch(() => null);
+  if (!source) {
+    // The requesting account is gone — nothing left to merge.
+    return json(400, {error: "This link is no longer valid."});
+  }
+
+  // Move every social identity from the leftover account onto this one.
+  for (const id of source.identities) {
+    await unlinkProvider(id.providerName, id.userId);
+    await linkProvider(identity.sub, id.providerName, id.userId);
+    logger.info({provider: id.providerName}, "merge: relinked identity");
+  }
+
+  // The leftover account and its placeholder Shopify customer are retired.
+  const target = await getPoolUser(identity.sub).catch(() => null);
+  if (source.shopifyCustomerId && source.shopifyCustomerId !== target?.shopifyCustomerId) {
+    try {
+      const {userErrors} = (
+        await requestCustomerDataErasure(source.shopifyCustomerId)
+      ).customerRequestDataErasure;
+      if (userErrors.length) {
+        logger.error({userErrors}, "merge: shopify erasure of leftover customer failed");
+      }
+    } catch (err) {
+      logger.error({err}, "merge: shopify erasure threw (non-fatal)");
+    }
+  }
+  await deleteUser(payload.sub);
+  logger.info("merge: leftover account removed");
+
+  return json(200, {merged: true});
 }
 
 /**
@@ -286,11 +367,17 @@ async function changePassword(
   try {
     await setPassword(identity.sub, password);
   } catch (err) {
-    getLogger().warn({err}, "set password failed");
-    if (errName(err) === "InvalidPasswordException") {
-      return json(400, {error: "Password does not meet the requirements."});
+    getLogger().warn({err, sub: identity.sub}, "set password failed");
+    switch (errName(err)) {
+      case "InvalidPasswordException":
+        return json(400, {error: "Password does not meet the requirements."});
+      // The session outlived its Cognito user (deleted account, or a ghost
+      // federated session) — a fresh sign-in is the only remedy.
+      case "UserNotFoundException":
+        return json(401, {error: "Your session is no longer valid. Please sign out and sign in again."});
+      default:
+        return json(500, {error: "Could not set your password."});
     }
-    return json(500, {error: "Could not set your password."});
   }
 
   // Security notification — the owner must hear about a password change they

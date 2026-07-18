@@ -3,30 +3,34 @@
 import {signIn} from "next-auth/react";
 
 /**
- * Social sign-in with a one-shot automatic retry via a Cognito logout bounce.
+ * Social sign-in that always starts from a clean Cognito hosted-UI session, with
+ * a one-shot automatic retry when the sign-in links an account.
  *
- * The first-ever sign-in with a social provider is deliberately failed by the
- * PreSignUp Lambda after it links the identity into a native account (the
- * aborted sign-in's tokens would carry a sub that doesn't exist in the pool).
- * Cognito surfaces that abort as an authorization code that fails redemption
- * with `invalid_grant`, and NextAuth lands back on /account/login?error=….
+ * The hosted-UI session cookie on the Cognito domain outlives our app session
+ * (our sign-out never reaches the auth domain), and a stale session can poison
+ * a later sign-in: Cognito silently reuses it and mints tokens for whatever
+ * identity that session was created as — including a transient linking-leg
+ * identity whose sub exists in no user pool. So every social sign-in first
+ * bounces through Cognito's /logout (via /api/auth/federated-logout), returns
+ * to /account/login, and only then starts the real authorize.
  *
- * Retrying immediately is not enough: the aborted leg leaves a half-baked
- * hosted-UI session cookie on the Cognito domain, and a plain re-authorize can
- * silently reuse it and mint another dud code. So the retry goes through
- * Cognito's /logout endpoint first (clearing that session), returns to
- * /account/login, and only then starts the second sign-in. Phases, all stored
- * in sessionStorage so they survive the round-trips:
+ * The first-ever sign-in with a social provider is additionally failed on
+ * purpose by the PreSignUp Lambda after it links the identity into a native
+ * account (the aborted sign-in's tokens would carry a ghost sub). That abort
+ * lands back on /account/login?error=…, and the machine walks a second
+ * logout-bounce and retries. Phases, stored in sessionStorage so they survive
+ * the round-trips:
  *
- *   click            → "started"
+ *   click            → "fresh"    + redirect to /api/auth/federated-logout
+ *   login (clean)    → "started"  + signIn(provider)
  *   login?error=…    → "relogin"  + redirect to /api/auth/federated-logout
- *   login (clean)    → "retried"  + signIn(provider) again
+ *   login (clean)    → "retried"  + signIn(provider) again (Apple waits for a click)
  *   login?error=…    → give up, clear state, show the error
  */
 const RETRY_KEY = "ff:social-signin";
 const RETRY_WINDOW_MS = 5 * 60_000;
 
-type RetryPhase = "started" | "relogin" | "retried";
+type RetryPhase = "fresh" | "started" | "relogin" | "retried";
 
 type RetryState = {
   provider: string;
@@ -68,7 +72,13 @@ function clearState(): void {
 }
 
 export function socialSignIn(provider: string, callbackUrl: string): void {
-  writeState({provider, callbackUrl, at: Date.now(), phase: "started"});
+  // Clear any hosted-UI session first; the real sign-in starts when the bounce
+  // lands back on the login page. If sessionStorage is unavailable the bounce
+  // state couldn't survive the redirect — sign in directly as a fallback.
+  if (writeState({provider, callbackUrl, at: Date.now(), phase: "fresh"})) {
+    window.location.assign("/api/auth/federated-logout");
+    return;
+  }
   void signIn("cognito", {callbackUrl}, {identity_provider: provider});
 }
 
@@ -95,19 +105,27 @@ export function resumeSocialSignIn(hasError: boolean): ResumeResult {
   if (!state) return {action: "none"};
 
   if (hasError) {
-    // First failure after the click: clear the Cognito hosted-UI session, then
-    // come back here (without an error) to start the second attempt.
+    // First failure after the initial attempt: clear the Cognito hosted-UI
+    // session again, then come back here (without an error) to retry.
     if (state.phase === "started") {
       if (!writeState({...state, phase: "relogin"})) return {action: "none"};
       window.location.assign("/api/auth/federated-logout");
       return {action: "redirecting"};
     }
-    // The retry failed too — give up and let the error show.
+    // The retry failed too (or the pre-sign-in bounce itself errored) — give
+    // up and let the error show.
     clearState();
     return {action: "none"};
   }
 
-  // Clean load after the logout bounce: start the second attempt.
+  // Clean load after the pre-sign-in logout bounce: start the first attempt.
+  if (state.phase === "fresh") {
+    if (!writeState({...state, phase: "started"})) return {action: "none"};
+    void signIn("cognito", {callbackUrl: state.callbackUrl}, {identity_provider: state.provider});
+    return {action: "redirecting"};
+  }
+
+  // Clean load after the post-error logout bounce: start the second attempt.
   if (state.phase === "relogin") {
     if (CONFIRM_PROVIDERS.has(state.provider)) {
       return {action: "confirm", provider: state.provider};

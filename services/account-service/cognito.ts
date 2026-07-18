@@ -1,17 +1,15 @@
 import crypto from "node:crypto";
 import {
   AdminDeleteUserCommand,
+  AdminDisableProviderForUserCommand,
   AdminGetUserCommand,
   AdminLinkProviderForUserCommand,
   AdminSetUserPasswordCommand,
   AdminUpdateUserAttributesCommand,
   CognitoIdentityProviderClient,
   ConfirmSignUpCommand,
-  GetUserAttributeVerificationCodeCommand,
-  GetUserCommand,
+  ListUsersCommand,
   SignUpCommand,
-  UpdateUserAttributesCommand,
-  VerifyUserAttributeCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 
 const REGION = process.env.AWS_REGION ?? "eu-west-2";
@@ -177,56 +175,93 @@ export async function setPassword(username: string, password: string): Promise<v
 }
 
 /**
- * Set a new email on the signed-in user using their own access token. Because
- * email is an auto-verified attribute, Cognito emails a verification code to the
- * NEW address and leaves email_verified false until it's confirmed — so nothing
- * is applied to an address the user hasn't proven they own.
+ * Apply a new, verified email to the user in one atomic admin write. Only ever
+ * called after the address has been proven via our signed-token link (see
+ * tokens.ts) — never with an unproven value. Replaces Cognito's self-service
+ * UpdateUserAttributes flow, which swapped the address immediately while
+ * leaving it unverified.
  */
-export async function requestEmailChange(
-  accessToken: string,
-  email: string,
-  clientMetadata?: Record<string, string>,
-): Promise<void> {
+export async function setVerifiedEmail(username: string, email: string): Promise<void> {
   await cognito.send(
-    new UpdateUserAttributesCommand({
-      AccessToken: accessToken,
-      UserAttributes: [{Name: "email", Value: email}],
-      ClientMetadata: clientMetadata,
+    new AdminUpdateUserAttributesCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: username,
+      UserAttributes: [
+        {Name: "email", Value: email},
+        {Name: "email_verified", Value: "true"},
+      ],
     }),
   );
 }
 
-/** Re-send the verification code for a pending email change. */
-export async function resendEmailVerificationCode(
-  accessToken: string,
-  clientMetadata?: Record<string, string>,
+export interface PoolUser {
+  username: string;
+  status?: string;
+  emailVerified: boolean;
+  shopifyCustomerId?: string;
+  identities: { providerName: string; userId: string }[];
+}
+
+function parseIdentities(raw?: string): { providerName: string; userId: string }[] {
+  if (!raw) return [];
+  try {
+    const list = JSON.parse(raw) as { providerName?: string; userId?: string }[];
+    return list.filter(
+      (i): i is { providerName: string; userId: string } =>
+        typeof i.providerName === "string" && typeof i.userId === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Full profile by username (in this pool the username equals the sub). */
+export async function getPoolUser(username: string): Promise<PoolUser> {
+  const res = await cognito.send(
+    new AdminGetUserCommand({UserPoolId: USER_POOL_ID, Username: username}),
+  );
+  const attrs = new Map(res.UserAttributes?.map((a) => [a.Name, a.Value]));
+  return {
+    username: res.Username!,
+    status: res.UserStatus,
+    emailVerified: attrs.get("email_verified") === "true",
+    shopifyCustomerId: attrs.get("custom:shopify_customer_id"),
+    identities: parseIdentities(attrs.get("identities")),
+  };
+}
+
+/** The user currently holding this email, if any. */
+export async function findUserByEmail(email: string): Promise<PoolUser | null> {
+  // The filter value is a quoted string — strip anything that could break out.
+  const safeEmail = email.replace(/["\\]/g, "");
+  const {Users} = await cognito.send(
+    new ListUsersCommand({UserPoolId: USER_POOL_ID, Filter: `email = "${safeEmail}"`}),
+  );
+  const user = Users?.[0];
+  if (!user?.Username) return null;
+  const attrs = new Map(user.Attributes?.map((a) => [a.Name, a.Value]));
+  return {
+    username: user.Username,
+    status: user.UserStatus,
+    emailVerified: attrs.get("email_verified") === "true",
+    shopifyCustomerId: attrs.get("custom:shopify_customer_id"),
+    identities: parseIdentities(attrs.get("identities")),
+  };
+}
+
+/** Detach a federated identity from whichever user it's linked to. */
+export async function unlinkProvider(
+  provider: string,
+  providerUserId: string,
 ): Promise<void> {
   await cognito.send(
-    new GetUserAttributeVerificationCodeCommand({
-      AccessToken: accessToken,
-      AttributeName: "email",
-      ClientMetadata: clientMetadata,
-    }),
-  );
-}
-
-/**
- * Read the user's email as Cognito currently holds it. Used after a
- * verification so downstream sync uses the address that was actually verified,
- * never a client-supplied value.
- */
-export async function getEmail(accessToken: string): Promise<string | undefined> {
-  const res = await cognito.send(new GetUserCommand({AccessToken: accessToken}));
-  return res.UserAttributes?.find((a) => a.Name === "email")?.Value;
-}
-
-/** Confirm the emailed code, marking the new email verified. */
-export async function confirmEmailChange(accessToken: string, code: string): Promise<void> {
-  await cognito.send(
-    new VerifyUserAttributeCommand({
-      AccessToken: accessToken,
-      AttributeName: "email",
-      Code: code,
+    new AdminDisableProviderForUserCommand({
+      UserPoolId: USER_POOL_ID,
+      User: {
+        ProviderName: provider,
+        ProviderAttributeName: "Cognito_Subject",
+        ProviderAttributeValue: providerUserId,
+      },
     }),
   );
 }

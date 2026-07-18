@@ -1,15 +1,15 @@
 import VerifyEmailClient from "@/components/account/VerifyEmailClient";
 
 type VerifyEmailPageProps = {
-  searchParams: Promise<{ email?: string; code?: string }>;
+  searchParams: Promise<{ token?: string }>;
 };
 
 export default async function VerifyEmailPage({searchParams}: VerifyEmailPageProps) {
-  const {email, code} = await searchParams;
+  const {token} = await searchParams;
 
   return (
     <div className="px-4 py-10">
-      <VerifyEmailClient email={email ?? ""} code={code ?? ""}/>
+      <VerifyEmailClient token={token ?? ""}/>
     </div>
   );
 }

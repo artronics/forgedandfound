@@ -6,6 +6,7 @@ import {
   ConfirmForgotPasswordCommand,
   ConfirmSignUpCommand,
   ForgotPasswordCommand,
+  GetUserCommand,
   InitiateAuthCommand,
   ResendConfirmationCodeCommand,
   SignUpCommand,
@@ -203,6 +204,27 @@ export function buildAppMetadata(
   if (origin) metadata.origin = origin;
   if (returnTo) metadata.returnTo = returnTo;
   return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
+/**
+ * Whether the access token belongs to a user that actually exists in the pool.
+ *
+ * The linking flow's first federated sign-in can be issued tokens for a
+ * transient identity whose sub was never persisted (Cognito's abort behavior
+ * varies by provider) — such a session passes signature checks but fails every
+ * user-pool operation with UserNotFoundException — or, for some abort shapes,
+ * NotAuthorizedException. Both are definitive for a token minted seconds ago:
+ * this identity can't perform user operations, so reject the sign-in. Anything
+ * else (throttling, network) doesn't block sign-in.
+ */
+export async function accessTokenUserExists(accessToken: string): Promise<boolean> {
+  try {
+    await cognitoClient.send(new GetUserCommand({AccessToken: accessToken}));
+    return true;
+  } catch (err) {
+    const name = (err as { name?: string }).name;
+    return name !== "UserNotFoundException" && name !== "NotAuthorizedException";
+  }
 }
 
 export type CognitoIdTokenClaims = {

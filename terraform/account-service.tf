@@ -1,5 +1,16 @@
 locals {
   account_service_name = "account-service"
+  # Storefront origins allowed in emailed links — mirrors auth/app.tf.
+  account_app_urls = var.aws_account == "prod" ? ["https://${var.root_domain}"] : concat(
+    formatlist("https://%s.${var.root_domain}", var.store_nonprod_subdomains),
+    ["http://localhost:3000"],
+  )
+}
+
+# Signs the email change/merge verification tokens (see account-service/tokens.ts).
+resource "random_password" "email_change_secret" {
+  length  = 48
+  special = false
 }
 module "account_service_image" {
   source      = "./docker"
@@ -25,8 +36,11 @@ module "account_service_lambda" {
     COGNITO_CLIENT_ID     = module.auth.cognito_app_client_id
     COGNITO_CLIENT_SECRET = module.auth.cognito_app_client_secret
     SHOPIFY_SECRET_NAME   = "forgedandfound/infra/shopify"
-    # Sender for security notifications (password changed).
-    SES_FROM_ADDRESS = "no-reply@${local.ses_email_domain}"
+    # Sender for verification links and security notifications.
+    SES_FROM_ADDRESS    = "no-reply@${local.ses_email_domain}"
+    APP_URL             = local.account_app_urls[0]
+    ALLOWED_APP_ORIGINS = join(",", local.account_app_urls)
+    EMAIL_CHANGE_SECRET = random_password.email_change_secret.result
   }
 }
 
@@ -64,6 +78,11 @@ data "aws_iam_policy_document" "account_service" {
       "cognito-idp:AdminUpdateUserAttributes",
       "cognito-idp:AdminDeleteUser",
       "cognito-idp:AdminSetUserPassword",
+      # Email-merge flow: find the account holding an address, then move the
+      # requester's social identities onto it.
+      "cognito-idp:ListUsers",
+      "cognito-idp:AdminLinkProviderForUser",
+      "cognito-idp:AdminDisableProviderForUser",
     ]
     resources = [module.auth.cognito_user_pool_arn]
   }

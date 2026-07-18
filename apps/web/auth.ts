@@ -3,7 +3,7 @@ import Cognito from "next-auth/providers/cognito";
 import Credentials from "next-auth/providers/credentials";
 import {getLogger} from "@forgedandfound/logger/web";
 import {getOrCreateCustomer} from "@/lib/shopify/admin/customer";
-import {decodeIdToken, refreshTokens, signInWithPassword} from "@/lib/auth/cognito";
+import {accessTokenUserExists, decodeIdToken, refreshTokens, signInWithPassword} from "@/lib/auth/cognito";
 import type {JWT} from "next-auth/jwt";
 import {oidc_config} from "@/lib/env";
 
@@ -14,6 +14,7 @@ class EmailNotVerifiedError extends CredentialsSignin {
 export const {
   handlers,
   auth,
+  unstable_update: updateSession,
 } = NextAuth({
   // Opt-in verbose auth logging (set AUTH_DEBUG=true in .env.local) — includes
   // provider response bodies, which plain error logs truncate.
@@ -84,13 +85,20 @@ export const {
   ],
 
   callbacks: {
-    async jwt({token, user, profile, account}) {
+    async jwt({token, user, profile, account, trigger}) {
       // Keep the user's Cognito tokens on the JWT (server-side only — they are
       // deliberately never copied into the session, which the browser can read).
       // account-service needs the access token to change an email through
       // Cognito's own verification flow.
       if (account?.access_token) {
-        // Social / hosted-UI sign-in.
+        // Social / hosted-UI sign-in. Reject tokens minted for a ghost identity
+        // (the aborted linking leg — Cognito sometimes completes it anyway):
+        // failing here sends the browser down the error → logout-bounce → retry
+        // path, whose second leg signs into the real linked user.
+        if (!(await accessTokenUserExists(account.access_token))) {
+          getLogger().warn("rejecting sign-in: token user does not exist (aborted linking leg)");
+          throw new Error("FederatedUserNotPersisted");
+        }
         token.cognitoAccessToken = account.access_token;
         token.cognitoRefreshToken = account.refresh_token;
         token.cognitoExpiresAt = account.expires_at
@@ -103,7 +111,10 @@ export const {
         token.cognitoExpiresAt = user.cognitoExpiresAt;
       }
 
-      await refreshCognitoTokenIfExpired(token);
+      // `trigger === "update"` is our explicit "re-read the user's attributes
+      // now" signal (fired via /api/auth/refresh-session after email/profile
+      // changes) — force a token refresh so the fresh ID token claims land.
+      await refreshCognitoTokenIfExpired(token, trigger === "update");
       // Capture the federated identity (social login) so the account-service can
       // link it to a native account when the user adds an email.
       const identity = firstIdentity(profile);
@@ -154,10 +165,10 @@ export const {
  * expiring so account operations don't fail mid-session. On failure we leave the
  * stale token — the downstream call will 401 rather than the whole session dying.
  */
-async function refreshCognitoTokenIfExpired(token: JWT): Promise<void> {
+async function refreshCognitoTokenIfExpired(token: JWT, force = false): Promise<void> {
   const expiresAt = token.cognitoExpiresAt;
   if (!token.cognitoRefreshToken || !token.sub) return;
-  if (expiresAt && Date.now() < expiresAt - 60_000) return;
+  if (!force && expiresAt && Date.now() < expiresAt - 60_000) return;
 
   try {
     const refreshed = await refreshTokens(token.sub, token.cognitoRefreshToken);

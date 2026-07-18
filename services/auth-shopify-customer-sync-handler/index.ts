@@ -351,18 +351,34 @@ async function linkExternalProviderToNativeUser(e: PreSignUpEvent): Promise<void
     }
   }
 
-  await cognito.send(
-    new AdminLinkProviderForUserCommand({
-      UserPoolId: e.userPoolId,
-      DestinationUser: {ProviderName: "Cognito", ProviderAttributeValue: nativeUsername},
-      SourceUser: {
-        ProviderName: providerName,
-        ProviderAttributeName: "Cognito_Subject",
-        ProviderAttributeValue: providerUserId,
-      },
-    }),
-  );
-  logger.info({provider: providerName}, "[PreSignUp] linked social identity into native user");
+  try {
+    await cognito.send(
+      new AdminLinkProviderForUserCommand({
+        UserPoolId: e.userPoolId,
+        DestinationUser: {ProviderName: "Cognito", ProviderAttributeValue: nativeUsername},
+        SourceUser: {
+          ProviderName: providerName,
+          ProviderAttributeName: "Cognito_Subject",
+          ProviderAttributeValue: providerUserId,
+        },
+      }),
+    );
+    logger.info({provider: providerName}, "[PreSignUp] linked social identity into native user");
+  } catch (err) {
+    // Cognito retries this trigger after the deliberate abort below, and the
+    // retry finds the identity already linked. That leg must abort too:
+    // returning success would have Cognito complete the sign-in with tokens for
+    // a standalone federated identity (a ghost sub) — exactly what the abort
+    // exists to prevent.
+    if (
+      (err as { name?: string }).name === "InvalidParameterException" &&
+      (err as Error).message?.includes("already linked")
+    ) {
+      logger.info({provider: providerName}, "[PreSignUp] identity already linked (trigger retry) — aborting this leg too");
+      throw new AccountLinkedRetryError();
+    }
+    throw err;
+  }
 
   // NOTE: Cognito re-applies the IdP attribute mapping to the linked native user
   // on every federated sign-in, stamping email_verified=false unless the

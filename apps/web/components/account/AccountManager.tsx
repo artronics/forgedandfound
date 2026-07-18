@@ -120,6 +120,9 @@ function ProfileSection({initial}: { initial: Initial }) {
         return;
       }
       setStatus("saved");
+      // Pull the new name into the session immediately (it otherwise refreshes
+      // on the next token renewal, up to ~1h away).
+      await fetch("/api/auth/refresh-session", {method: "POST"}).catch(() => {});
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -162,9 +165,9 @@ function EmailSection({initial}: { initial: Initial }) {
   if (hasUsableEmail(initial.email)) {
     return (
       <Section title="Email" description="The email used for sign-in and order updates.">
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-4">
           <span className="text-sm">{initial.email}</span>
-          <p className="text-xs text-muted-foreground">Changing your email is coming soon.</p>
+          <EmailForm mode="change"/>
         </div>
       </Section>
     );
@@ -175,12 +178,18 @@ function EmailSection({initial}: { initial: Initial }) {
       title="Email"
       description="Add an email so you can receive order updates. We'll send a link to confirm it's yours."
     >
-      <AddEmailForm/>
+      <EmailForm mode="add"/>
     </Section>
   );
 }
 
-function AddEmailForm() {
+/**
+ * Add (placeholder accounts) or change (accounts with a real address) the
+ * account email. Both go through the same backend flow: the new address gets a
+ * verification link, and once confirmed it replaces the old one and is mirrored
+ * to the Shopify customer.
+ */
+function EmailForm({mode}: { mode: "add" | "change" }) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -219,8 +228,8 @@ function AddEmailForm() {
   if (sent) {
     return (
       <p className="text-xs text-muted-foreground">
-        We sent a verification link to <strong>{email}</strong>. Open it to confirm and finish adding your
-        email.
+        We sent a verification link to <strong>{email}</strong>. Open it to confirm the change — it can
+        take a little while to show here afterwards.
       </p>
     );
   }
@@ -228,8 +237,8 @@ function AddEmailForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <Field
-        id="add-email"
-        label="Email"
+        id="account-email"
+        label={mode === "change" ? "New email" : "Email"}
         type="email"
         autoComplete="email"
         required
@@ -240,7 +249,7 @@ function AddEmailForm() {
       {error && <p className="text-xs text-destructive">{error}</p>}
       <div>
         <Button type="submit" disabled={loading}>
-          {loading ? "Sending…" : "Add email"}
+          {loading ? "Sending…" : mode === "change" ? "Change email" : "Add email"}
         </Button>
       </div>
     </form>
