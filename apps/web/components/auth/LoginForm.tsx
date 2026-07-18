@@ -12,8 +12,27 @@ import {LoginButton} from "@/components/auth/LoginButton";
 type Tab = "signin" | "register";
 type View = "auth" | "forgot";
 
+/**
+ * Where to land after a successful sign-in (or after following a verification
+ * link): the `?next=` param when it's a safe in-app path, otherwise the page
+ * the form is on — except the login page itself, which falls back to home.
+ * Absolute and protocol-relative values are rejected so a crafted link can't
+ * turn the post-login redirect into an off-site redirect.
+ */
+function resolveDestination(currentPath: string | null): string {
+  if (typeof window !== "undefined") {
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+  }
+  if (!currentPath || currentPath.endsWith("/account/login")) return "/";
+  return currentPath;
+}
+
 function currentAppLocation(): { origin: string; returnTo: string } {
-  return {origin: window.location.origin, returnTo: window.location.pathname};
+  return {
+    origin: window.location.origin,
+    returnTo: resolveDestination(window.location.pathname),
+  };
 }
 
 type LoginFormProps = {
@@ -128,9 +147,8 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
         return;
       }
 
-      const returnTo = currentPath.endsWith("account/login") ? "/" : currentPath;
       onSuccess?.();
-      router.push(returnTo);
+      router.push(resolveDestination(currentPath));
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -193,7 +211,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
           onClick={() =>
             signIn(
               "cognito",
-              {callbackUrl: currentPath ?? "/account"},
+              {callbackUrl: resolveDestination(currentPath)},
               {identity_provider: "Google"},
             )
           }
@@ -204,7 +222,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
           onClick={() =>
             signIn(
               "cognito",
-              {callbackUrl: currentPath ?? "/account"},
+              {callbackUrl: resolveDestination(currentPath)},
               {identity_provider: "Facebook"},
             )
           }
@@ -215,7 +233,7 @@ function SignInForm({onSuccess, onForgot}: { onSuccess?: () => void; onForgot: (
           onClick={() =>
             signIn(
               "cognito",
-              {callbackUrl: currentPath ?? "/account"},
+              {callbackUrl: resolveDestination(currentPath)},
               {identity_provider: "SignInWithApple"},
             )
           }
@@ -235,6 +253,7 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirmationRequired, setConfirmationRequired] = useState(false);
+  const [accountExists, setAccountExists] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,6 +283,13 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
       const data = await res.json();
 
       if (!res.ok) {
+        // They already have an email/password account for this address.
+        // Signing in (or resetting the password) is the way forward, not
+        // registering a second time.
+        if (data.type === "UsernameExistsException") {
+          setAccountExists(true);
+          return;
+        }
         setError(data.error ?? "Account creation failed.");
         return;
       }
@@ -279,6 +305,10 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
       setLoading(false);
     }
   };
+
+  if (accountExists) {
+    return <AccountExistsPrompt email={email}/>;
+  }
 
   if (confirmationRequired) {
     return (
@@ -381,6 +411,98 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
         {loading ? "Creating account…" : "Create Account"}
       </Button>
     </form>
+  );
+}
+
+/**
+ * Shown when registration hits an existing email/password account for this
+ * address. They can have a reset link emailed to (re)set the password, or
+ * continue with a social provider they've used before (on this branch a social
+ * sign-in is its own separate account — the accepted trade-off).
+ */
+function AccountExistsPrompt({email}: { email: string }) {
+  const currentPath = usePathname();
+  const [resetState, setResetState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  const sendResetLink = async () => {
+    if (resetState === "sending" || resetState === "sent") return;
+    setResetState("sending");
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({email, ...currentAppLocation()}),
+      });
+      setResetState(res.ok ? "sent" : "error");
+    } catch {
+      setResetState("error");
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 py-4">
+      <div className="text-center">
+        <p className="text-sm font-medium">You already have an account</p>
+        <p className="text-xs text-muted-foreground pt-1">
+          <strong>{email}</strong> is already registered. Sign in with your password, or continue
+          with a provider you&apos;ve used before.
+        </p>
+      </div>
+      <div className="flex flex-col gap-3">
+        <LoginButton
+          provider="google"
+          size="lg"
+          onClick={() =>
+            signIn(
+              "cognito",
+              {callbackUrl: resolveDestination(currentPath)},
+              {identity_provider: "Google"},
+            )
+          }
+        />
+        <LoginButton
+          provider="facebook"
+          size="lg"
+          onClick={() =>
+            signIn(
+              "cognito",
+              {callbackUrl: resolveDestination(currentPath)},
+              {identity_provider: "Facebook"},
+            )
+          }
+        />
+        <LoginButton
+          provider="apple"
+          size="lg"
+          onClick={() =>
+            signIn(
+              "cognito",
+              {callbackUrl: resolveDestination(currentPath)},
+              {identity_provider: "SignInWithApple"},
+            )
+          }
+        />
+      </div>
+      <div className="text-center">
+        {resetState === "sent" ? (
+          <p className="text-xs text-muted-foreground">
+            If this account can receive email, we&apos;ve sent a link to set your password.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={sendResetLink}
+            disabled={resetState === "sending"}
+            className="text-xs text-muted-foreground underline hover:text-foreground disabled:opacity-60"
+          >
+            {resetState === "sending" ? "Sending…" : "Email me a link to set a password"}
+          </button>
+        )}
+        {resetState === "error" && (
+          <p className="pt-1 text-xs text-destructive">Couldn&apos;t send the link. Please try again.</p>
+        )}
+      </div>
+    </div>
   );
 }
 

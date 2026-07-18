@@ -53,6 +53,30 @@ export async function signInWithPassword(
 }
 
 /**
+ * Exchange a refresh token for a fresh access + ID token. `username` must be
+ * the user's actual Cognito Username for the SECRET_HASH — the generated UUID
+ * (== sub) for SignUp-created users, `<Provider>_<id>` for federated users —
+ * so callers should pass the `cognito:username` claim captured at sign-in.
+ */
+export async function refreshTokens(
+  username: string,
+  refreshToken: string,
+): Promise<AuthenticationResultType | undefined> {
+  const result = await cognitoClient.send(
+    new InitiateAuthCommand({
+      AuthFlow: "REFRESH_TOKEN_AUTH",
+      ClientId: oidc_config.cognito_client_id,
+      AuthParameters: {
+        REFRESH_TOKEN: refreshToken,
+        SECRET_HASH: secretHash(username),
+      },
+    }),
+  );
+
+  return result.AuthenticationResult;
+}
+
+/**
  * Register a new user. Cognito emails the verification link/code based on the
  * user pool configuration. Returns whether the user is auto-confirmed.
  */
@@ -187,7 +211,9 @@ export type CognitoIdTokenClaims = {
   email?: string;
   given_name?: string;
   family_name?: string;
+  "cognito:username"?: string;
   "custom:shopify_customer_id"?: string;
+  "custom:email_placeholder"?: string;
 };
 
 /**

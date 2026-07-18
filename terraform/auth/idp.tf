@@ -29,12 +29,20 @@ resource "aws_cognito_identity_provider" "google" {
     authorize_scopes = "email profile openid https://www.googleapis.com/auth/user.phonenumbers.read"
   }
 
+  # email_verified MUST be mapped: Cognito re-applies this mapping on every
+  # federated sign-in and stamps email_verified=false on the user unless the
+  # provider's claim is mapped through — silently un-verifying the address
+  # (and e.g. breaking ForgotPassword, which needs a verified email).
+  # phone_number is deliberately NOT mapped: Google's People-API `phoneNumbers`
+  # claim isn't an E.164 string (and is an empty list when absent), and because
+  # mappings re-apply on every sign-in, a bad value there fails the whole
+  # sign-in.
   attribute_mapping = {
     email                        = "email"
+    email_verified               = "email_verified"
     username                     = "sub"
     given_name                   = "given_name"
     family_name                  = "family_name"
-    phone_number                 = "phoneNumbers"
     "custom:shopify_customer_id" = "shopify_customer_id"
   }
   lifecycle {
@@ -62,8 +70,11 @@ resource "aws_cognito_identity_provider" "apple" {
     authorize_scopes = "email name"
   }
 
+  # email_verified mapped for the same reason as the Google provider above.
+  # (Facebook has no such claim — Facebook emails stay unverified.)
   attribute_mapping = {
     email                        = "email"
+    email_verified               = "email_verified"
     username                     = "sub"
     "custom:shopify_customer_id" = "shopify_customer_id"
   }

@@ -59,6 +59,9 @@ resource "aws_cognito_user_pool" "main" {
     }
     kms_key_id = aws_kms_key.cognito_email_kms_key.arn
     post_confirmation = module.auth-shopify-customer-sync-handler.function_arn
+    # PostConfirmation never fires for federated sign-ins; this creates the
+    # Shopify customer for first-time social users instead.
+    pre_sign_up = module.auth-shopify-customer-sync-handler.function_arn
   }
   schema {
     name                = "shopify_customer_id"

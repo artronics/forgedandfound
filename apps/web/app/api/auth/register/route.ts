@@ -38,12 +38,36 @@ export async function POST(req: NextRequest) {
       );
       return NextResponse.json({userConfirmed}, {status: 201});
     } catch (err: unknown) {
-      const error = err as { name?: string; message?: string };
+      const error = err as { name?: string };
       getLogger().error({err}, "cognito register failed");
-      return NextResponse.json(
-        {error: error.message ?? "Account creation failed.", type: error.name},
-        {status: 422},
-      );
+      // Map to fixed messages — raw Cognito messages leak implementation detail.
+      // `type` is kept for UsernameExists so the client can show the
+      // account-exists prompt.
+      switch (error.name) {
+        case "UsernameExistsException":
+          return NextResponse.json(
+            {error: "An account with this email already exists.", type: error.name},
+            {status: 422},
+          );
+        case "InvalidPasswordException":
+          return NextResponse.json(
+            {error: "Password does not meet the requirements.", type: error.name},
+            {status: 422},
+          );
+        case "InvalidParameterException":
+          return NextResponse.json(
+            {error: "That email address isn't valid.", type: error.name},
+            {status: 422},
+          );
+        case "TooManyRequestsException":
+        case "LimitExceededException":
+          return NextResponse.json(
+            {error: "Too many attempts. Please try again later.", type: error.name},
+            {status: 429},
+          );
+        default:
+          return NextResponse.json({error: "Account creation failed."}, {status: 422});
+      }
     }
   });
 }

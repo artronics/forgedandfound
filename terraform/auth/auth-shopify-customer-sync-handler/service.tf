@@ -21,6 +21,13 @@ module "lambda" {
 
   environment_variables = {
     SHOPIFY_SECRET_NAME = "forgedandfound/infra/shopify"
+    # Synthetic addresses for users whose provider gives us no email. Never
+    # deliverable and never emailed — they exist so every user can have a
+    # Shopify customer.
+    PLACEHOLDER_EMAIL_DOMAIN = var.placeholder_email_domain
+    # For the password-changed notification sent on PostConfirmation_ConfirmForgotPassword.
+    SES_FROM_ADDRESS      = "no-reply@${var.ses_domain}"
+    SES_CONFIGURATION_SET = var.ses_config_set_name
   }
 }
 
@@ -58,6 +65,19 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
     effect    = "Allow"
     actions   = ["cognito-idp:AdminUpdateUserAttributes"]
     resources = [var.cognito_user_pool_arn]
+  }
+
+  statement {
+    sid    = "SESSend"
+    effect = "Allow"
+    actions = [
+      "ses:SendEmail",
+      "ses:SendRawEmail",
+    ]
+    resources = [
+      var.ses_email_identity_arn,
+      "arn:aws:ses:${var.region}:${data.aws_caller_identity.current.account_id}:configuration-set/${var.ses_config_set_name}",
+    ]
   }
 
   statement {
