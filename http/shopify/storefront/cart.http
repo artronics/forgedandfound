@@ -1,5 +1,5 @@
 ### Get Cart
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetCart($cartId: ID!) {
@@ -63,7 +63,7 @@ query GetCart($cartId: ID!) {
 }
 
 ### Add variant to the cart
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 mutation CartVariantAdd($cartId: ID!, $lines: [CartLineInput!]!) {
@@ -102,7 +102,7 @@ mutation CartVariantAdd($cartId: ID!, $lines: [CartLineInput!]!) {
 }
 
 ### Update cart lines
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {

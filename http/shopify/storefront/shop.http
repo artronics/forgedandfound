@@ -1,5 +1,5 @@
 ### Get Shop
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetShop {
@@ -24,7 +24,7 @@ query GetShop {
 }
 
 ### Get Hero Image
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetShopHeroImage {

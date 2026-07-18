@@ -1,5 +1,5 @@
 ### Get Products
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetProducts {
@@ -15,7 +15,7 @@ query GetProducts {
 }
 
 ### [page] Single Product by handle
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetProductByHanle($handle: String) {
@@ -27,6 +27,7 @@ query GetProductByHanle($handle: String) {
             name
             id
         }
+        vendor
         images(first: 1) {
             edges {
                 node {
@@ -89,7 +90,7 @@ query GetProductByHanle($handle: String) {
 }
 
 ### Simple product
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetProductByHanle {
@@ -115,7 +116,7 @@ query GetProductByHanle {
     }
 }
 ### Product Query
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 cache-control: no-cache
 
@@ -163,7 +164,7 @@ query GetProducts {
 }
 
 ### Product Query
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query WishlistProducts($ids: [ID!]!) {

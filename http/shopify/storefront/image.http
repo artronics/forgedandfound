@@ -1,5 +1,5 @@
 ### Get Product Image
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetProductImageId($id: ID!) {
@@ -27,7 +27,7 @@ query GetProductImageId($id: ID!) {
 }
 
 ### Get Product Image Variants
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetProductImageVariants($id: ID!) {
@@ -66,7 +66,7 @@ query GetProductImageVariants($id: ID!) {
 }
 
 ### Get Product Image with Transformations
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetProductImages(

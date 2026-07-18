@@ -2,6 +2,17 @@ query GetProductByHandle($id: ID, $handle: String, $variantFirst: Int = 32, $ima
     product(id: $id, handle: $handle) {
         id
         handle
+        title
+        category {
+            name
+        }
+        vendor
+        priceRange {
+            minVariantPrice {
+                amount
+                currencyCode
+            }
+        }
         ...VariantSelector_Product
         ...ProductGallery_Product
     }

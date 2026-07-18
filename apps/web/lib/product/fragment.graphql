@@ -52,6 +52,9 @@ fragment VariantSelector_Product on Product {
                 product {
                     id
                     title
+                    category {
+                        name
+                    }
                 }
                 availableForSale
                 currentlyNotInStock

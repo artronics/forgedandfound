@@ -8,3 +8,12 @@ resource "aws_route53_record" "account_zone_apex" {
   ttl     = 300
   records = ["127.0.0.1"]
 }
+
+resource "aws_route53_record" "shopify_cname" {
+  zone_id = local.root_zone_id
+
+  name    = "shopify"
+  type    = "CNAME"
+  ttl     = 300
+  records = var.shopify_cname
+}

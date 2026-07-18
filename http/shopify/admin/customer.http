@@ -1,5 +1,5 @@
 ### Create Customer
-GRAPHQL {{adminGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
 
 mutation customerCreate($input: CustomerInput!) {
@@ -32,7 +32,7 @@ mutation customerCreate($input: CustomerInput!) {
 }
 
 ### Get Whishlist
-GRAPHQL {{adminGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
 
 query getWhishlist($id: ID!) {
@@ -50,7 +50,7 @@ query getWhishlist($id: ID!) {
 }
 
 ### Set Whishlist
-GRAPHQL {{adminGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
 
 mutation setWhishlist($metafields: [MetafieldsSetInput!]!) {

@@ -1,4 +1,7 @@
-const SHOP = "forged-and-found-dev.myshopify.com";
+import dotenv from "dotenv";
+dotenv.config();
+
+const SHOP = `${process.env.SHOPIFY_STORE_NAME}.myshopify.com`;
 const CLIENT_ID = process.env.SHOPIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET;
 

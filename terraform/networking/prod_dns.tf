@@ -13,16 +13,6 @@ resource "aws_route53_record" "prod_root_zone_apex" {
 }
 
 #  Prod subdomains
-resource "aws_route53_record" "shopify_cname" {
-  count = local.is_prod ? 1 : 0
-  zone_id = local.root_zone_id
-
-  name    = "shopify"
-  type    = "CNAME"
-  ttl     = 300
-  records = var.shopify_cname
-}
-
 resource "aws_route53_record" "vercel_domains" {
   count = local.is_prod ? length(local.vercel_domains) : 0
   zone_id = local.root_zone_id

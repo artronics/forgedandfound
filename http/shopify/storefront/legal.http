@@ -1,5 +1,5 @@
 ### Get Pricacy Policy
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetPrivacyPolicy {
@@ -12,7 +12,7 @@ query GetPrivacyPolicy {
 }
 
 ### Get Terms of Service
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetTermsOfService {
@@ -26,7 +26,7 @@ query GetTermsOfService {
 }
 
 ### Get Refund Policy
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetRefundPolicy {
@@ -40,7 +40,7 @@ query GetRefundPolicy {
 }
 
 ### Get Shipping Policy
-GRAPHQL {{storeGraphqlUrl}}
+GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
 query GetShippingPolicy {

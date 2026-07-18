@@ -32,7 +32,7 @@ export function HeroSection() {
             The Modern<br/>Heirloom
           </h1>
           <Link
-            href="/(store)/shop/collections"
+            href="/(store)/products/collections"
             className="inline-block bg-foreground text-background font-sans text-[10px] tracking-[0.24em] uppercase px-10 py-5 hover:bg-primary transition-colors duration-300"
           >
             Shop the Collection
