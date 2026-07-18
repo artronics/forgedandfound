@@ -132,8 +132,14 @@ export const {
       if (user) {
         const fallbackEmail = user.email ?? placeholderEmailFor(token.cognitoUsername);
         if (fallbackEmail) {
-          getLogger().warn("shopify customer id missing, resolving customer for user");
-          token.shopifyCustomerId = await getOrCreateCustomer(fallbackEmail);
+          try {
+            getLogger().warn("shopify customer id missing, resolving customer for user");
+            token.shopifyCustomerId = await getOrCreateCustomer(fallbackEmail);
+          } catch (err) {
+            // Never fail the sign-in over Shopify — the session works without a
+            // customer id and the next sign-in retries the lookup.
+            getLogger().error({err}, "could not resolve shopify customer at sign-in (non-fatal)");
+          }
         }
       }
 

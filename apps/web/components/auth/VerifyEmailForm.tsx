@@ -47,7 +47,14 @@ export default function VerifyEmailForm({email, code, next}: VerifyEmailFormProp
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setError(data.error ?? "We couldn't verify your email. Please request a new link.");
+          // Confirmation fires automatically on page load, so on a rate-limit
+          // 429 the retry is reloading this page — don't send them off to
+          // request a new link over a throttle.
+          setError(
+            res.status === 429
+              ? "Too many attempts. Please wait a minute, then reload this page."
+              : data.error ?? "We couldn't verify your email. Please request a new link.",
+          );
           setStatus("error");
           return;
         }

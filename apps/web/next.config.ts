@@ -1,4 +1,5 @@
 import type {NextConfig} from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*"],
@@ -9,6 +10,9 @@ const nextConfig: NextConfig = {
       {hostname: "cdn.shopify.com"},
       {hostname: "lh3.googleusercontent.com"},
     ],
+  },
+  turbopack: {
+        root: path.join(__dirname, '../..'),
   }
 };
 

@@ -8,6 +8,7 @@ import {Input} from "@/components/ui/input";
 import {cn} from "@/lib/utils";
 import {SlideDeck} from "@/components/auth/SlideDeck";
 import {LoginButton} from "@/components/auth/LoginButton";
+import {RATE_LIMITED_ERROR} from "@/lib/auth/messages";
 
 type Tab = "signin" | "register";
 type View = "auth" | "forgot";
@@ -280,7 +281,8 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
         }),
       });
 
-      const data = await res.json();
+      // A firewall rate-limit 429 has a plain-text body, not our JSON shape.
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         // They already have an email/password account for this address.
@@ -290,7 +292,11 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
           setAccountExists(true);
           return;
         }
-        setError(data.error ?? "Account creation failed.");
+        setError(
+          res.status === 429
+            ? RATE_LIMITED_ERROR
+            : data.error ?? "Account creation failed.",
+        );
         return;
       }
 
@@ -422,7 +428,8 @@ function RegisterForm({onSuccess}: { onSuccess?: () => void }) {
  */
 function AccountExistsPrompt({email}: { email: string }) {
   const currentPath = usePathname();
-  const [resetState, setResetState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [resetState, setResetState] =
+    useState<"idle" | "sending" | "sent" | "limited" | "error">("idle");
 
   const sendResetLink = async () => {
     if (resetState === "sending" || resetState === "sent") return;
@@ -433,7 +440,7 @@ function AccountExistsPrompt({email}: { email: string }) {
         headers: {"content-type": "application/json"},
         body: JSON.stringify({email, ...currentAppLocation()}),
       });
-      setResetState(res.ok ? "sent" : "error");
+      setResetState(res.ok ? "sent" : res.status === 429 ? "limited" : "error");
     } catch {
       setResetState("error");
     }
@@ -501,13 +508,17 @@ function AccountExistsPrompt({email}: { email: string }) {
         {resetState === "error" && (
           <p className="pt-1 text-xs text-destructive">Couldn&apos;t send the link. Please try again.</p>
         )}
+        {resetState === "limited" && (
+          <p className="pt-1 text-xs text-destructive">{RATE_LIMITED_ERROR}</p>
+        )}
       </div>
     </div>
   );
 }
 
 function ResendVerificationButton({email, className}: { email: string; className?: string }) {
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [state, setState] =
+    useState<"idle" | "sending" | "sent" | "limited" | "error">("idle");
 
   const resend = async () => {
     if (!email || state === "sending" || state === "sent") return;
@@ -518,7 +529,7 @@ function ResendVerificationButton({email, className}: { email: string; className
         headers: {"content-type": "application/json"},
         body: JSON.stringify({email, ...currentAppLocation()}),
       });
-      setState(res.ok ? "sent" : "error");
+      setState(res.ok ? "sent" : res.status === 429 ? "limited" : "error");
     } catch {
       setState("error");
     }
@@ -545,6 +556,9 @@ function ResendVerificationButton({email, className}: { email: string; className
       {state === "error" && (
         <p className="text-xs text-destructive">Couldn&apos;t resend. Please try again.</p>
       )}
+      {state === "limited" && (
+        <p className="text-xs text-destructive">{RATE_LIMITED_ERROR}</p>
+      )}
     </div>
   );
 }
@@ -569,7 +583,11 @@ function ForgotPasswordForm({onBack}: { onBack: () => void }) {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Something went wrong. Please try again.");
+        setError(
+          res.status === 429
+            ? RATE_LIMITED_ERROR
+            : data.error ?? "Something went wrong. Please try again.",
+        );
         return;
       }
 

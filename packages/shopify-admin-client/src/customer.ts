@@ -5,10 +5,8 @@ interface CustomerNode {
   email: string;
 }
 
-interface CustomersSearchResponse {
-  customers: {
-    nodes: CustomerNode[];
-  };
+interface CustomerByIdentifierResponse {
+  customerByIdentifier: CustomerNode | null;
 }
 
 interface CustomerCreateResponse {
@@ -24,27 +22,31 @@ interface CustomerCreateResponse {
   };
 }
 
+/**
+ * Exact identifier lookup, NOT the `customers(query:)` search — the search
+ * index is eventually consistent and misses customers created moments ago
+ * (e.g. by the PreSignUp Lambda during the sign-in that then looks them up),
+ * while customerCreate's uniqueness check sees them immediately.
+ */
 export async function findCustomerByEmail(
   email: string,
 ): Promise<CustomerNode | null> {
   const data =
-    await shopifyAdminFetch<CustomersSearchResponse>(
+    await shopifyAdminFetch<CustomerByIdentifierResponse>(
       `
-      query FindCustomer($query: String!) {
-        customers(first: 1, query: $query) {
-          nodes {
-            id
-            email
-          }
+      query FindCustomer($identifier: CustomerIdentifierInput!) {
+        customerByIdentifier(identifier: $identifier) {
+          id
+          email
         }
       }
       `,
       {
-        query: `email:${email}`,
+        identifier: {emailAddress: email},
       },
     );
 
-  return data.customers.nodes[0] ?? null;
+  return data.customerByIdentifier ?? null;
 }
 
 export interface EmailMarketingConsentInput {

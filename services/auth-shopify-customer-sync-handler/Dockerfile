@@ -10,6 +10,7 @@ COPY pnpm-workspace.yaml package.json tsconfig.base.json ./
 # Package manifests
 COPY services/auth-shopify-customer-sync-handler/package.json ./services/auth-shopify-customer-sync-handler/
 COPY packages/logger/package.json ./packages/logger/
+COPY packages/email/package.json ./packages/email/
 COPY packages/shopify-admin-client/package.json ./packages/shopify-admin-client/
 COPY packages/secret-manager/package.json ./packages/secret-manager/
 
