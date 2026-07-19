@@ -20,6 +20,15 @@ export const app = {
   url: appUrl,
 } as const;
 
+/**
+ * The API Gateway REST API (api.<account>.<root_domain>), fronting the
+ * user-service Lambda. Server-side only — requests are authorized with the
+ * caller's Cognito ID token.
+ */
+export const userApi = {
+  url: process.env.USER_API_URL!,
+} as const;
+
 export const shopify = {
   url: shopifyUrl,
   graphqlUrl: shopifyStorefrontGql,
