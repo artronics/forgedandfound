@@ -8,8 +8,8 @@ on:
       - reopened
 
 permissions:
-  contents: read
   id-token: write
+  contents: read
 
 jobs:
   terraform:
@@ -42,14 +42,12 @@ jobs:
         working-directory: terraform
         run: |
           terraform plan \
-            -var="aws_account=$TF_VAR_aws_account"
+            -var="aws_account=$TF_VAR_aws_account" \
+            -out=tfplan
 
       - name: Terraform Apply
         working-directory: terraform
-        run: |
-          terraform apply \
-            -var="aws_account=$TF_VAR_aws_account" \
-            -auto-approve
+        run: terraform apply -auto-approve tfplan
 
   vercel:
     needs: terraform
@@ -61,13 +59,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel
+      - run: npm install -g vercel
 
       - name: Deploy Preview
-        run: |
-          vercel deploy --yes --target=preview \
-            --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/web
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          vercel deploy --yes --target=preview --token=$VERCEL_TOKEN
