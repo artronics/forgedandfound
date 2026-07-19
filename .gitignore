@@ -7,7 +7,7 @@ dist
 # AI
 **/.junie
 **/.claude
-
+.ai-instructions.md
 
 **/.terraform
 # turbo

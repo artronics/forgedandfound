@@ -27,3 +27,23 @@ tasks:
   build:
     cmds:
       - turbo build
+  wt:symlinks:
+    desc: Symlink shared .env files from the main worktree
+    cmds:
+      - |
+        ROOT="$(git worktree list --porcelain | awk '/^worktree / {print $2; exit}')"
+
+        for file in \
+          .env \
+          .env.local \
+          .env.development \
+          .env.terraform \
+          .env.scripts
+        do
+          if [ -f "$ROOT/$file" ]; then
+            ln -snf "$ROOT/$file" "$file"
+            echo "Linked $file"
+          else
+            echo "Skipping $file (not found)"
+          fi
+        done

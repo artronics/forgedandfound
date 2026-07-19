@@ -17,4 +17,4 @@ tasks:
   destroy:
     desc: Destroy infrastructure
     cmds:
-      - echo terraform destroy -var="aws_account=nonprod" -auto-approve
+      - terraform destroy -var="aws_account=prod" -auto-approve
