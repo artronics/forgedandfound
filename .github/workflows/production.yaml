@@ -59,6 +59,7 @@ jobs:
     env:
       TF_VAR_aws_account: prod
       TF_VAR_deployment_env: live
+      VERCEL_TELEMETRY_DISABLED: 1
 
     steps:
       - uses: actions/checkout@v6
