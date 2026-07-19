@@ -1,7 +1,4 @@
-"use client";
-import {useEffect, useState} from "react";
-import {apolloStorefrontClient} from "@/lib/shopify/client/storefront-client";
-import {GetMenuDocument, GetMenuQuery, GetMenuQueryVariables} from "@/graphql/generated/graphql";
+import {GetMenuQuery} from "@/graphql/generated/graphql";
 
 export type MenuImage = {
   url: string;
@@ -98,7 +95,7 @@ function extractItemImage(resource: FilterItemResource, url: string): MenuImage[
   return images.length > 0 ? images : null;
 }
 
-function buildMenu(data?: GetMenuQuery): Menu[] {
+export function buildMenu(data?: GetMenuQuery): Menu[] {
   return data?.menu?.main.map((mainItem) => {
     const col = mainItem.resource as Extract<MainItemResource, { __typename: "Collection" }>;
 
@@ -118,25 +115,4 @@ function buildMenu(data?: GetMenuQuery): Menu[] {
       image: col?.image ?? null,
     };
   }) ?? [];
-}
-
-async function fetchMenu(): Promise<GetMenuQuery | undefined> {
-  const {data} = await apolloStorefrontClient.query<GetMenuQuery, GetMenuQueryVariables>(
-    {query: GetMenuDocument},
-  );
-  return data;
-}
-
-export function useMenu(): { menu: Menu[]; loading: boolean } {
-  const [menu, setMenu] = useState<Menu[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchMenu().then(data => {
-      setMenu(buildMenu(data));
-      setLoading(false);
-    });
-  }, []);
-
-  return {menu, loading};
 }

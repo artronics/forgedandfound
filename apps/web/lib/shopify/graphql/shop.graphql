@@ -1,3 +1,47 @@
+# Shop-level content: hero, navigation menu and legal policies.
+# These are fetched in server components (see lib/shopify/server.ts).
+
+query GetShop($namespace: String, $heroKey: String!) {
+    shop {
+        id
+        name
+        hero: metafield(namespace: $namespace, key: $heroKey) {
+            reference {
+                ... on MediaImage {
+                    image {
+                        url
+                        altText
+                        width
+                        height
+                    }
+                }
+            }
+        }
+    }
+}
+
+query GetShopPolicies {
+    shop {
+        id
+        privacyPolicy {
+            title
+            body
+        }
+        termsOfService {
+            title
+            body
+        }
+        refundPolicy {
+            title
+            body
+        }
+        shippingPolicy {
+            title
+            body
+        }
+    }
+}
+
 query GetMenu {
     menu(handle: "main-menu") {
         main: items {
@@ -62,4 +106,3 @@ query GetMenu {
         }
     }
 }
-

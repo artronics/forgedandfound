@@ -1,5 +1,3 @@
-"use client";
-
 export interface ProductPhoto {
   id: string | null,
   thumbhash?: string | null,

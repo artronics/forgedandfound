@@ -1,7 +1,7 @@
 import React from "react";
 import {cn, getThumbImage} from "@/lib/utils";
 import Image from "next/image";
-import {ProductPhoto} from "@/lib/product/useProductPhotos";
+import {ProductPhoto} from "@/lib/product/product-photo";
 import Link from "next/link";
 
 type FrameProps = {

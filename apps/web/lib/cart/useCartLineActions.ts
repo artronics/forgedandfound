@@ -1,4 +1,6 @@
+import {useState} from "react";
 import {useMutation} from "@apollo/client/react";
+import {browserLogger} from "@forgedandfound/logger/browser";
 import {useCartId} from "@/lib/cart/useCartId.store";
 import {
   CartLineUpdateDocument,
@@ -14,6 +16,7 @@ type ExistingLine = {
 
 export function useCartLineActions(line?: ExistingLine) {
   const cartId = useCartId();
+  const [userError, setUserError] = useState<Error | null>(null);
 
   const [updateLine, {loading, error}] =
     useMutation<CartLineUpdateMutation, CartLineUpdateMutationVariables>(CartLineUpdateDocument);
@@ -32,7 +35,7 @@ export function useCartLineActions(line?: ExistingLine) {
   const syncLineQuantity = async (nextQuantity: number) => {
     if (!cartId) return;
 
-    await updateLine({
+    const result = await updateLine({
       variables: {
         cartId,
         line: {id: line.id, quantity: nextQuantity},
@@ -44,6 +47,16 @@ export function useCartLineActions(line?: ExistingLine) {
         }
       },
     });
+
+    // Shopify reports validation problems as userErrors on an otherwise
+    // successful response; surface them like transport errors.
+    const userErrors = result.data?.cartLinesUpdate?.userErrors ?? [];
+    if (userErrors.length > 0) {
+      browserLogger.warn({userErrors}, "cartLinesUpdate returned user errors");
+      setUserError(new Error(userErrors.map((e) => e.message).join(", ")));
+    } else {
+      setUserError(null);
+    }
   };
 
   const inc = async () => {
@@ -63,7 +76,7 @@ export function useCartLineActions(line?: ExistingLine) {
   return {
     quantity,
     loading,
-    error: error ?? null,
+    error: error ?? userError,
     maxStock,
     isMaxStocked,
     inc,

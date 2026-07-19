@@ -10,7 +10,11 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${process.env.VERCEL_
 
 const shopifyApiVersion = process.env.NEXT_PUBLIC_SHOPIFY_API_VERSION ?? "2026-01";
 export const shopifyAdminGql = `${shopifyUrl}/admin/api/${shopifyApiVersion}/graphql.json`;
-export const shopifyStorefrontGql = `${shopifyUrl}/api/${shopifyApiVersion}/graphql.json`;
+// Optional override for environments where the storefront API is reached
+// through a proxy domain rather than *.myshopify.com (see http-client.env.json).
+export const shopifyStorefrontGql =
+  process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_URL
+  ?? `${shopifyUrl}/api/${shopifyApiVersion}/graphql.json`;
 
 export const app = {
   url: appUrl,

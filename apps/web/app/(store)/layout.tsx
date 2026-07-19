@@ -1,47 +1,39 @@
-"use client";
-import React from "react";
-import {ApolloProvider} from "@/components/apollo-provider";
+import React, {Suspense} from "react";
+import {getLogger} from "@forgedandfound/logger/web";
+import {StoreProviders} from "@/components/providers";
 import {Navbar} from "@/components/navbar/navbar";
 import {Footer} from "@/components/footer";
-import {CartSheetProvider} from "@/lib/cart/useCartSheet";
 import CartSheet from "@/components/cart/CartSheet";
-import {SessionProvider} from "next-auth/react";
-import {useCartBuyerIdentity} from "@/lib/cart/useCartBuyerIdentity";
-import {BreakpointProvider} from "@/lib/layout/BreakpointProvider";
-import {SearchSheetProvider} from "@/lib/search/useSearchSheet";
 import {SearchSheet} from "@/components/search/SearchSheet";
 import LoginSheet from "@/components/auth/LoginSheet";
-import {LoginSheetProvider} from "@/lib/auth/useLoginSheet";
+import {getMenu} from "@/lib/shopify/server";
 
-function CartBuyerIdentitySync() {
-  useCartBuyerIdentity();
-  return null;
+// Fetches the navigation menu on the server; streamed in via Suspense so the
+// page shell never waits on Shopify. A menu failure degrades to an empty nav
+// instead of failing the whole page.
+async function NavbarWithMenu() {
+  const menu = await getMenu().catch((err) => {
+    getLogger().error({err}, "failed to load navigation menu");
+    return [];
+  });
+  return <Navbar menu={menu}/>;
 }
 
 export default function StoreLayout({children}: {
   children: React.ReactNode,
 }) {
   return (
-    <SessionProvider>
-      <ApolloProvider>
-        <BreakpointProvider>
-          <LoginSheetProvider>
-            <SearchSheetProvider>
-              <CartSheetProvider>
-                <CartBuyerIdentitySync/>
-                <Navbar/>
-                <div className="flex-1">
-                  {children}
-                </div>
-                <Footer/>
-                <CartSheet/>
-                <SearchSheet/>
-                <LoginSheet/>
-              </CartSheetProvider>
-            </SearchSheetProvider>
-          </LoginSheetProvider>
-        </BreakpointProvider>
-      </ApolloProvider>
-    </SessionProvider>
+    <StoreProviders>
+      <Suspense fallback={<Navbar menu={[]}/>}>
+        <NavbarWithMenu/>
+      </Suspense>
+      <div className="flex-1">
+        {children}
+      </div>
+      <Footer/>
+      <CartSheet/>
+      <SearchSheet/>
+      <LoginSheet/>
+    </StoreProviders>
   );
 }

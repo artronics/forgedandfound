@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "cd apps/web && NEXT_PUBLIC_SHOPIFY_STORE_NAME=forgedandfound-dev NEXT_PUBLIC_SHOPIFY_STOREFRONT_URL=https://shopify.nonprod.forgedandfound.co.uk/api/2026-01/graphql.json NEXT_PUBLIC_SHOPIFY_STOREFRONT_PUBLIC_TOKEN=ab78324ecfa61d09fb71d62af6cf3fc0 NEXT_PUBLIC_APP_URL=http://localhost:${PORT:-3000} AUTH_SECRET=dev-smoke-test-secret pnpm dev -p ${PORT:-3000}"
+      ],
+      "autoPort": true,
+      "port": 3000
+    }
+  ]
+}

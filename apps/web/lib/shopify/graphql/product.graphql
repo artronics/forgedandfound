@@ -1,40 +1,8 @@
-fragment ProductGallery_Product on Product {
-    id
-    title
-    featuredImage {
-        id
-        altText
-        url
-    }
-    images(first: $imageFirst) {
-        edges {
-            node {
-                id
-                altText
-                thumbhash
-                url
-                width
-                height
-            }
-        }
-    }
-    variants(first: $variantFirst) {
-        edges {
-            node {
-                ... on ProductVariant {
-                    id
-                    title
-                    image {
-                        thumbhash
-                        id
-                        altText
-                        url
-                    }
-                }
-            }
-        }
-    }
-}
+# Product detail + variant data.
+#
+# VariantSelector_Product and Variant_ProductVariant are the two fragments that
+# earn their keep: they are shared across product, collection, search, wishlist
+# and cart documents, and useVariantSelector/CartLine rely on their masked types.
 
 fragment VariantSelector_Product on Product {
     id
@@ -117,5 +85,56 @@ fragment Variant_ProductVariant on ProductVariant {
     selectedOptions {
         name
         value
+    }
+}
+
+query GetProductByHandle($id: ID, $handle: String, $variantFirst: Int = 32, $imageFirst: Int = 12) {
+    product(id: $id, handle: $handle) {
+        id
+        handle
+        title
+        vendor
+        category {
+            name
+        }
+        priceRange {
+            minVariantPrice {
+                amount
+                currencyCode
+            }
+        }
+        images(first: $imageFirst) {
+            edges {
+                node {
+                    id
+                    altText
+                    thumbhash
+                    url
+                    width
+                    height
+                }
+            }
+        }
+        ...VariantSelector_Product
+    }
+}
+
+query GetProductMetafields($productId: ID, $identifiers: [HasMetafieldsIdentifier!]!) {
+    product(id: $productId) {
+        id
+        metafields(identifiers: $identifiers) {
+            references(first: 8) {
+                nodes {
+                    ... on Metaobject {
+                        id
+                        type
+                        fields {
+                            key
+                            value
+                        }
+                    }
+                }
+            }
+        }
     }
 }

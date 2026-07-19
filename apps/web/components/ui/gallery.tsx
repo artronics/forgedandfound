@@ -1,7 +1,9 @@
+"use client";
+
 import React from "react";
 import {cn} from "@/lib/utils";
 import {Frame} from "@/components/ui/media";
-import {ProductPhoto} from "@/lib/product/useProductPhotos";
+import {ProductPhoto} from "@/lib/product/product-photo";
 import {Album, InlineAlbum} from "@/components/ui/album";
 import {IconButton} from "@/components/ui/icon";
 
