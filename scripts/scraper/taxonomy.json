@@ -1,0 +1,211 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-07-19",
+  "notes": {
+    "purpose": "Canonical jewellery taxonomy for scraping-time classification and Shopify seeding. See CATEGORISATION.md for definitions and research sources.",
+    "matching": "1) case- and diacritic-insensitive exact match against label+synonyms; 2) embedding similarity using embedding_text = '<label>. Synonyms: <synonyms>. <definition>'; 3) below threshold -> unclassified, log the source term.",
+    "cardinality": "design/material/metal_colour/purity/setting/chain_type: one per product; style/gemstone/stone_shape: many."
+  },
+  "facets": [
+    {
+      "id": "category",
+      "shopify": { "representation": "product_type" },
+      "cardinality": "one",
+      "terms": [
+        { "id": "ring", "label": "Ring", "synonyms": ["rings"], "definition": "Jewellery worn on the finger." },
+        { "id": "necklace", "label": "Necklace", "synonyms": ["necklaces", "pendant necklace", "chain necklace"], "definition": "Jewellery worn around the neck." },
+        { "id": "earring", "label": "Earring", "synonyms": ["earrings", "ear jewellery", "earings"], "definition": "Jewellery worn on the ear." },
+        { "id": "bracelet", "label": "Bracelet", "synonyms": ["bracelets", "wrist jewellery"], "definition": "Jewellery worn around the wrist." }
+      ]
+    },
+    {
+      "id": "design",
+      "shopify": { "representation": "collection", "tag_prefix": "design:" },
+      "cardinality": "one",
+      "scoped_by": "category",
+      "terms": [
+        { "id": "chain", "category": "necklace", "label": "Chain", "synonyms": ["link necklace", "layering chain"], "definition": "Necklace whose interest is the metal links themselves; worn alone or as a layering base." },
+        { "id": "choker", "category": "necklace", "label": "Choker", "synonyms": ["collar", "torque"], "definition": "Short necklace sitting tight at the base of the neck, roughly 35-40cm." },
+        { "id": "pendant", "category": "necklace", "label": "Pendant", "synonyms": ["medallion", "coin necklace", "amulet", "tag necklace", "charm necklace"], "definition": "Chain carrying a single focal drop such as a coin, medallion, amulet, cross or initial." },
+        { "id": "locket", "category": "necklace", "label": "Locket", "synonyms": ["locket necklace"], "definition": "Pendant that opens to hold a photo or keepsake." },
+        { "id": "lariat", "category": "necklace", "label": "Lariat", "synonyms": ["y-necklace", "wrap necklace"], "definition": "Open-ended necklace that drapes or pulls through itself in a Y shape." },
+        { "id": "station", "category": "necklace", "label": "Station", "synonyms": ["satellite", "by-the-yard"], "definition": "Chain with gems or motifs spaced at intervals along its length." },
+        { "id": "tennis-necklace", "category": "necklace", "label": "Tennis Necklace", "synonyms": ["tennis", "riviere", "line necklace"], "definition": "Continuous line of uniformly set stones around the whole length." },
+        { "id": "beaded-necklace", "category": "necklace", "label": "Beaded Necklace", "synonyms": ["beaded", "bead necklace", "pearl strand", "string necklace"], "definition": "Necklace of strung beads or pearls rather than metal links." },
+        { "id": "t-bar", "category": "necklace", "label": "T-Bar", "synonyms": ["toggle necklace", "t bar"], "definition": "Chain fastened or decorated with a horizontal bar toggle at the front." },
+
+        { "id": "band", "category": "ring", "label": "Band", "synonyms": ["cigar band", "wedding band", "plain band"], "definition": "Continuous metal band without a focal stone, including wide cigar bands." },
+        { "id": "signet", "category": "ring", "label": "Signet", "synonyms": ["seal ring", "crest ring"], "definition": "Flat-faced ring, traditionally engravable." },
+        { "id": "stacking", "category": "ring", "label": "Stacking", "synonyms": ["stackable", "skinny ring"], "definition": "Slim ring designed to be worn in combination with others." },
+        { "id": "eternity", "category": "ring", "label": "Eternity", "synonyms": ["infinity band", "half eternity", "tennis ring"], "definition": "Stones set uniformly all or half the way around the band." },
+        { "id": "solitaire", "category": "ring", "label": "Solitaire", "synonyms": ["single stone"], "definition": "Single focal stone on a plain band." },
+        { "id": "halo", "category": "ring", "label": "Halo", "synonyms": ["hidden halo", "double halo"], "definition": "Centre stone encircled by smaller pave stones." },
+        { "id": "three-stone", "category": "ring", "label": "Three Stone", "synonyms": ["trilogy", "toi et moi", "two stone"], "definition": "Three or paired stones set in a row." },
+        { "id": "cluster", "category": "ring", "label": "Cluster", "synonyms": ["cluster ring"], "definition": "Multiple small stones grouped into one motif." },
+        { "id": "cocktail", "category": "ring", "label": "Cocktail", "synonyms": ["statement ring", "dress ring"], "definition": "Oversized decorative ring with a dominant stone or motif." },
+        { "id": "dome", "category": "ring", "label": "Dome", "synonyms": ["bombe", "croissant", "chunky dome"], "definition": "Rounded, puffed profile where the metal shape is the focus." },
+        { "id": "chain-ring", "category": "ring", "label": "Chain Ring", "synonyms": ["chain ring"], "definition": "Flexible ring made of chain links." },
+        { "id": "open-ring", "category": "ring", "label": "Open Ring", "synonyms": ["open", "adjustable ring", "wrap ring", "cuff ring"], "definition": "Band with a deliberate gap or wrap, often adjustable." },
+        { "id": "pinky", "category": "ring", "label": "Pinky", "synonyms": ["little finger ring", "pinky ring"], "definition": "Small-sized ring styled for the little finger." },
+
+        { "id": "stud", "category": "earring", "label": "Stud", "synonyms": ["post earring", "solitaire earring"], "definition": "Earring that sits directly on the lobe on a post." },
+        { "id": "hoop", "category": "earring", "label": "Hoop", "synonyms": ["creole", "hoops"], "definition": "Closed circular earring, from small to oversized." },
+        { "id": "huggie", "category": "earring", "label": "Huggie", "synonyms": ["mini hoop", "hinged hoop", "huggie hoop"], "definition": "Small hinged hoop that hugs the lobe." },
+        { "id": "drop", "category": "earring", "label": "Drop", "synonyms": ["dangle", "pendant earring"], "definition": "Earring that hangs below the lobe with movement." },
+        { "id": "chandelier", "category": "earring", "label": "Chandelier", "synonyms": ["statement drop"], "definition": "Multi-tiered, elaborate drop earring." },
+        { "id": "ear-cuff", "category": "earring", "label": "Ear Cuff", "synonyms": ["cuff earring"], "definition": "Clamps onto the ear, no piercing needed." },
+        { "id": "climber", "category": "earring", "label": "Climber", "synonyms": ["crawler", "ear climber"], "definition": "Earring that runs up the ear line from the lobe." },
+        { "id": "threader", "category": "earring", "label": "Threader", "synonyms": ["pull-through", "chain earring"], "definition": "Fine chain pulled through the piercing." },
+
+        { "id": "chain-bracelet", "category": "bracelet", "label": "Chain Bracelet", "synonyms": ["chain", "link bracelet"], "definition": "Linked-metal bracelet." },
+        { "id": "bangle", "category": "bracelet", "label": "Bangle", "synonyms": ["bangles"], "definition": "Rigid closed circle that slips over the hand." },
+        { "id": "cuff", "category": "bracelet", "label": "Cuff", "synonyms": ["open bangle", "torque bangle"], "definition": "Rigid bracelet with an opening at the back." },
+        { "id": "tennis-bracelet", "category": "bracelet", "label": "Tennis Bracelet", "synonyms": ["tennis", "line bracelet", "riviere bracelet"], "definition": "Continuous line of uniformly set stones." },
+        { "id": "charm-bracelet", "category": "bracelet", "label": "Charm Bracelet", "synonyms": ["charm"], "definition": "Bracelet carrying one or more hanging charms." },
+        { "id": "beaded-bracelet", "category": "bracelet", "label": "Beaded Bracelet", "synonyms": ["beaded", "bead bracelet", "pearl bracelet"], "definition": "Bracelet of strung beads or pearls." },
+        { "id": "cord", "category": "bracelet", "label": "Cord", "synonyms": ["friendship bracelet", "leather bracelet", "string bracelet"], "definition": "Fabric or leather cord bracelet, often with a metal motif." }
+      ]
+    },
+    {
+      "id": "style",
+      "shopify": { "representation": "tag", "tag_prefix": "style:" },
+      "cardinality": "many",
+      "terms": [
+        { "id": "chunky", "label": "Chunky", "synonyms": ["bold", "oversized", "statement", "xl"], "definition": "Visually heavy, wide or thick proportions." },
+        { "id": "dainty", "label": "Dainty", "synonyms": ["delicate", "fine", "petite", "mini", "skinny"], "definition": "Small-scale and fine in proportion." },
+        { "id": "minimalist", "label": "Minimalist", "synonyms": ["minimal", "simple", "sleek", "clean", "essential"], "definition": "Clean, unadorned design about restraint rather than size." },
+        { "id": "classic", "label": "Classic", "synonyms": ["timeless", "traditional", "iconic"], "definition": "Conventional forms that do not date, such as plain bands, solitaires and pearls." },
+        { "id": "modern", "label": "Modern", "synonyms": ["contemporary", "architectural", "abstract"], "definition": "Contemporary, design-led, architectural aesthetic." },
+        { "id": "vintage", "label": "Vintage", "synonyms": ["antique", "vintage-inspired", "retro", "heirloom", "estate", "art deco"], "definition": "Antique-inspired detailing such as milgrain, filigree and old cuts." },
+        { "id": "organic", "label": "Organic", "synonyms": ["molten", "sculptural", "fluid", "wave", "nature-inspired"], "definition": "Fluid, irregular, molten or nature-derived forms." },
+        { "id": "textured", "label": "Textured", "synonyms": ["hammered", "ridged", "ribbed", "twisted"], "definition": "Visible surface work such as hammering, ridges or twists." },
+        { "id": "geometric", "label": "Geometric", "synonyms": ["angular", "bar", "hexagon"], "definition": "Angular shapes as the central motif." },
+        { "id": "celestial", "label": "Celestial", "synonyms": ["cosmic", "star", "moon", "constellation", "astral"], "definition": "Star, moon, sun and constellation motifs." },
+        { "id": "romantic", "label": "Romantic", "synonyms": ["heart", "love", "bow", "ribbon"], "definition": "Hearts, bows, ribbons and love symbolism." },
+        { "id": "talisman", "label": "Talisman", "synonyms": ["symbolic", "amulet", "evil eye", "protection", "spiritual", "chakra", "zodiac"], "definition": "Symbolic or protective motifs such as evil eyes, amulets, zodiac and chakra." },
+        { "id": "personalised", "label": "Personalised", "synonyms": ["engravable", "initial", "letter", "monogram", "custom", "name", "birthstone"], "definition": "Made individual through initials, engraving, names or birthstones." },
+        { "id": "everyday", "label": "Everyday", "synonyms": ["essential", "staple", "basic", "capsule", "waterproof"], "definition": "Low-key staples meant for constant wear." },
+        { "id": "boho", "label": "Boho", "synonyms": ["bohemian", "beachy", "festival"], "definition": "Relaxed, beachy, festival-leaning aesthetic with shells, cords and mixed beads." }
+      ]
+    },
+    {
+      "id": "material",
+      "shopify": { "representation": "metafield", "namespace": "custom", "key": "material" },
+      "cardinality": "one",
+      "terms": [
+        { "id": "solid-gold", "label": "Solid Gold", "synonyms": ["14ct solid gold", "recycled gold", "real gold", "solid 9ct gold"], "definition": "Jewellery made entirely of gold alloy; purity captured separately." },
+        { "id": "gold-vermeil", "label": "Gold Vermeil", "synonyms": ["vermeil", "18ct gold vermeil"], "definition": "Thick layer of gold over a sterling silver base." },
+        { "id": "gold-plated", "label": "Gold Plated", "synonyms": ["18ct gold plate", "gold plate", "pvd gold", "gold tone", "gold-plated brass"], "definition": "Layer of gold over a brass or steel base." },
+        { "id": "sterling-silver", "label": "Sterling Silver", "synonyms": ["925 silver", "recycled sterling silver", "silver"], "definition": "92.5% silver alloy." },
+        { "id": "platinum", "label": "Platinum", "synonyms": [], "definition": "Naturally white precious metal used in fine and bridal jewellery." },
+        { "id": "stainless-steel", "label": "Stainless Steel", "synonyms": ["316l stainless steel", "titanium", "pvd coated steel", "waterproof steel"], "definition": "Tarnish-resistant steel or titanium base metal." },
+        { "id": "mixed-metal", "label": "Mixed Metal", "synonyms": ["two tone", "mixed metals", "bi-metal"], "definition": "Combination of two or more metal colours or materials." }
+      ]
+    },
+    {
+      "id": "metal_colour",
+      "shopify": { "representation": "metafield", "namespace": "custom", "key": "metal_colour" },
+      "cardinality": "one",
+      "terms": [
+        { "id": "yellow-gold", "label": "Yellow Gold", "synonyms": ["gold", "yellow"], "definition": "Warm yellow gold tone." },
+        { "id": "white-gold", "label": "White Gold", "synonyms": ["white"], "definition": "Silvery-white gold alloy tone." },
+        { "id": "rose-gold", "label": "Rose Gold", "synonyms": ["pink gold", "rose"], "definition": "Pink-toned gold alloy." },
+        { "id": "silver-colour", "label": "Silver", "synonyms": ["silver tone"], "definition": "Silver metal tone." },
+        { "id": "two-tone", "label": "Two-Tone", "synonyms": ["mixed", "bi-colour"], "definition": "Two metal tones combined in one piece." }
+      ]
+    },
+    {
+      "id": "purity",
+      "shopify": { "representation": "metafield", "namespace": "custom", "key": "purity" },
+      "cardinality": "one",
+      "terms": [
+        { "id": "18ct", "label": "18ct", "synonyms": ["18k", "750"], "definition": "75% gold." },
+        { "id": "14ct", "label": "14ct", "synonyms": ["14k", "585"], "definition": "58.5% gold." },
+        { "id": "9ct", "label": "9ct", "synonyms": ["9k", "375"], "definition": "37.5% gold." },
+        { "id": "925", "label": "Sterling Silver", "synonyms": ["925", "92.5%"], "definition": "92.5% silver." }
+      ]
+    },
+    {
+      "id": "gemstone",
+      "shopify": { "representation": "metafield", "namespace": "custom", "key": "gemstones" },
+      "cardinality": "many",
+      "terms": [
+        { "id": "diamond", "label": "Diamond", "synonyms": ["white diamond", "natural diamond"], "definition": "Natural diamond." },
+        { "id": "lab-grown-diamond", "label": "Lab-Grown Diamond", "synonyms": ["lab diamond", "created diamond", "cultivated diamond"], "definition": "Laboratory-created diamond." },
+        { "id": "moissanite", "label": "Moissanite", "synonyms": [], "definition": "Brilliant lab-created silicon carbide stone." },
+        { "id": "cubic-zirconia", "label": "Cubic Zirconia", "synonyms": ["cz", "crystal", "diamond-inspired", "diamond simulant", "zirconia"], "definition": "Affordable lab-created diamond simulant." },
+        { "id": "pearl", "label": "Pearl", "synonyms": ["freshwater pearl", "keshi pearl", "baroque pearl", "seed pearl"], "definition": "Natural or cultured pearl." },
+        { "id": "sapphire", "label": "Sapphire", "synonyms": ["blue sapphire", "lab-grown sapphire"], "definition": "Corundum gemstone, classically blue." },
+        { "id": "emerald", "label": "Emerald", "synonyms": ["green emerald"], "definition": "Green beryl gemstone." },
+        { "id": "ruby", "label": "Ruby", "synonyms": [], "definition": "Red corundum gemstone." },
+        { "id": "amethyst", "label": "Amethyst", "synonyms": [], "definition": "Purple quartz." },
+        { "id": "aquamarine", "label": "Aquamarine", "synonyms": [], "definition": "Pale blue beryl." },
+        { "id": "topaz", "label": "Topaz", "synonyms": ["blue topaz", "white topaz"], "definition": "Topaz gemstone, commonly blue or white." },
+        { "id": "citrine", "label": "Citrine", "synonyms": [], "definition": "Yellow quartz." },
+        { "id": "garnet", "label": "Garnet", "synonyms": [], "definition": "Deep red gemstone." },
+        { "id": "peridot", "label": "Peridot", "synonyms": [], "definition": "Yellow-green gemstone." },
+        { "id": "opal", "label": "Opal", "synonyms": ["white opal"], "definition": "Iridescent gemstone." },
+        { "id": "moonstone", "label": "Moonstone", "synonyms": [], "definition": "Feldspar with a milky adularescence." },
+        { "id": "turquoise", "label": "Turquoise", "synonyms": [], "definition": "Opaque blue-green stone." },
+        { "id": "malachite", "label": "Malachite", "synonyms": [], "definition": "Banded green stone." },
+        { "id": "lapis-lazuli", "label": "Lapis Lazuli", "synonyms": ["lapis"], "definition": "Deep blue stone with gold flecks." },
+        { "id": "mother-of-pearl", "label": "Mother of Pearl", "synonyms": ["mop"], "definition": "Iridescent shell lining." },
+        { "id": "onyx", "label": "Onyx", "synonyms": ["black onyx", "black spinel"], "definition": "Black opaque stone." },
+        { "id": "enamel", "label": "Enamel", "synonyms": ["ceramic", "resin"], "definition": "Coloured surface accent merchandised like a stone colour." }
+      ]
+    },
+    {
+      "id": "stone_shape",
+      "shopify": { "representation": "metafield", "namespace": "custom", "key": "stone_shapes" },
+      "cardinality": "many",
+      "terms": [
+        { "id": "round", "label": "Round", "synonyms": ["round brilliant", "brilliant cut"], "definition": "Circular brilliant cut." },
+        { "id": "oval", "label": "Oval", "synonyms": [], "definition": "Elongated rounded cut." },
+        { "id": "pear", "label": "Pear", "synonyms": ["teardrop"], "definition": "Teardrop-shaped cut." },
+        { "id": "marquise", "label": "Marquise", "synonyms": ["navette"], "definition": "Pointed-ends elongated cut." },
+        { "id": "emerald-cut", "label": "Emerald Cut", "synonyms": ["rectangular step cut", "octagon cut"], "definition": "Rectangular step cut with cropped corners." },
+        { "id": "cushion", "label": "Cushion", "synonyms": ["elongated cushion", "pillow cut"], "definition": "Square-to-rectangular cut with rounded corners." },
+        { "id": "princess", "label": "Princess", "synonyms": ["square cut"], "definition": "Square brilliant cut." },
+        { "id": "radiant", "label": "Radiant", "synonyms": [], "definition": "Rectangular brilliant cut with trimmed corners." },
+        { "id": "asscher", "label": "Asscher", "synonyms": ["square emerald cut"], "definition": "Square step cut." },
+        { "id": "heart", "label": "Heart", "synonyms": [], "definition": "Heart-shaped cut." },
+        { "id": "baguette", "label": "Baguette", "synonyms": [], "definition": "Slim rectangular step cut, usually an accent stone." },
+        { "id": "trillion", "label": "Trillion", "synonyms": ["trilliant"], "definition": "Triangular cut." },
+        { "id": "rose-cut", "label": "Rose Cut", "synonyms": [], "definition": "Flat-backed antique cut with a domed, faceted top." },
+        { "id": "cabochon", "label": "Cabochon", "synonyms": [], "definition": "Polished, unfaceted domed stone." },
+        { "id": "briolette", "label": "Briolette", "synonyms": [], "definition": "Faceted teardrop drilled for hanging." }
+      ]
+    },
+    {
+      "id": "setting",
+      "shopify": { "representation": "metafield", "namespace": "custom", "key": "setting" },
+      "cardinality": "one",
+      "terms": [
+        { "id": "claw", "label": "Claw", "synonyms": ["prong", "4-claw", "6-prong", "claw set"], "definition": "Stone held by metal claws; UK term for prong setting." },
+        { "id": "bezel", "label": "Bezel", "synonyms": ["rubover", "rub-over"], "definition": "Metal rim encircling the stone." },
+        { "id": "pave", "label": "Pavé", "synonyms": ["micro-pave", "pave set"], "definition": "Surface paved with many tiny stones." },
+        { "id": "channel", "label": "Channel", "synonyms": ["channel set"], "definition": "Stones set in a row between two metal walls." },
+        { "id": "flush", "label": "Flush", "synonyms": ["gypsy", "burnish"], "definition": "Stone sunk level with the metal surface." },
+        { "id": "tension", "label": "Tension", "synonyms": ["floating"], "definition": "Stone held by pressure so it appears to float." }
+      ]
+    },
+    {
+      "id": "chain_type",
+      "shopify": { "representation": "metafield", "namespace": "custom", "key": "chain_type" },
+      "cardinality": "one",
+      "terms": [
+        { "id": "curb", "label": "Curb", "synonyms": ["cuban", "curb chain"], "definition": "Flat interlocking twisted links." },
+        { "id": "cable", "label": "Cable", "synonyms": ["trace", "cable chain"], "definition": "Simple uniform oval links; the classic fine chain." },
+        { "id": "belcher", "label": "Belcher", "synonyms": ["rolo"], "definition": "Round wide links of even thickness." },
+        { "id": "box", "label": "Box", "synonyms": ["venetian"], "definition": "Square cube-shaped links." },
+        { "id": "rope", "label": "Rope", "synonyms": ["twisted chain"], "definition": "Links twisted in a spiral rope pattern." },
+        { "id": "figaro", "label": "Figaro", "synonyms": [], "definition": "Pattern of short links alternating with a long link." },
+        { "id": "herringbone", "label": "Herringbone", "synonyms": [], "definition": "Flat, liquid-looking slanted parallel links." },
+        { "id": "snake", "label": "Snake", "synonyms": [], "definition": "Smooth round chain of tightly joined rings." },
+        { "id": "paperclip", "label": "Paperclip", "synonyms": ["rectangular link", "staple chain"], "definition": "Elongated flat rectangular links." },
+        { "id": "ball", "label": "Ball", "synonyms": ["bead chain"], "definition": "Chain of small joined spheres." },
+        { "id": "byzantine", "label": "Byzantine", "synonyms": [], "definition": "Intricate interwoven link pattern." }
+      ]
+    }
+  ]
+}
