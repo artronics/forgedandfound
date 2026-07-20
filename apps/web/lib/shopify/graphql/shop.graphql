@@ -1,0 +1,108 @@
+# Shop-level content: hero, navigation menu and legal policies.
+# These are fetched in server components (see lib/shopify/server.ts).
+
+query GetShop($namespace: String, $heroKey: String!) {
+    shop {
+        id
+        name
+        hero: metafield(namespace: $namespace, key: $heroKey) {
+            reference {
+                ... on MediaImage {
+                    image {
+                        url
+                        altText
+                        width
+                        height
+                    }
+                }
+            }
+        }
+    }
+}
+
+query GetShopPolicies {
+    shop {
+        id
+        privacyPolicy {
+            title
+            body
+        }
+        termsOfService {
+            title
+            body
+        }
+        refundPolicy {
+            title
+            body
+        }
+        shippingPolicy {
+            title
+            body
+        }
+    }
+}
+
+query GetMenu {
+    menu(handle: "main-menu") {
+        main: items {
+            title
+            url
+            resource {
+                ... on Collection {
+                    id
+                    handle
+                    description
+                    image {
+                        url
+                        altText
+                        width
+                        height
+                    }
+                }
+            }
+            filters: items {
+                title
+                items {
+                    url
+                    title
+                    resource {
+                        ... on Collection {
+                            id
+                            metafield(key: "styles", namespace: "custom") {
+                                value
+                                references(first: 32) {
+                                    edges {
+                                        node {
+                                            ... on Metaobject {
+                                                id
+                                                handle
+                                                type
+                                                fields {
+                                                    key
+                                                    references(first: 4) {
+                                                        edges {
+                                                            node {
+                                                                ... on MediaImage {
+                                                                    image {
+                                                                        url
+                                                                        altText
+                                                                        width
+                                                                        height
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

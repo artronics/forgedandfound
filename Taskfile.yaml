@@ -25,5 +25,59 @@ includes:
 
 tasks:
   build:
+    desc: Build all projects
     cmds:
       - turbo build
+
+  deploy:web:dev:
+    desc: 'Deploy platform DEPLOYMENT_NAME, then the web app to Vercel wired to it, aliased onto development.forgedandfound.co.uk'
+    vars:
+      DEPLOYMENT: '{{.DEPLOYMENT | default .DEPLOYMENT_NAME}}'
+    preconditions:
+      - sh: '[ -n "{{.DEPLOYMENT}}" ]'
+        msg: Set DEPLOYMENT=<name> on the CLI or the DEPLOYMENT_NAME env var.
+      - sh: '[ "$TF_VAR_aws_account" = "nonprod" ]'
+        msg: 'deploy:web:dev only targets nonprod (development is a nonprod-reserved namespace).'
+    cmds:
+      - task: tf:platform:init
+        vars: { DEPLOYMENT: '{{.DEPLOYMENT}}' }
+      - task: tf:platform:apply
+        vars: { DEPLOYMENT: '{{.DEPLOYMENT}}' }
+      - task: vercel:web:build
+      - |
+        set -euo pipefail
+        cd terraform/platform
+        export TF_DATA_DIR=".terraform/${TF_VAR_aws_account}-{{.DEPLOYMENT}}"
+        tfout() { terraform output -raw "$1"; }
+        CLIENT_ID="$(tfout cognito_client_id)"
+        CLIENT_SECRET="$(tfout cognito_client_secret)"
+        ISSUER="https://cognito-idp.eu-west-2.amazonaws.com/$(tfout cognito_user_pool_id)"
+        API_URL="$(tfout api_url)"
+        cd ../..
+        url=$(vercel deploy --yes \
+          --build-env NEXT_PUBLIC_COGNITO_CLIENT_ID="$CLIENT_ID" \
+          --build-env COGNITO_CLIENT_SECRET="$CLIENT_SECRET" \
+          --build-env COGNITO_ISSUER_URL="$ISSUER" \
+          --build-env USER_API_URL="$API_URL" \
+          --build-env NEXT_PUBLIC_APP_URL="https://development.forgedandfound.co.uk")
+        vercel alias set "$url" development.forgedandfound.co.uk
+  wt:symlinks:
+    desc: Symlink shared .env files from the main worktree
+    cmds:
+      - |
+        ROOT="$(git worktree list --porcelain | awk '/^worktree / {print $2; exit}')"
+
+        for file in \
+          .env \
+          .env.local \
+          .env.development \
+          .env.terraform \
+          .env.scripts
+        do
+          if [ -f "$ROOT/$file" ]; then
+            ln -snf "$ROOT/$file" "$file"
+            echo "Linked $file"
+          else
+            echo "Skipping $file (not found)"
+          fi
+        done

@@ -1,18 +1,15 @@
-"use client";
 import React from "react";
 import {Content} from "@/components/Content";
-import {usePrivacyPolicy} from "@/lib/content/useLegal";
+import {getPolicy} from "@/lib/shopify/server";
 
-
-export default function PrivacyPolicyPage() {
-  const {data, loading} = usePrivacyPolicy();
+export default async function PrivacyPolicyPage() {
+  const policy = await getPolicy("privacyPolicy");
 
   return (
     <Content
       className="[&>p]:first:text-muted-foreground [&>p]:first:uppercase"
-      title={data?.shop.privacyPolicy?.title ?? "Privacy Policy"}
-      html={data?.shop.privacyPolicy?.body ?? ""}
-      loading={loading}
+      title={policy?.title ?? "Privacy Policy"}
+      html={policy?.body ?? ""}
     />
   );
 }

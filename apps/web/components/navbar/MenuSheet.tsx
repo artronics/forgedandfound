@@ -8,7 +8,7 @@ import {cn} from "@/lib/utils";
 import {Button} from "@/components/ui/button";
 import {Icon} from "@/components/ui/icon";
 import {Brand} from "@/components/brand";
-import {type Menu as MenuEntry, useMenu} from "@/lib/menu/useMenu";
+import {type Menu as MenuEntry} from "@/lib/menu/menu";
 
 function DrawerLink({href, onClose, children}: { href: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -75,9 +75,8 @@ function DrawerCategory({menuItem, onClose}: { menuItem: MenuEntry; onClose: () 
   );
 }
 
-export function MenuSheet() {
+export function MenuSheet({menu}: { menu: MenuEntry[] }) {
   const [open, setOpen] = useState(false);
-  const {menu} = useMenu();
 
   return (
     <Sheet open={open} aria-describedby="menu-drawer" onOpenChange={setOpen}>
