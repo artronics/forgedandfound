@@ -1,6 +1,9 @@
 # ---------------------------------------------------------------------------
 # Shared wildcard certificates, issued once here so platform deployments never
-# wait on ACM issuance/validation (the slowest part of an ephemeral deploy).
+# wait on ACM issuance/validation. REGIONAL (eu-west-2): the platform API
+# Gateway domains are regional — no CloudFront, so domains create/destroy in
+# seconds. (Cognito's us-east-1 cert lives in cognito.tf; it is CloudFront-
+# backed and stays dedicated.)
 #
 # ACM wildcards cover exactly one label, which dictates the API domain scheme:
 #   nonprod  api-<deployment>.nonprod.<root>   covered by *.nonprod.<root>
@@ -10,8 +13,8 @@
 module "account_wildcard_cert" {
   source = "../modules/cert"
   providers = {
-    aws           = aws
-    aws.us_east_1 = aws.us_east_1
+    aws             = aws
+    aws.cert_region = aws
   }
 
   domain_name = "*.${local.account_zone_name}"
@@ -23,8 +26,8 @@ module "env_wildcard_cert" {
 
   source = "../modules/cert"
   providers = {
-    aws           = aws
-    aws.us_east_1 = aws.us_east_1
+    aws             = aws
+    aws.cert_region = aws
   }
 
   domain_name = "*.${each.key}.${local.account_zone_name}"

@@ -1,8 +1,11 @@
+# The certificate's region is the caller's choice via the aws.cert_region
+# provider: us-east-1 for CloudFront-backed consumers (Cognito hosted UI,
+# edge API Gateway), the deployment region for regional API Gateway domains.
 terraform {
   required_providers {
     aws = {
       source                = "hashicorp/aws"
-      configuration_aliases = [aws.us_east_1]
+      configuration_aliases = [aws.cert_region]
     }
   }
 }
@@ -14,10 +17,8 @@ variable "zone_id" {
   type = string
 }
 
-# CloudFront-fronted services (Cognito hosted UI, edge API Gateway) require the
-# certificate in us-east-1 regardless of the deployment region.
 resource "aws_acm_certificate" "cert" {
-  provider          = aws.us_east_1
+  provider = aws.cert_region
   domain_name       = var.domain_name
   validation_method = "DNS"
 
@@ -44,7 +45,7 @@ resource "aws_route53_record" "cert_validation" {
 }
 
 resource "aws_acm_certificate_validation" "cert_validation" {
-  provider                = aws.us_east_1
+  provider = aws.cert_region
   certificate_arn         = aws_acm_certificate.cert.arn
   validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
 }
