@@ -85,3 +85,4 @@ Platform deployments are namespaced (`ff/platform/<account>/<name>`). `preview` 
 **Design system**: `apps/web/DESIGN.md` is the authoritative visual spec ("Modern Heirloom" editorial style — Emerald Green/Satin Linen palette, Noto Serif + Inter, no 1px borders, `rounded-sm` not pill buttons, tonal-layer elevation instead of shadows). Read it before making any styling/component decisions in `apps/web`; components are Shadcn/Radix-based under `components/ui/`.
 
 **Env vars are read directly off `process.env`** with non-null assertions in a few central files (`apps/web/lib/env.ts`, `codegen.ts`, service `index.ts` files) rather than validated at a boundary — if you add a new required var, wire it into the relevant one of these rather than scattering `process.env.X!` around call sites.
+
