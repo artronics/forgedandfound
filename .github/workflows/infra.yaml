@@ -27,13 +27,17 @@ jobs:
         with:
           aws_account: ${{ inputs.aws_account }}
 
-      - run: task tf:infra:init
+      - name: Init
+        working-directory: terraform/infra
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=artronics-ff-${TF_VAR_aws_account}-infra-tf-state" \
+            -backend-config="key=infra.tfstate"
 
       - name: Plan (detect changes)
         id: plan
         working-directory: terraform/infra
         run: |
-          export TF_DATA_DIR=".terraform/${TF_VAR_aws_account}"
           set +e
           terraform plan -input=false -no-color -detailed-exitcode \
             -var-file="env/${TF_VAR_aws_account}.tfvars"
@@ -60,7 +64,15 @@ jobs:
         with:
           aws_account: ${{ inputs.aws_account }}
 
-      - run: task tf:infra:init
+      - name: Init
+        working-directory: terraform/infra
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=artronics-ff-${TF_VAR_aws_account}-infra-tf-state" \
+            -backend-config="key=infra.tfstate"
+
       # No retry: infra failures should be looked at, not hammered.
-      - run: task tf:infra:apply
+      - name: Apply
+        working-directory: terraform/infra
         timeout-minutes: 15
+        run: terraform apply -input=false -auto-approve -var-file="env/${TF_VAR_aws_account}.tfvars"

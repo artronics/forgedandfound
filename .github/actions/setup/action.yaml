@@ -1,5 +1,5 @@
 name: Deploy setup
-description: AWS OIDC credentials + terraform + task, ready to run tf tasks.
+description: AWS OIDC credentials + pinned terraform, ready to run raw terraform commands.
 
 inputs:
   aws_account:
@@ -16,10 +16,7 @@ runs:
 
     - uses: hashicorp/setup-terraform@v4
       with:
+        # Keep in sync with .terraform-version and the required_version pins.
+        terraform_version: 1.15.5
         # The wrapper corrupts $(terraform output -raw ...) captures.
         terraform_wrapper: false
-
-    - uses: arduino/setup-task@v2
-      with:
-        version: 3.x
-        repo-token: ${{ github.token }}
