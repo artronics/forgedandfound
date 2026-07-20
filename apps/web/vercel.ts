@@ -6,7 +6,7 @@ export const config: VercelConfig = {
 
   buildCommand: 'turbo run build --filter=@forgedandfound/web',
 
-  // Skip the deployment entirely unless `web` OR one of its workspace
-  // dependencies changed in the pushed commit range.
-  ignoreCommand: 'npx turbo-ignore @forgedandfound/web',
+
+  // Never deploy automatically from Git. We use GitHub Actions.
+  ignoreCommand: "exit 0",
 };

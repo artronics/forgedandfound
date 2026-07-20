@@ -1,0 +1,74 @@
+name: Preview
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    environment: Preview
+
+    env:
+      TF_VAR_aws_account: nonprod
+      TF_VAR_deployment_env: dev
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::939103584423:role/GithubDeployRole
+          aws-region: eu-west-2
+
+      - uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: |
+          terraform init \
+            -backend-config="key=forgedandfound/$TF_VAR_aws_account/$TF_VAR_deployment_env.tfstate" \
+            -backend-config="bucket=artronics-forgedandfound-$TF_VAR_aws_account-terraform-state"
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: |
+          terraform plan \
+            -var="aws_account=$TF_VAR_aws_account" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve tfplan
+
+  vercel:
+    needs: terraform
+
+    runs-on: ubuntu-latest
+
+    environment: Preview
+
+    env:
+      VERCEL_TELEMETRY_DISABLED: 1
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - run: npm install -g vercel
+
+      - name: Deploy Preview
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          vercel deploy --yes --target=preview --token=$VERCEL_TOKEN

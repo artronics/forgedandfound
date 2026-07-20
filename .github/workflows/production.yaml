@@ -1,0 +1,99 @@
+name: Production
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+
+    env:
+      TF_VAR_aws_account: prod
+      TF_VAR_deployment_env: live
+
+    outputs:
+      tfplan: tfplan
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::028607041427:role/GithubDeployRole
+          aws-region: eu-west-2
+
+      - uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: |
+          terraform init \
+            -backend-config="key=forgedandfound/$TF_VAR_aws_account/$TF_VAR_deployment_env.tfstate" \
+            -backend-config="bucket=artronics-forgedandfound-$TF_VAR_aws_account-terraform-state"
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: |
+          terraform plan \
+            -var="aws_account=$TF_VAR_aws_account" \
+            -out=tfplan
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/tfplan
+
+  deploy:
+    needs: plan
+
+    runs-on: ubuntu-latest
+
+    environment: Production
+
+    env:
+      TF_VAR_aws_account: prod
+      TF_VAR_deployment_env: live
+      VERCEL_TELEMETRY_DISABLED: 1
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::028607041427:role/GithubDeployRole
+          aws-region: eu-west-2
+
+      - uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: |
+          terraform init \
+            -backend-config="key=forgedandfound/$TF_VAR_aws_account/$TF_VAR_deployment_env.tfstate" \
+            -backend-config="bucket=artronics-forgedandfound-$TF_VAR_aws_account-terraform-state"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: terraform
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply tfplan
+
+      - run: npm install -g vercel
+
+      - name: Deploy Production
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          vercel deploy --yes --prod --token=$VERCEL_TOKEN

@@ -25,6 +25,7 @@ includes:
 
 tasks:
   build:
+    desc: Build all projects
     cmds:
       - turbo build
   wt:symlinks:
