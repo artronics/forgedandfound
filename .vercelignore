@@ -1,0 +1,15 @@
+# The whole monorepo is the Vercel upload context (Root Directory = apps/web,
+# so turbo/pnpm can resolve the workspace). Exclude everything Vercel doesn't
+# need to build the web app — keeps uploads small and avoids leaking infra.
+.git
+terraform
+services
+scripts
+http
+root-ws-symlinks
+**/.terraform
+**/*.tfstate*
+**/.turbo
+**/node_modules
+**/.next
+**/dist
