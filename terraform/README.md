@@ -25,6 +25,11 @@ the only reusable modules: `cert` (us-east-1 ACM + DNS validation) and
 docker build when the tag already exists in ECR, and derives workspace
 dependencies from the service's `package.json`).
 
+Certificates are shared wildcards issued once in infra (`*.<account-zone>`; per-env `*.<env>.prod...` for prod) —
+platform never touches ACM, which keeps ephemeral deploys/destroys off ACM's slow issue/release path. ACM wildcards
+cover exactly one label, hence the API domain scheme: nonprod
+`api-<deployment>.nonprod.<root>`, prod `api.<env>.prod.<root>`.
+
 ## Environments & namespaces
 
 ```

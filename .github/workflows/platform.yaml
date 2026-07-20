@@ -84,7 +84,6 @@ jobs:
 
       - name: Vercel deploy
         if: inputs.vercel_target != ''
-        working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
