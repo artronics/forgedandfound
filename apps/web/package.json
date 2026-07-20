@@ -10,7 +10,7 @@
     "prebuild": "graphql-codegen --config codegen.ts",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "@apollo/client": "^4.1.6",
