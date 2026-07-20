@@ -13,11 +13,11 @@ pnpm/turborepo monorepo for the Forged & Found jewellery e-commerce brand. Packa
 - `packages/email` — React Email templates (verify/reset-password emails), rendered by `auth-email-hook-handler`.
 - `services/auth-email-hook-handler` — Cognito **Custom Email Sender** Lambda. Decrypts the KMS-encrypted code Cognito gives it and sends the templated email via SES.
 - `services/auth-shopify-customer-sync-handler` — Cognito **Post Confirmation** Lambda. Creates/links a Shopify customer for a newly-confirmed Cognito user and writes the Shopify customer id back onto the Cognito user as `custom:shopify_customer_id`.
-- `terraform/` — single flat root Terraform module (not per-account/per-env Stacks — see note below) provisioning Cognito, SES, DNS, the two auth Lambdas (as container images via ECR), and Shopify event infra, per AWS account (`nonprod`/`prod`).
+- `services/user-service` — Lambda behind API Gateway (`api.<deployment-domain>`), applies users' own profile edits via Cognito admin calls (the web app runs on Vercel with no AWS credentials).
+- `terraform/` — two root modules: `infra/` (per AWS account: Route53 zones, Cognito user pool + IdPs + trigger Lambdas, SES, ECR, Shopify event bus) and `platform/` (per deployment: Cognito app client, user-service + API Gateway, DNS records). Platform reads infra via `terraform_remote_state`. See `terraform/README.md`.
 - `scripts/` — one-off operational scripts (Apple Sign-In JWT signing, an OAuth code-flow helper), run via `pnpm dlx ts-node`, not part of the build graph.
 - `http/` — `.http` request collections (JetBrains HTTP Client) for manually poking the Shopify/auth APIs.
 
-**⚠ `terraform/README.md` is stale.** It documents a two-Stack (`infra` + `platform`) HCP-Terraform-Stacks rebuild that was tried and then reverted (see commit `2dc7924 remove infra directory`). The actual current layout is the flat structure described above — don't follow that README's directory layout or `task validate STACK=...` commands.
 
 ## Commands
 
@@ -67,12 +67,12 @@ task services:docker:build SERVICE=auth-email-hook-handler   # multi-arch buildx
 task services:docker:run SERVICE=auth-email-hook-handler     # runs on localhost:9000 (Lambda RIE)
 ```
 
-Terraform (from repo root via Task, `terraform/Taskfile.yaml`; needs `TF_VAR_aws_account` = `nonprod`|`prod` and `TF_VAR_deployment_env`):
+Terraform (from repo root via Task, `terraform/Taskfile.yaml`; needs `TF_VAR_aws_account` = `nonprod`|`prod` from `.env.terraform`; AWS credentials are ambient via `AWS_PROFILE` — there is no `aws_profile` variable):
 ```
-task tf:init
-task tf:plan
-task tf:apply
+task tf:infra:init / tf:infra:plan / tf:infra:apply            # per-account singletons
+task tf:platform:init DEPLOYMENT=<name>                        # then plan/apply/destroy likewise
 ```
+Platform deployments are namespaced (`ff/platform/<account>/<name>`). `preview` is a real, permanent deployment (Vercel Preview points at it) — `task tf:platform:destroy` refuses it and always refuses prod. `development` is **not** a deployment, just a reserved DNS namespace owned by infra (alias any Vercel deployment onto `development.forgedandfound.co.uk`); platform rejects it as a deployment name.
 
 ## Architecture notes
 

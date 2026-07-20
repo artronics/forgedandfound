@@ -1,20 +1,108 @@
 version: '3'
 
-tasks:
-  init:
-    desc: Initialize terraform
-    cmds:
-      - terraform init -backend-config="key=forgedandfound/$TF_VAR_aws_account/$TF_VAR_deployment_env.tfstate" -backend-config="bucket=artronics-forgedandfound-$TF_VAR_aws_account-terraform-state"
-  plan:
-    desc: Plan infrastructure
-    cmds:
-      - terraform plan -var="aws_account=$TF_VAR_aws_account"
-  apply:
-    desc: Apply infrastructure
-    cmds:
-      - terraform apply -var="aws_account=$TF_VAR_aws_account" -auto-approve
+# Two root modules:
+#   infra    — per AWS account (TF_VAR_aws_account=nonprod|prod)
+#   platform — per deployment  (TF_VAR_aws_account + DEPLOYMENT=<name>)
+#
+# AWS credentials are ambient: AWS_PROFILE locally (.env.terraform), an OIDC
+# role in CI. The providers pin allowed_account_ids, so applying with the wrong
+# account's credentials fails before touching anything.
 
-  destroy:
-    desc: Destroy infrastructure
+tasks:
+  infra:init:
+    desc: Init infra root (per account)
+    dir: infra
+    requires: { vars: [TF_VAR_aws_account] }
+    env:
+      TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}'
     cmds:
-      - terraform destroy -var="aws_account=prod" -auto-approve
+      - >
+        terraform init -reconfigure
+        -backend-config="bucket=artronics-ff-${TF_VAR_aws_account}-infra-tf-state"
+        -backend-config="key=infra.tfstate"
+
+  infra:plan:
+    desc: Plan infra
+    dir: infra
+    requires: { vars: [TF_VAR_aws_account] }
+    env:
+      TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}'
+    cmds:
+      - terraform plan -var-file="env/${TF_VAR_aws_account}.tfvars"
+
+  infra:apply:
+    desc: Apply infra
+    dir: infra
+    requires: { vars: [TF_VAR_aws_account] }
+    env:
+      TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}'
+    cmds:
+      - terraform apply -var-file="env/${TF_VAR_aws_account}.tfvars" -auto-approve
+
+  infra:destroy:
+    desc: Destroy infra (nonprod only, FORCE=1 required)
+    dir: infra
+    requires: { vars: [TF_VAR_aws_account] }
+    env:
+      TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}'
+    preconditions:
+      - sh: '[ "$TF_VAR_aws_account" != "prod" ]'
+        msg: Refusing to destroy prod infra.
+      - sh: '[ "{{.FORCE}}" = "1" ]'
+        msg: Destroying infra takes the shared user pool and DNS zones with it. Re-run with FORCE=1 if you mean it.
+    cmds:
+      - terraform destroy -var-file="env/${TF_VAR_aws_account}.tfvars" -auto-approve
+
+  platform:init:
+    desc: 'Init platform root for a deployment. Usage: task tf:platform:init DEPLOYMENT=foo'
+    dir: platform
+    requires: { vars: [TF_VAR_aws_account, DEPLOYMENT] }
+    env:
+      TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}-{{.DEPLOYMENT}}'
+    cmds:
+      - >
+        terraform init -reconfigure
+        -backend-config="bucket=artronics-ff-${TF_VAR_aws_account}-platform-tf-state"
+        -backend-config="key=deployments/{{.DEPLOYMENT}}.tfstate"
+
+  platform:plan:
+    desc: Plan a platform deployment
+    dir: platform
+    requires: { vars: [TF_VAR_aws_account, DEPLOYMENT] }
+    env:
+      TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}-{{.DEPLOYMENT}}'
+    cmds:
+      - terraform plan -var="deployment={{.DEPLOYMENT}}" {{.VAR_FILE_FLAG}}
+    vars:
+      VAR_FILE_FLAG:
+        sh: '[ -f "env/{{.DEPLOYMENT}}.tfvars" ] && echo -var-file="env/{{.DEPLOYMENT}}.tfvars" || true'
+
+  platform:apply:
+    desc: Apply a platform deployment
+    dir: platform
+    requires: { vars: [TF_VAR_aws_account, DEPLOYMENT] }
+    env:
+      TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}-{{.DEPLOYMENT}}'
+    cmds:
+      - terraform apply -var="deployment={{.DEPLOYMENT}}" {{.VAR_FILE_FLAG}} -auto-approve
+    vars:
+      VAR_FILE_FLAG:
+        sh: '[ -f "env/{{.DEPLOYMENT}}.tfvars" ] && echo -var-file="env/{{.DEPLOYMENT}}.tfvars" || true'
+
+  platform:destroy:
+    desc: Destroy a platform deployment (never prod, never preview)
+    dir: platform
+    requires: { vars: [TF_VAR_aws_account, DEPLOYMENT] }
+    env:
+      TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}-{{.DEPLOYMENT}}'
+    preconditions:
+      - sh: '[ "$TF_VAR_aws_account" != "prod" ]'
+        msg: Refusing to destroy prod platform deployments.
+      # preview is the permanent test environment Vercel Preview points at.
+      - sh: '[ "{{.DEPLOYMENT}}" != "preview" ]'
+        msg: preview is a protected deployment (permanent test env) and cannot be destroyed.
+    cmds:
+      - terraform destroy -var="deployment={{.DEPLOYMENT}}" {{.VAR_FILE_FLAG}} -auto-approve
+    vars:
+      VAR_FILE_FLAG:
+        sh: '[ -f "env/{{.DEPLOYMENT}}.tfvars" ] && echo -var-file="env/{{.DEPLOYMENT}}.tfvars" || true'
