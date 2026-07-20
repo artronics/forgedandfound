@@ -8,6 +8,11 @@ locals {
   cognito_domain  = local.is_prod ? "account.live.${local.account_zone_name}" : "account.${local.account_zone_name}"
   cognito_zone_id = local.is_prod ? aws_route53_zone.env["live"].zone_id : aws_route53_zone.account.zone_id
 
+  # Cognito requires the custom domain's PARENT to resolve an A record before
+  # it will accept the domain. Parent is the apex of cognito_zone_id — nonprod:
+  # <account>.<root>; prod: live.<account>.<root>.
+  cognito_parent_domain = trimprefix(local.cognito_domain, "account.")
+
   # Shared secret pinned between the role trust policy and the Cognito
   # sms_configuration block, mitigating the confused-deputy problem.
   cognito_sns_external_id = "${local.prefix}-cognito-sns"
@@ -167,7 +172,7 @@ resource "aws_cognito_user_pool_domain" "main" {
   managed_login_version = 2
 
   # Cognito validates that the parent domain resolves when the custom domain is created.
-  depends_on = [aws_route53_record.account_zone_apex]
+  depends_on = [aws_route53_record.cognito_parent_apex]
 }
 
 resource "aws_route53_record" "cognito_domain" {

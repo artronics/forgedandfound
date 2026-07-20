@@ -1,5 +1,6 @@
 terraform {
-  required_version = ">= 1.10"
+  # Pinned; keep in sync with .terraform-version and CI setup-terraform.
+  required_version = "1.15.5"
 
   required_providers {
     aws = {
@@ -66,7 +67,7 @@ variable "vercel_ip" {
 
 variable "vercel_domains" {
   type        = list(string)
-  default     = ["development", "preview", "production", "www"]
+  default = ["development", "preview", "staging", "production", "www"]
   description = "Simple URLs in the root zone pointing at Vercel (prod only)."
 }
 
