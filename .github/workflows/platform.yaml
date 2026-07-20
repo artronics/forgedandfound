@@ -51,12 +51,22 @@ jobs:
         with:
           aws_account: ${{ inputs.aws_account }}
 
-      - run: task tf:platform:init
+      - name: Init
+        working-directory: terraform/platform
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=artronics-ff-${TF_VAR_aws_account}-platform-tf-state" \
+            -backend-config="key=deployments/${DEPLOYMENT_NAME}.tfstate"
 
+      # retry's command runs at the repo root (uses: steps ignore
+      # working-directory), so cd in and resolve the optional tfvars inline.
       - name: Apply
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0, pinned: third-party
         with:
-          command: task tf:platform:apply
+          command: |
+            cd terraform/platform
+            var_file=""; [ -f "env/${DEPLOYMENT_NAME}.tfvars" ] && var_file="-var-file=env/${DEPLOYMENT_NAME}.tfvars"
+            terraform apply -input=false -auto-approve -var="deployment=${DEPLOYMENT_NAME}" $var_file
           max_attempts: ${{ inputs.retries }}
           timeout_minutes: 15
           retry_wait_seconds: 30
@@ -65,7 +75,10 @@ jobs:
         if: failure() && inputs.destroy_on_failure
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0, pinned: third-party
         with:
-          command: task tf:platform:destroy
+          command: |
+            cd terraform/platform
+            var_file=""; [ -f "env/${DEPLOYMENT_NAME}.tfvars" ] && var_file="-var-file=env/${DEPLOYMENT_NAME}.tfvars"
+            terraform destroy -input=false -auto-approve -var="deployment=${DEPLOYMENT_NAME}" $var_file
           max_attempts: 2
           timeout_minutes: 15
           retry_wait_seconds: 30
@@ -75,7 +88,6 @@ jobs:
         id: tf
         working-directory: terraform/platform
         run: |
-          export TF_DATA_DIR=".terraform/${TF_VAR_aws_account}-${DEPLOYMENT_NAME}"
           {
             echo "client_id=$(terraform output -raw cognito_client_id)"
             echo "pool_id=$(terraform output -raw cognito_user_pool_id)"

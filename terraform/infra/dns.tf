@@ -29,17 +29,43 @@ resource "aws_route53_record" "env_delegation" {
   records = aws_route53_zone.env[each.key].name_servers
 }
 
-# Cognito requires the parent domain of a custom domain to have a resolvable A
-# record. The prod root zone has a real apex; the nonprod account zone gets a
-# placeholder.
-resource "aws_route53_record" "account_zone_apex" {
-  count = local.is_prod ? 0 : 1
+# Delegate the account zone from the root zone. Prod's root zone lives in the
+# SAME account, so terraform owns this — without it, deleting/recreating the
+# prod account zone leaves the root pointing at dead name servers (or nothing),
+# and every ACM cert under prod.<root> hangs on unresolvable DNS validation.
+# Nonprod's account zone is delegated cross-account, so it stays manual.
+# allow_overwrite so terraform adopts an out-of-band UPSERT rather than
+# colliding with it.
+resource "aws_route53_record" "account_delegation" {
+  count = local.is_prod ? 1 : 0
 
-  zone_id = aws_route53_zone.account.zone_id
-  name    = local.account_zone_name
+  zone_id         = data.aws_route53_zone.root[0].zone_id
+  name            = local.account_zone_name
+  type            = "NS"
+  ttl             = 172800
+  records         = aws_route53_zone.account.name_servers
+  allow_overwrite = true
+}
+
+# Cognito requires the parent of its custom domain to resolve an A record
+# before it will accept the domain. The parent (nonprod: <account>.<root>;
+# prod: live.<account>.<root>) carries no real traffic, so a loopback
+# placeholder satisfies the check.
+resource "aws_route53_record" "cognito_parent_apex" {
+  zone_id = local.cognito_zone_id
+  name    = local.cognito_parent_domain
   type    = "A"
   ttl     = 300
   records = ["127.0.0.1"]
+
+  allow_overwrite = true
+}
+
+# Nonprod already has this placeholder under the old address; migrate it in
+# place instead of destroy/recreate. (No-op on prod, where it never existed.)
+moved {
+  from = aws_route53_record.account_zone_apex[0]
+  to   = aws_route53_record.cognito_parent_apex
 }
 
 # ---------------------------------------------------------------------------

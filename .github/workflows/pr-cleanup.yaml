@@ -27,12 +27,20 @@ jobs:
         with:
           aws_account: nonprod
 
-      - run: task tf:platform:init
+      - name: Init
+        working-directory: terraform/platform
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=artronics-ff-${TF_VAR_aws_account}-platform-tf-state" \
+            -backend-config="key=deployments/${DEPLOYMENT_NAME}.tfstate"
 
       - name: Destroy deployment
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0, pinned: third-party
         with:
-          command: task tf:platform:destroy
+          command: |
+            cd terraform/platform
+            var_file=""; [ -f "env/${DEPLOYMENT_NAME}.tfvars" ] && var_file="-var-file=env/${DEPLOYMENT_NAME}.tfvars"
+            terraform destroy -input=false -auto-approve -var="deployment=${DEPLOYMENT_NAME}" $var_file
           max_attempts: 2
           timeout_minutes: 15
           retry_wait_seconds: 30
@@ -53,7 +61,6 @@ jobs:
       - name: Delete empty state file
         if: success()
         run: |
-          export TF_DATA_DIR=".terraform/${TF_VAR_aws_account}-${DEPLOYMENT_NAME}"
           remaining=$(cd terraform/platform && terraform state list | wc -l)
           if [ "$remaining" -ne 0 ]; then
             echo "::error::state still tracks $remaining resource(s) — keeping state file"
