@@ -45,7 +45,7 @@ variable "aws_account_ids" {
   type = map(string)
   default = {
     nonprod = "939103584423"
-    prod    = ""
+    prod    = "028607041427"
   }
 }
 
@@ -59,10 +59,10 @@ variable "root_domain" {
   default = "forgedandfound.co.uk"
 }
 
-variable "vercel_alias" {
-  type        = bool
-  default     = false
-  description = "Create <deployment>.<account-zone> as a CNAME to the Vercel simple URL <deployment>.<root-domain>. Only for deployments with a Vercel project domain (development, preview)."
+variable "vercel_alias_target" {
+  type        = list(string)
+  default     = []
+  description = "CNAME target for <deployment>.<account-zone>. preview uses its Vercel simple URL; PR deployments use Vercel's generic CNAME (cname.vercel-dns.com). Empty = no record."
 }
 
 variable "extra_app_urls" {

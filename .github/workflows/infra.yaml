@@ -1,0 +1,65 @@
+# Reusable: plan infra, and apply ONLY behind manual approval (the `infra`
+# GitHub environment). When the plan shows no changes the apply job is skipped
+# entirely — so by default no workflow run deploys infra.
+name: Infra
+
+on:
+  workflow_call:
+    inputs:
+      aws_account:
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_aws_account: ${{ inputs.aws_account }}
+    outputs:
+      changed: ${{ steps.plan.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+        with:
+          aws_account: ${{ inputs.aws_account }}
+
+      - run: task tf:infra:init
+
+      - name: Plan (detect changes)
+        id: plan
+        working-directory: terraform/infra
+        run: |
+          export TF_DATA_DIR=".terraform/${TF_VAR_aws_account}"
+          set +e
+          terraform plan -input=false -no-color -detailed-exitcode \
+            -var-file="env/${TF_VAR_aws_account}.tfvars"
+          code=$?
+          set -e
+          case "$code" in
+            0) echo "changed=false" >> "$GITHUB_OUTPUT" ;;
+            2) echo "changed=true"  >> "$GITHUB_OUTPUT"
+               echo "::notice::infra has pending changes — apply requires manual approval (environment: infra)" ;;
+            *) exit "$code" ;;
+          esac
+
+  apply:
+    needs: plan
+    if: needs.plan.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    # Required reviewers on this environment make infra applies manual.
+    environment: infra
+    env:
+      TF_VAR_aws_account: ${{ inputs.aws_account }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+        with:
+          aws_account: ${{ inputs.aws_account }}
+
+      - run: task tf:infra:init
+      # No retry: infra failures should be looked at, not hammered.
+      - run: task tf:infra:apply

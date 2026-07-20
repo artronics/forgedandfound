@@ -7,6 +7,12 @@ version: '3'
 # AWS credentials are ambient: AWS_PROFILE locally (.env.terraform), an OIDC
 # role in CI. The providers pin allowed_account_ids, so applying with the wrong
 # account's credentials fails before touching anything.
+#
+# The platform deployment is taken from DEPLOYMENT=<name> on the CLI, or from
+# the DEPLOYMENT_NAME environment variable (used by CI).
+
+vars:
+  DEPLOYMENT: '{{env "DEPLOYMENT_NAME"}}'
 
 tasks:
   infra:init:
@@ -56,7 +62,10 @@ tasks:
   platform:init:
     desc: 'Init platform root for a deployment. Usage: task tf:platform:init DEPLOYMENT=foo'
     dir: platform
-    requires: { vars: [TF_VAR_aws_account, DEPLOYMENT] }
+    requires: { vars: [TF_VAR_aws_account] }
+    preconditions:
+      - sh: '[ -n "{{.DEPLOYMENT}}" ]'
+        msg: Set DEPLOYMENT=<name> on the CLI or the DEPLOYMENT_NAME env var.
     env:
       TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}-{{.DEPLOYMENT}}'
     cmds:
@@ -68,7 +77,10 @@ tasks:
   platform:plan:
     desc: Plan a platform deployment
     dir: platform
-    requires: { vars: [TF_VAR_aws_account, DEPLOYMENT] }
+    requires: { vars: [TF_VAR_aws_account] }
+    preconditions:
+      - sh: '[ -n "{{.DEPLOYMENT}}" ]'
+        msg: Set DEPLOYMENT=<name> on the CLI or the DEPLOYMENT_NAME env var.
     env:
       TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}-{{.DEPLOYMENT}}'
     cmds:
@@ -80,7 +92,10 @@ tasks:
   platform:apply:
     desc: Apply a platform deployment
     dir: platform
-    requires: { vars: [TF_VAR_aws_account, DEPLOYMENT] }
+    requires: { vars: [TF_VAR_aws_account] }
+    preconditions:
+      - sh: '[ -n "{{.DEPLOYMENT}}" ]'
+        msg: Set DEPLOYMENT=<name> on the CLI or the DEPLOYMENT_NAME env var.
     env:
       TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}-{{.DEPLOYMENT}}'
     cmds:
@@ -92,13 +107,14 @@ tasks:
   platform:destroy:
     desc: Destroy a platform deployment (never prod, never preview)
     dir: platform
-    requires: { vars: [TF_VAR_aws_account, DEPLOYMENT] }
+    requires: { vars: [TF_VAR_aws_account] }
     env:
       TF_DATA_DIR: '.terraform/{{.TF_VAR_aws_account}}-{{.DEPLOYMENT}}'
     preconditions:
+      - sh: '[ -n "{{.DEPLOYMENT}}" ]'
+        msg: Set DEPLOYMENT=<name> on the CLI or the DEPLOYMENT_NAME env var.
       - sh: '[ "$TF_VAR_aws_account" != "prod" ]'
         msg: Refusing to destroy prod platform deployments.
-      # preview is the permanent test environment Vercel Preview points at.
       - sh: '[ "{{.DEPLOYMENT}}" != "preview" ]'
         msg: preview is a protected deployment (permanent test env) and cannot be destroyed.
     cmds:

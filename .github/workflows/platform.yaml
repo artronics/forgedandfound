@@ -1,0 +1,108 @@
+# Reusable: apply a platform deployment (with retries), then optionally deploy
+# the web app to Vercel with the deployment's own auth/API wiring and alias the
+# Vercel URL onto the deployment's domain.
+#
+# Retry policy is the caller's: PRs use 3 (fresh envs hit transient AWS
+# ordering), preview uses 2, staging/live use 1 (fail loudly, never hammer
+# prod). Rollback: destroy_on_failure tears the deployment down again — only
+# ever set for ephemeral PR deployments.
+name: Platform
+
+on:
+  workflow_call:
+    inputs:
+      aws_account:
+        type: string
+        required: true
+      deployment:
+        type: string
+        required: true
+      retries:
+        type: number
+        default: 1
+      destroy_on_failure:
+        type: boolean
+        default: false
+      vercel_target:
+        type: string
+        default: '' # '' = skip vercel; 'preview' | 'production'
+      alias_domain:
+        type: string
+        default: '' # vercel alias for the deployment (e.g. pr-123.nonprod.forgedandfound.co.uk)
+      vercel_alias_target:
+        type: string
+        default: '[]' # TF list: CNAME target of <deployment>.<account-zone>
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_aws_account: ${{ inputs.aws_account }}
+      DEPLOYMENT_NAME: ${{ inputs.deployment }}
+      TF_VAR_vercel_alias_target: ${{ inputs.vercel_alias_target }}
+      VERCEL_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+        with:
+          aws_account: ${{ inputs.aws_account }}
+
+      - run: task tf:platform:init
+
+      - name: Apply
+        run: |
+          attempt=1
+          until task tf:platform:apply; do
+            if [ "$attempt" -ge "${{ inputs.retries }}" ]; then
+              echo "::error::terraform apply failed after $attempt attempt(s)"
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "::warning::terraform apply failed — retrying ($attempt/${{ inputs.retries }})"
+            sleep 30
+          done
+
+      - name: Rollback (destroy failed ephemeral deployment)
+        if: failure() && inputs.destroy_on_failure
+        run: task tf:platform:destroy
+
+      - name: Read deployment outputs
+        if: inputs.vercel_target != ''
+        id: tf
+        working-directory: terraform/platform
+        run: |
+          export TF_DATA_DIR=".terraform/${TF_VAR_aws_account}-${DEPLOYMENT_NAME}"
+          {
+            echo "client_id=$(terraform output -raw cognito_client_id)"
+            echo "pool_id=$(terraform output -raw cognito_user_pool_id)"
+            echo "api_url=$(terraform output -raw api_url)"
+            echo "domain=$(terraform output -raw deployment_domain)"
+          } >> "$GITHUB_OUTPUT"
+          secret=$(terraform output -raw cognito_client_secret)
+          echo "::add-mask::$secret"
+          echo "client_secret=$secret" >> "$GITHUB_OUTPUT"
+
+      - name: Vercel deploy
+        if: inputs.vercel_target != ''
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          APP_DOMAIN: ${{ inputs.alias_domain != '' && inputs.alias_domain || steps.tf.outputs.domain }}
+        run: |
+          npm install -g vercel
+          url=$(vercel deploy --yes --target=${{ inputs.vercel_target }} --token="$VERCEL_TOKEN" \
+            --build-env NEXT_PUBLIC_COGNITO_CLIENT_ID="${{ steps.tf.outputs.client_id }}" \
+            --build-env COGNITO_CLIENT_SECRET="${{ steps.tf.outputs.client_secret }}" \
+            --build-env COGNITO_ISSUER_URL="https://cognito-idp.eu-west-2.amazonaws.com/${{ steps.tf.outputs.pool_id }}" \
+            --build-env USER_API_URL="${{ steps.tf.outputs.api_url }}" \
+            --build-env NEXT_PUBLIC_APP_URL="https://${APP_DOMAIN}")
+          echo "deployed: $url"
+          if [ -n "${{ inputs.alias_domain }}" ]; then
+            vercel alias set "$url" "${{ inputs.alias_domain }}" --token="$VERCEL_TOKEN"
+          fi

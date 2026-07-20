@@ -1,0 +1,44 @@
+# Destroy the ephemeral pr-<number> deployment when its PR closes (merged or
+# not), remove the Vercel alias, and delete the now-empty state file.
+name: PR cleanup
+
+on:
+  pull_request:
+    branches: [preview]
+    types: [closed]
+
+concurrency:
+  group: pr-${{ github.event.number }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_aws_account: nonprod
+      DEPLOYMENT_NAME: pr-${{ github.event.number }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+        with:
+          aws_account: nonprod
+
+      - run: task tf:platform:init
+      - run: task tf:platform:destroy
+
+      - name: Remove Vercel alias
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TELEMETRY_DISABLED: 1
+        run: |
+          npm install -g vercel
+          vercel alias rm "${DEPLOYMENT_NAME}.nonprod.forgedandfound.co.uk" --yes --token="$VERCEL_TOKEN" || true
+
+      - name: Delete empty state file
+        run: aws s3 rm "s3://artronics-ff-nonprod-platform-tf-state/deployments/${DEPLOYMENT_NAME}.tfstate"

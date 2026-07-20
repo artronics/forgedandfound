@@ -75,7 +75,8 @@ resource "aws_cognito_identity_provider" "apple" {
 
   lifecycle {
     ignore_changes = [
-      # NOTE: DO NOT add "private_key" here. It's annoying that it triggers everytime, but it's better than ignoring it.
+      #‼️ NOTE(TRAP): 💣 "private_key" is being ignored because it triggers change no matter what. If you've changed the private_key YOU MUST update this line.
+      provider_details["private_key"],
       provider_details["authorize_url"],
       provider_details["token_url"],
       provider_details["oidc_issuer"],

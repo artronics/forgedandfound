@@ -25,13 +25,12 @@ variable "aws_account" {
 }
 
 # Applying with credentials for the wrong account fails before touching
-# anything (allowed_account_ids below). Prod is intentionally left empty until
-# the prod migration happens — filling it in is the explicit "unlock".
+# anything (allowed_account_ids below).
 variable "aws_account_ids" {
   type = map(string)
   default = {
     nonprod = "939103584423"
-    prod    = ""
+    prod    = "028607041427"
   }
 }
 

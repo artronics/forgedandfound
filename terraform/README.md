@@ -59,8 +59,22 @@ task tf:platform:apply DEPLOYMENT=foo
 task tf:platform:destroy DEPLOYMENT=foo        # refuses prod and preview
 ```
 
+`DEPLOYMENT` can also come from the `DEPLOYMENT_NAME` environment variable
+(what CI uses): `DEPLOYMENT_NAME=pr-123 task tf:platform:apply`.
+
 Per-deployment settings live in `platform/env/<deployment>.tfvars` (optional
 for ephemerals; `preview` has a committed file).
+
+## CI (.github/workflows)
+
+Branch flow `* -> preview -> staging -> main`, enforced by `branch-guard.yaml`
+(make it a required check on staging/main). PRs into preview get an ephemeral
+`pr-<n>` deployment + Vercel alias `pr-<n>.nonprod.forgedandfound.co.uk`
+(destroyed by `pr-cleanup.yaml` on close). Merges deploy `preview` /
+`staging` / `live` respectively. Infra changes are planned on every run but
+only applied after manual approval (the `infra` GitHub environment); apply is
+skipped entirely when the plan is empty. Retries: pr 3, preview 2,
+staging/live none.
 
 ## Prod migration (deferred)
 
