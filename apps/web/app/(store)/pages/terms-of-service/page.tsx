@@ -1,17 +1,14 @@
-"use client";
 import React from "react";
 import {Content} from "@/components/Content";
-import {useTermsOfService} from "@/lib/content/useLegal";
+import {getPolicy} from "@/lib/shopify/server";
 
-
-export default function TermsOfConditionPage() {
-  const {data, loading} = useTermsOfService();
+export default async function TermsOfConditionPage() {
+  const policy = await getPolicy("termsOfService");
 
   return (
     <Content
-      title={data?.shop.termsOfService?.title ?? "Terms of Service"}
-      html={data?.shop.termsOfService?.body ?? ""}
-      loading={loading}
+      title={policy?.title ?? "Terms of Service"}
+      html={policy?.body ?? ""}
     />
   );
 }

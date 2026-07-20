@@ -69,6 +69,140 @@ export async function findCustomerByEmail(
   return data.customerByIdentifier ?? null;
 }
 
+export interface CustomerProfile {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  emailMarketingConsent: {
+    marketingState: string;
+  } | null;
+}
+
+interface CustomerProfileResponse {
+  customer: CustomerProfile | null;
+}
+
+/** The customer fields shown on the account page, consent state included. */
+export async function getCustomerProfile(
+  customerId: string,
+): Promise<CustomerProfile | null> {
+  const data = await shopifyAdminFetch<CustomerProfileResponse>(
+    `
+    query CustomerProfile($id: ID!) {
+      customer(id: $id) {
+        id
+        email
+        firstName
+        lastName
+        emailMarketingConsent {
+          marketingState
+        }
+      }
+    }
+    `,
+    {id: customerId},
+  );
+
+  return data.customer ?? null;
+}
+
+interface CustomerUpdateResponse {
+  customerUpdate: {
+    customer?: {
+      id: string;
+    };
+    userErrors: {
+      field?: string[];
+      message: string;
+    }[];
+  };
+}
+
+/**
+ * Mirror profile changes (name, email) from Cognito — the source of truth —
+ * onto the Shopify customer. Throws with the joined userError messages.
+ */
+export async function updateCustomerProfile(
+  customerId: string,
+  fields: { firstName?: string; lastName?: string; email?: string },
+): Promise<void> {
+  const data = await shopifyAdminFetch<CustomerUpdateResponse>(
+    `
+    mutation UpdateCustomer($input: CustomerInput!) {
+      customerUpdate(input: $input) {
+        customer {
+          id
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+    `,
+    {input: {id: customerId, ...fields}},
+  );
+
+  const errors = data.customerUpdate.userErrors;
+  if (errors.length > 0) {
+    throw new Error(errors.map((e) => e.message).join(", "));
+  }
+}
+
+interface CustomerEmailMarketingConsentUpdateResponse {
+  customerEmailMarketingConsentUpdate: {
+    customer?: {
+      id: string;
+    };
+    userErrors: {
+      field?: string[];
+      message: string;
+    }[];
+  };
+}
+
+/**
+ * Set the customer's email-marketing consent. NOT_SUBSCRIBED is only valid at
+ * customer creation, so opting out here always means UNSUBSCRIBED. Throws with
+ * the joined userError messages.
+ */
+export async function updateCustomerMarketingConsent(
+  customerId: string,
+  subscribed: boolean,
+): Promise<void> {
+  const data = await shopifyAdminFetch<CustomerEmailMarketingConsentUpdateResponse>(
+    `
+    mutation UpdateEmailConsent($input: CustomerEmailMarketingConsentUpdateInput!) {
+      customerEmailMarketingConsentUpdate(input: $input) {
+        customer {
+          id
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+    `,
+    {
+      input: {
+        customerId,
+        emailMarketingConsent: {
+          marketingState: subscribed ? "SUBSCRIBED" : "UNSUBSCRIBED",
+          marketingOptInLevel: "SINGLE_OPT_IN",
+          consentUpdatedAt: new Date().toISOString(),
+        },
+      },
+    },
+  );
+
+  const errors = data.customerEmailMarketingConsentUpdate.userErrors;
+  if (errors.length > 0) {
+    throw new Error(errors.map((e) => e.message).join(", "));
+  }
+}
+
 interface CustomerRequestDataErasureResponse {
   customerRequestDataErasure: {
     customerId?: string;

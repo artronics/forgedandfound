@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import {VariantSelector_ProductFragmentDoc} from "@/graphql/generated/graphql";
 import {FragmentType} from "@/graphql/generated";

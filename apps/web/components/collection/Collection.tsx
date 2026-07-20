@@ -1,23 +1,30 @@
+"use client";
+
 import React, {useState} from "react";
 import {
-  Filters_ProductFragment,
-  Filters_ProductFragmentDoc,
+  GetCollectionByHandleDocument,
+  GetCollectionByHandleQuery,
   ProductCollectionSortKeys,
 } from "@/graphql/generated/graphql";
+import {useQuery} from "@apollo/client/react";
 import {Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger} from "@/components/ui/sheet";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
 import {Icon} from "@/components/ui/icon";
 import {Badge} from "@/components/ui/badge";
-import {FragmentType, useFragment} from "@/graphql/generated";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@/components/ui/accordion";
 import {Checkbox} from "@/components/ui/checkbox";
 import {Label} from "@/components/ui/label";
 import {Page, PageContent, PageHeader} from "@/components/Page";
-import {useCollection} from "@/lib/collection/useCollection";
 import {Separator} from "@/components/ui/separator";
 import {ProductItemCard} from "@/components/product/ProductItemCard";
 import {GalleryGrid} from "@/components/ui/gallery";
+import {QueryGate} from "@/components/feedback";
+
+const PAGE_SIZE = 1;
+
+type CollectionProducts = NonNullable<GetCollectionByHandleQuery["collection"]>["products"];
+type ProductFilters = CollectionProducts["filters"];
 
 type Sort = {
   value: "featured" | "newest" | "price-asc" | "price-desc" | "bestselling";
@@ -73,67 +80,77 @@ type CollectionProps = {
 export function Collection({handle}: CollectionProps) {
   const [filters, setFilters] = useState<FilterInput[]>([]);
   const [sort, setSort] = useState<Sort>(SORT_OPTIONS[0]);
-  const {data, loading, error, fetchMore} = useCollection({
-    handle,
-    filters,
-    sortKey: sort.sortKey,
-    reverse: sort.reverse,
-  });
-  const collection = data?.collection;
+  const {data, previousData, loading, error, refetch, fetchMore} = useQuery(
+    GetCollectionByHandleDocument,
+    {
+      variables: {
+        handle,
+        first: PAGE_SIZE,
+        filters,
+        sortKey: sort.sortKey,
+        reverse: sort.reverse,
+      },
+      fetchPolicy: "cache-first",
+    },
+  );
+  // Keep the previous page visible while a filter/sort change is in flight
+  // instead of flashing back to the loading overlay.
+  const collection = (data ?? previousData)?.collection;
   const products = collection?.products?.edges?.map(e => e.node);
-  const pageInfo = data?.collection?.products?.pageInfo;
+  const pageInfo = collection?.products?.pageInfo;
 
   const onFiltersChange = (filters: Filter[]) => {
     setFilters(filters.map((f: Filter) => (f.input)));
   };
 
   return (
-    <Page>
-      <PageHeader>
-        <h2>{data?.collection?.title}</h2>
-      </PageHeader>
-      <PageContent>
-        <div className="w-full">
-          <div className="flex items-center justify-between">
-            <CollectionSheet
-              totalCount={products?.length ?? 0}
-              filtersFragment={collection?.products}
-              onFiltersChange={onFiltersChange}
-              onSortChange={setSort}
-            />
-
-          </div>
-          <Separator className="my-4"/>
-          <GalleryGrid>
-            {products?.map(p => {
-              return (<ProductItemCard key={p.id} fragment={p}/>);
-            })}
-          </GalleryGrid>
-          <div className="mt-8">
-            <div className="flex flex-col gap-12">
-              <Pagination
-                pageInfo={pageInfo}
-                onLoadMore={(after) => fetchMore({variables: {after}})}
-                loading={loading}
+    <QueryGate loading={loading && !collection} error={error} onRetry={() => refetch()}>
+      <Page>
+        <PageHeader>
+          <h2>{collection?.title}</h2>
+        </PageHeader>
+        <PageContent>
+          <div className="w-full">
+            <div className="flex items-center justify-between">
+              <CollectionSheet
+                totalCount={products?.length ?? 0}
+                filters={collection?.products?.filters}
+                onFiltersChange={onFiltersChange}
+                onSortChange={setSort}
               />
+
+            </div>
+            <Separator className="my-4"/>
+            <GalleryGrid>
+              {products?.map(p => {
+                return (<ProductItemCard key={p.id} fragment={p}/>);
+              })}
+            </GalleryGrid>
+            <div className="mt-8">
+              <div className="flex flex-col gap-12">
+                <Pagination
+                  pageInfo={pageInfo}
+                  onLoadMore={(after) => fetchMore({variables: {after}})}
+                  loading={loading}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </PageContent>
-    </Page>
+        </PageContent>
+      </Page>
+    </QueryGate>
   );
 }
 
 type CollectionSheetProps = {
-  filtersFragment: FragmentType<typeof Filters_ProductFragmentDoc> | undefined
+  filters: ProductFilters | undefined
   onFiltersChange: (filters: Filter[]) => void;
   onSortChange: (sort: Sort) => void;
   totalCount: number;
 }
 
-function CollectionSheet({filtersFragment, onFiltersChange, onSortChange, totalCount}: CollectionSheetProps) {
-  const fragment = useFragment(Filters_ProductFragmentDoc, filtersFragment);
-  const filterGroups = convertFilters(fragment);
+function CollectionSheet({filters, onFiltersChange, onSortChange, totalCount}: CollectionSheetProps) {
+  const filterGroups = convertFilters(filters);
   const [open, setOpen] = useState(false);
 
   const [activeFilters, setActiveFilters] = useState<Record<string, Set<string>>>({});
@@ -304,9 +321,9 @@ function extractId(s: string) {
   return Buffer.from(id, "binary").toString("base64");
 }
 
-function convertFilters(filtersFragment?: Filters_ProductFragment) {
-  const filters = filtersFragment?.filters ?? [];
-  const mapFilter = (groupName: string) => (v: Filters_ProductFragment["filters"][0]["values"][0]) => {
+function convertFilters(productFilters?: ProductFilters) {
+  const filters = productFilters ?? [];
+  const mapFilter = (groupName: string) => (v: ProductFilters[number]["values"][number]) => {
     const input = JSON.parse(v.input);
     return {
       id: extractId(v.id),

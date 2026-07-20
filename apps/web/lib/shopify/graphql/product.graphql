@@ -1,0 +1,140 @@
+# Product detail + variant data.
+#
+# VariantSelector_Product and Variant_ProductVariant are the two fragments that
+# earn their keep: they are shared across product, collection, search, wishlist
+# and cart documents, and useVariantSelector/CartLine rely on their masked types.
+
+fragment VariantSelector_Product on Product {
+    id
+    title
+    handle
+    featuredImage {
+        id
+        altText
+        url
+    }
+    variants(first: $variantFirst) {
+        edges {
+            node {
+                id
+                product {
+                    id
+                    title
+                    category {
+                        name
+                    }
+                }
+                availableForSale
+                currentlyNotInStock
+                image {
+                    thumbhash
+                    id
+                    altText
+                    url
+                    width
+                    height
+                }
+                price {
+                    amount
+                    currencyCode
+                }
+                compareAtPrice {
+                    amount
+                    currencyCode
+                }
+                selectedOptions {
+                    name
+                    value
+                }
+            }
+        }
+    }
+}
+
+fragment Variant_ProductVariant on ProductVariant {
+    id
+    product {
+        title
+        id
+    }
+    availableForSale
+    currentlyNotInStock
+    image {
+        thumbhash
+        id
+        altText
+        url
+        width
+        height
+        thumbnail: url(transform: {
+            maxWidth: 400
+            maxHeight: 400
+            scale: 2
+            crop: CENTER
+            preferredContentType: WEBP
+        })
+    }
+    price {
+        amount
+        currencyCode
+    }
+    compareAtPrice {
+        amount
+        currencyCode
+    }
+    selectedOptions {
+        name
+        value
+    }
+}
+
+query GetProductByHandle($id: ID, $handle: String, $variantFirst: Int = 32, $imageFirst: Int = 12) {
+    product(id: $id, handle: $handle) {
+        id
+        handle
+        title
+        vendor
+        category {
+            name
+        }
+        priceRange {
+            minVariantPrice {
+                amount
+                currencyCode
+            }
+        }
+        images(first: $imageFirst) {
+            edges {
+                node {
+                    id
+                    altText
+                    thumbhash
+                    url
+                    width
+                    height
+                }
+            }
+        }
+        ...VariantSelector_Product
+    }
+}
+
+query GetProductMetafields($productId: ID, $identifiers: [HasMetafieldsIdentifier!]!) {
+    product(id: $productId) {
+        id
+        metafields(identifiers: $identifiers) {
+            references(first: 8) {
+                nodes {
+                    ... on Metaobject {
+                        id
+                        type
+                        fields {
+                            key
+                            value
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

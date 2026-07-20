@@ -1,21 +1,20 @@
-"use client";
-
 import Link from "next/link";
-import {useHero} from "@/lib/shop/useHero";
 import Image from "next/image";
-import {GetShopQuery} from "@/graphql/generated/graphql";
+import {getLogger} from "@forgedandfound/logger/web";
+import {getHeroImage} from "@/lib/shopify/server";
 
-type HeroReference = NonNullable<NonNullable<GetShopQuery["shop"]["hero"]>["reference"]>;
-type MediaImageReference = Extract<HeroReference, { __typename: "MediaImage" }>;
-export function HeroSection() {
-  const {data, loading, error} = useHero();
-  const hero = data?.shop?.hero?.reference as MediaImageReference | undefined;
+export async function HeroSection() {
+  // A missing hero image should not take down the home page.
+  const hero = await getHeroImage().catch((err) => {
+    getLogger().error({err}, "failed to load hero image");
+    return null;
+  });
+
   return (
     <section className="relative h-[90vh] min-h-150 flex items-center overflow-hidden px-6 lg:px-10">
       {/* Background image placeholder */}
       <div className="absolute inset-0 z-0 bg-muted">
-        {/* Replace with <Image fill> */}
-        {hero?.image?.url && <Image src={hero?.image?.url} fill alt={hero?.image?.altText ?? ""}/>}
+        {hero?.url && <Image src={hero.url} fill alt={hero.altText ?? ""}/>}
       </div>
 
       {/* Subtle overlay */}

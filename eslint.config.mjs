@@ -18,6 +18,8 @@ export default ts.config(
       "**/out/**",
       "**/generated/**",
       "**/*.config.*",
+      "**/*.yml",
+      "**/*.yaml",
       ".http/**",
       ...shopifyIgnorePath,
     ],
@@ -62,18 +64,32 @@ export default ts.config(
   },
   // For apps/web, we also apply its Next.js specific config
   ...nextConfig.map(config => {
-    if (config.rules || config.plugins || config.languageOptions || config.settings) {
+    const scopedConfig = {...config};
+    if (scopedConfig.ignores && !scopedConfig.files && !scopedConfig.rules && !scopedConfig.plugins) {
       return {
-        ...config,
-        files: config.files || ["apps/web/**/*.{js,mjs,ts,tsx}"],
+        ...scopedConfig,
+        ignores: scopedConfig.ignores.map(pattern =>
+          pattern.startsWith("!") ? `!apps/web/${pattern.slice(1)}` : `apps/web/${pattern}`
+        ),
       };
     }
-    return config;
+    scopedConfig.files = (scopedConfig.files || ["**/*.{js,mjs,ts,tsx}"]).map(pattern =>
+      pattern.startsWith("!") ? `!apps/web/${pattern.slice(1)}` : `apps/web/${pattern}`
+    );
+    return scopedConfig;
   }),
   {
+    files: ["apps/web/**/*.{js,mjs,ts,tsx}"],
     settings: {
       next: {
         rootDir: "apps/web",
+      },
+    },
+  },
+  {
+    settings: {
+      react: {
+        version: "19.2.7",
       },
     },
   },

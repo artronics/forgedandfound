@@ -6,7 +6,7 @@ import {useState} from "react";
 import {cn} from "@/lib/utils";
 import {Button} from "@/components/ui/button";
 import {Separator} from "@/components/ui/separator";
-import {type Menu as MenuEntry, type MenuImage, type MenuItem, useMenu} from "@/lib/menu/useMenu";
+import {type Menu as MenuEntry, type MenuImage, type MenuItem} from "@/lib/menu/menu";
 import {CyclingImage} from "@/components/navbar/CyclingImage";
 
 type NonNullMenuImage = NonNullable<MenuImage>;
@@ -119,8 +119,7 @@ function MegaMenuPanel({menuItem}: { menuItem: MenuEntry }) {
   );
 }
 
-export function DesktopNav({className}: { className?: string }) {
-  const {menu} = useMenu();
+export function DesktopNav({menu, className}: { menu: MenuEntry[], className?: string }) {
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
   const activeItem = menu.find(m => m.label === activeLabel) ?? null;
 

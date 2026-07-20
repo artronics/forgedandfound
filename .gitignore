@@ -1,11 +1,12 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+**/__pycache__
 **/.idea
 *.private.*
 .dev.md
 dist
 # AI
 **/.junie
-**/CLAUDE.md
+**/.claude
 
 
 **/.terraform

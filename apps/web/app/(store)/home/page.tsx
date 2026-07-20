@@ -1,4 +1,3 @@
-"use client";
 import {HeroSection} from "@/components/home/hero-section";
 import {NewArrivalsSection} from "@/components/home/new-arrivals-section";
 import {CategoryGridSection} from "@/components/home/category-grid-section";

@@ -6,7 +6,7 @@ info:
 paths:
   /user/{id}:
     patch:
-      summary: Update a user (e.g. add or change their email)
+      summary: Update a user's own profile (name, email, marketing consent)
       operationId: patchUser
       security:
         - CognitoAuth: [ ]
@@ -27,6 +27,12 @@ paths:
                 email:
                   type: string
                   format: email
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                acceptsMarketing:
+                  type: boolean
       responses:
         '200':
           description: User updated
