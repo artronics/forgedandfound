@@ -11,9 +11,6 @@ version: '3'
 # The platform deployment is taken from DEPLOYMENT=<name> on the CLI, or from
 # the DEPLOYMENT_NAME environment variable (used by CI).
 
-vars:
-  DEPLOYMENT: '{{env "DEPLOYMENT_NAME"}}'
-
 tasks:
   infra:init:
     desc: Init infra root (per account)
@@ -73,6 +70,8 @@ tasks:
         terraform init -reconfigure
         -backend-config="bucket=artronics-ff-${TF_VAR_aws_account}-platform-tf-state"
         -backend-config="key=deployments/{{.DEPLOYMENT}}.tfstate"
+    vars:
+      DEPLOYMENT: '{{.DEPLOYMENT | default .DEPLOYMENT_NAME}}'
 
   platform:plan:
     desc: Plan a platform deployment
@@ -86,6 +85,7 @@ tasks:
     cmds:
       - terraform plan -var="deployment={{.DEPLOYMENT}}" {{.VAR_FILE_FLAG}}
     vars:
+      DEPLOYMENT: '{{.DEPLOYMENT | default .DEPLOYMENT_NAME}}'
       VAR_FILE_FLAG:
         sh: '[ -f "env/{{.DEPLOYMENT}}.tfvars" ] && echo -var-file="env/{{.DEPLOYMENT}}.tfvars" || true'
 
@@ -101,6 +101,7 @@ tasks:
     cmds:
       - terraform apply -var="deployment={{.DEPLOYMENT}}" {{.VAR_FILE_FLAG}} -auto-approve
     vars:
+      DEPLOYMENT: '{{.DEPLOYMENT | default .DEPLOYMENT_NAME}}'
       VAR_FILE_FLAG:
         sh: '[ -f "env/{{.DEPLOYMENT}}.tfvars" ] && echo -var-file="env/{{.DEPLOYMENT}}.tfvars" || true'
 
@@ -120,5 +121,6 @@ tasks:
     cmds:
       - terraform destroy -var="deployment={{.DEPLOYMENT}}" {{.VAR_FILE_FLAG}} -auto-approve
     vars:
+      DEPLOYMENT: '{{.DEPLOYMENT | default .DEPLOYMENT_NAME}}'
       VAR_FILE_FLAG:
         sh: '[ -f "env/{{.DEPLOYMENT}}.tfvars" ] && echo -var-file="env/{{.DEPLOYMENT}}.tfvars" || true'
