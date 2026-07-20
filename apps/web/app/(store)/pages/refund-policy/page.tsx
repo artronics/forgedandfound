@@ -1,17 +1,14 @@
-"use client";
 import React from "react";
 import {Content} from "@/components/Content";
-import {useRefundPolicy} from "@/lib/content/useLegal";
+import {getPolicy} from "@/lib/shopify/server";
 
-
-export default function RefundPolicyPage() {
-  const {data, loading} = useRefundPolicy();
+export default async function RefundPolicyPage() {
+  const policy = await getPolicy("refundPolicy");
 
   return (
     <Content
-      title={data?.shop.refundPolicy?.title ?? "Refund Policy"}
-      html={data?.shop.refundPolicy?.body ?? ""}
-      loading={loading}
+      title={policy?.title ?? "Refund Policy"}
+      html={policy?.body ?? ""}
     />
   );
 }

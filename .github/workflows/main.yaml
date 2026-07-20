@@ -1,0 +1,44 @@
+# Merge to main (only from staging — see branch-guard.yaml) → deploy live.
+# No retries; the `production` environment's required reviewers gate the whole
+# deployment. Vercel only switches the production domains onto the new
+# deployment when the deploy succeeds, so a failed run leaves the previous
+# release serving.
+#
+# NOTE: inert until the prod migration (terraform/README.md) — the prod infra
+# state does not exist yet.
+name: Production
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  infra:
+    uses: ./.github/workflows/infra.yaml
+    with:
+      aws_account: prod
+    secrets: inherit
+
+  gate:
+    needs: infra
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: echo "production deployment approved"
+
+  deploy:
+    needs: gate
+    uses: ./.github/workflows/platform.yaml
+    with:
+      aws_account: prod
+      deployment: live
+      retries: 1
+      vercel_target: production
+    secrets: inherit

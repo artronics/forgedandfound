@@ -4,7 +4,7 @@ import Image from "next/image";
 import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
 import {Icon, IconButton} from "@/components/ui/icon";
-import {ProductPhoto} from "@/lib/product/useProductPhotos";
+import {ProductPhoto} from "@/lib/product/product-photo";
 import {cn} from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

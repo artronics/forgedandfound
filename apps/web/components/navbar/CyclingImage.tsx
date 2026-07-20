@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from "react";
 import Image from "next/image";
-import type {MenuImage} from "@/lib/menu/useMenu";
+import type {MenuImage} from "@/lib/menu/menu";
 
 type NonNullMenuImage = NonNullable<MenuImage>;
 

@@ -1,143 +1,97 @@
-# Forged & Found — Terraform Stacks
+# Terraform
 
-This directory is a **first-iteration** rebuild of `../infra` using
-[Terraform Stacks](https://developer.hashicorp.com/terraform/language/stacks).
-It is intentionally partial: it demonstrates the structure and a few
-representative resources rather than migrating everything. See the
-`TODO(iteration-2)` markers for what was deliberately left out.
+Two root modules, split by lifecycle:
 
-## Why Stacks / do I need HashiCorp?
+| Root | Scope | State |
+|---|---|---|
+| `infra/` | One apply per AWS account (`nonprod`/`prod`). Account singletons: Route53 zones, Cognito user pool + IdPs + trigger lambdas, SES identity, ECR repos, Shopify partner event bus. | `artronics-ff-<account>-infra-tf-state` / `infra.tfstate` |
+| `platform/` | One apply per deployment. Nonprod deployments are free-form names; prod deployments are `staging`/`live`. Per-deployment: Cognito app client, user-service lambda, API Gateway + custom domain, event queues, DNS records. | `artronics-ff-<account>-platform-tf-state` / `deployments/<name>.tfstate` |
 
-**Yes — Stacks require HCP Terraform.** There is no local-only Stacks mode;
-plan/apply run on HCP Terraform, which also stores state automatically. So:
+Two names are special:
 
-- Your HashiCorp account **is** used. No S3 backend, no state buckets/keys.
-- Auth to AWS is via **OIDC** — each deployment mints a short-lived JWT that is
-  exchanged for a role in the target account. No long-lived AWS keys in HCP.
-- (If we had chosen *not* to use Stacks, the fallback would be classic root
-  modules + one S3 state bucket per account with a `key` per environment. We
-  went with Stacks as requested.)
+- **`preview`** — a real, permanent deployment (the test env; Vercel Preview
+  points at it) and the only one wired to the `prv` infra environment.
+  `task tf:platform:destroy` refuses it unconditionally.
+- **`development`** — *not* a deployment, just a reserved namespace. Infra owns
+  the `development.nonprod.forgedandfound.co.uk` →
+  `development.forgedandfound.co.uk` alias; there are no platform resources
+  behind it and `platform` rejects it as a deployment name. Deploy under your
+  own name (e.g. `pr-123`) and alias whatever Vercel deployment you like onto
+  `development.forgedandfound.co.uk`.
 
-## The big picture
+`platform` reads `infra` outputs via `terraform_remote_state`. `modules/` holds
+the only reusable modules: `cert` (us-east-1 ACM + DNS validation) and
+`lambda-service` (content-hash-tagged container image + lambda; skips the
+docker build when the tag already exists in ECR, and derives workspace
+dependencies from the service's `package.json`).
 
-Two categories of resource, mapped to **two Stacks**:
+Certificates are shared wildcards issued once in infra (`*.<account-zone>`; per-env `*.<env>.prod...` for prod) —
+platform never touches ACM. The platform API Gateway domains are **REGIONAL**
+(no CloudFront), so they create/destroy in seconds; the wildcards are eu-west-2 accordingly. Only Cognito's hosted-UI
+domain is CloudFront-backed and keeps a dedicated us-east-1 cert. ACM wildcards cover exactly one label, hence the API
+domain scheme: nonprod `api-<deployment>.nonprod.<root>`, prod
+`api.<env>.prod.<root>`.
 
-| Stack       | Category | Scope           | Lives once per… | Example resources                                 |
-|-------------|----------|-----------------|-----------------|---------------------------------------------------|
-| `infra/`    | infra    | per AWS account | account         | DNS zone records, Cognito user pool, SES identity |
-| `platform/` | platform | per environment | environment     | Cognito **app client**, Shopify event bus + SQS   |
-
-A **Stack** = the reusable definition (`*.tfcomponent.hcl`).
-A **deployment** = one concrete instance of it, with its own isolated state
-(`*.tfdeploy.hcl`).
-
-```
-                 infra Stack                         platform Stack
-        ┌──────────────────────────┐        ┌────────────────────────────────┐
-deploy: │ nonprod        prod       │        │ development  preview            │  (nonprod acct)
-        │                           │        │ staging      production         │  (prod acct)
-        │ user pool, SES, DNS       │        │ app client, shopify events      │
-        └────────────┬─────────────┘        └───────────────┬────────────────┘
-                     │ publish_output                        │ upstream_input
-                     └──────────  cognito_user_pool_id  ─────┘
-```
-
-- **infra** has 2 deployments: `nonprod`, `prod`.
-- **platform** has 4 deployments: `development` + `preview` (in nonprod),
-  `staging` + `production` (in prod).
-- platform consumes infra's outputs via `upstream_input` (linked Stacks), so
-  each environment's Cognito client is created inside its account's shared pool.
-
-### Difference from the old `../infra`
-
-In the old layout *everything* was keyed to `deployment_env` — even the user
-pool and DNS zone, which are really account-wide. Here that split is explicit:
-account-wide things moved to the `infra` Stack, per-env things to `platform`.
-
-## Naming / prefixes
-
-Every resource is prefixed to avoid collisions (multiple environments share one
-account):
-
-- infra:    `ff-infra-<account>`      → `ff-infra-nonprod-user-pool`
-- platform: `ff-<namespace>`          → `ff-development-shopify-product-events`
-
-`namespace` normally equals the environment name. **This is the hook for
-ephemeral per-user environments** (out of scope for now): set
-`namespace = "pr-123"` or `"dev-alice"` and you get a fully isolated
-`ff-pr-123-*` set of resources you can create and destroy independently. The
-plumbing already supports it — see the commented block at the bottom of
-`platform/deployments.tfdeploy.hcl`.
-
-## Layout
+## Environments & namespaces
 
 ```
-terraform/
-├── infra/                        # STACK 1 (per account)
-│   ├── .terraform-version        # required by Stacks, at each Stack root
-│   ├── providers.tfcomponent.hcl
-│   ├── variables.tfcomponent.hcl
-│   ├── components.tfcomponent.hcl
-│   ├── outputs.tfcomponent.hcl
-│   ├── deployments.tfdeploy.hcl
-│   └── modules/                  # child modules used by this Stack
-│       ├── dns/                  #   account zone lookup + apex/shopify records
-│       ├── ses-identity/         #   SES identity, DKIM, MAIL FROM, config set
-│       ├── cert/                 #   ACM cert in us-east-1 (provider passed in)
-│       └── cognito-pool/         #   account-level user pool (trimmed)
-└── platform/                     # STACK 2 (per environment)
-    ├── (same *.hcl + .terraform-version file set)
-    └── modules/
-        ├── cognito-client/       #   per-env app client
-        └── shopify-events/       #   per-env event bus + SQS
+namespace  ff/<infra|platform>/<account>/<env|deployment>
+prefix     namespace with '-' instead of '/'
 ```
 
-Each Stack keeps its own `modules/`. Stacks require module `source` paths to
-stay **inside** the Stack root — `../modules` is rejected by the Stacks CLI —
-so modules live under `<stack>/modules/` and are referenced as
-`./modules/...`. (The two Stacks use disjoint modules, so nothing is
-duplicated here; a module genuinely shared by both would be copied or pulled
-from a registry.)
+Infra environments: `dev`/`prv` (nonprod), `staging`/`live` (prod), each with a
+public zone `<env>.<account>.forgedandfound.co.uk`. `preview` is the only
+platform deployment wired to `prv`; all other nonprod deployments use `dev`.
 
-In a Stack, **modules never configure their own providers** — the provider is
-declared in `providers.tfcomponent.hcl` and handed to each component via
-`providers = {…}` (see how `aws.us_east_1` is threaded into `cert` for the
-Cognito login cert).
+## Auth
 
-Each Stack root also needs a `.terraform-version` file (the Stacks CLI and HCP
-Terraform read it to pin the runtime).
+No `aws_profile` variable — credentials are ambient. Locally `.env.terraform`
+(auto-loaded by Task) sets `AWS_PROFILE`; CI assumes the GitHub OIDC role. The
+providers pin `allowed_account_ids` per account, so an apply with the wrong
+account's credentials fails before touching anything. **The prod account id is
+deliberately left empty** in `aws_account_ids` until the prod migration.
 
-## Getting it running (one-time setup)
+## Usage
 
-1. **HCP Terraform**: create a project (e.g. `forgedandfound`) and add two
-   Stacks pointed at this repo, with working directories `terraform/infra` and
-   `terraform/platform`. Both Stacks must be in the **same project** for
-   `upstream_input` to work.
-2. **AWS OIDC role**: in each account create an IAM role
-   `ff-terraform-stacks` that trusts HCP Terraform's OIDC provider
-   (`app.terraform.io`) with audience `aws.workload.identity`, granting the
-   permissions these resources need.
-3. **Fill placeholders**: replace `<ORG>`, `<NONPROD_ACCOUNT_ID>`,
-   `<PROD_ACCOUNT_ID>`, and the `<*_SHOPIFY_APP_ID>` values in the two
-   `*.tfdeploy.hcl` files.
-4. **Order**: deploy `infra` first (it publishes the pool ids), then `platform`.
-
-## Local authoring loop
+From repo root (needs `TF_VAR_aws_account`, from `.env.terraform`):
 
 ```
-task fmt                 # format everything
-task validate STACK=infra
-task validate:all        # validate both Stacks
+task tf:infra:init
+task tf:infra:plan
+task tf:infra:apply
+
+task tf:platform:init  DEPLOYMENT=foo
+task tf:platform:plan  DEPLOYMENT=foo
+task tf:platform:apply DEPLOYMENT=foo
+task tf:platform:destroy DEPLOYMENT=foo        # refuses prod and preview
 ```
 
-(Plan/apply themselves happen on HCP Terraform, triggered by VCS pushes.)
+`DEPLOYMENT` can also come from the `DEPLOYMENT_NAME` environment variable
+(what CI uses): `DEPLOYMENT_NAME=pr-123 task tf:platform:apply`.
 
-## Deliberately deferred (iteration 2)
+Per-deployment settings live in `platform/env/<deployment>.tfvars` (optional
+for ephemerals; `preview` has a committed file).
 
-- Cognito: custom-email-sender + post-confirmation Lambdas, KMS key, SMS via
-  SNS role, and social IdPs (Google/Apple/Facebook).
-- The container-image Lambda module from `../infra/modules/lambda`
-  (ECR + docker build/push) and the auth/shopify services.
-- Per-env Vercel DNS CNAME (was mixed into the old `dns.tf`).
-- A generated/self-service flow for ephemeral environments.
+## CI (.github/workflows)
 
+Branch flow `* -> preview -> staging -> main`, enforced by `branch-guard.yaml`
+(make it a required check on staging/main). PRs into preview get an ephemeral
+`pr-<n>` deployment + Vercel alias `pr-<n>.nonprod.forgedandfound.co.uk`
+(destroyed by `pr-cleanup.yaml` on close). Merges deploy `preview` /
+`staging` / `live` respectively. Infra changes are planned on every run but
+only applied after manual approval (the `infra` GitHub environment); apply is
+skipped entirely when the plan is empty. Retries: pr 3, preview 2,
+staging/live none.
+
+## Prod migration (deferred)
+
+Prod has not been migrated to this layout. Before the first prod apply:
+
+1. Fill `aws_account_ids.prod` in both root modules.
+2. Manually delete the pre-existing Vercel/Shopify/SES records from the root
+   zone (apex A, `development.`/`preview.`/`production.`/`www.`/`shopify.`
+   CNAMEs, SES DKIM/`mail.` records) so terraform can create its own — infra
+   owns everything Vercel- and Shopify-related in the root zone. **Google
+   Workspace records (apex MX, `google._domainkey`, apex TXT site
+   verification) stay; terraform never defines them.**
+3. Decide whether the existing prod user pool is imported or replaced.

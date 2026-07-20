@@ -1,0 +1,28 @@
+# Enforce the promotion flow:  * -> preview -> staging -> main.
+# Make this check required in the branch protection rules for staging and main.
+name: Branch flow
+
+on:
+  pull_request:
+    branches: [staging, main]
+    types: [ opened, synchronize, reopened, edited ]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce promotion flow
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          case "$BASE" in
+            main)
+              [ "$HEAD" = "staging" ] || { echo "::error::PRs to main must come from staging (got: $HEAD)"; exit 1; } ;;
+            staging)
+              [ "$HEAD" = "preview" ] || { echo "::error::PRs to staging must come from preview (got: $HEAD)"; exit 1; } ;;
+          esac
+          echo "ok: $HEAD -> $BASE"

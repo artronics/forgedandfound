@@ -1,17 +1,14 @@
-"use client";
 import React from "react";
 import {Content} from "@/components/Content";
-import {useShippingPolicy} from "@/lib/content/useLegal";
+import {getPolicy} from "@/lib/shopify/server";
 
-
-export default function ShippingPolicyPage() {
-  const {data, loading} = useShippingPolicy();
+export default async function ShippingPolicyPage() {
+  const policy = await getPolicy("shippingPolicy");
 
   return (
     <Content
-      title={data?.shop.shippingPolicy?.title ?? "Shipping Policy"}
-      html={data?.shop.shippingPolicy?.body ?? ""}
-      loading={loading}
+      title={policy?.title ?? "Shipping Policy"}
+      html={policy?.body ?? ""}
     />
   );
 }

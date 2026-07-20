@@ -1,0 +1,135 @@
+# Product listings: collection browsing, search and wishlist.
+
+query GetCollectionByHandle(
+    $handle: String!
+    $first: Int!
+    $after: String
+    $filters: [ProductFilter!]
+    $sortKey: ProductCollectionSortKeys!
+    $reverse: Boolean = false
+    $variantFirst: Int = 32
+) {
+    collection(handle: $handle) {
+        id
+        handle
+        title
+        description
+        image {
+            url
+            altText
+        }
+        products(
+            first: $first
+            after: $after
+            filters: $filters
+            sortKey: $sortKey
+            reverse: $reverse
+        ) {
+            filters {
+                id
+                label
+                type
+                values {
+                    id
+                    label
+                    count
+                    input
+                }
+            }
+            edges {
+                cursor
+                node {
+                    id
+                    ...VariantSelector_Product @nonreactive
+                }
+            }
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+        }
+    }
+}
+
+query SearchProducts(
+    $query: String!
+    $first: Int!
+    $after: String
+    $filters: [ProductFilter!]
+    $sortKey: SearchSortKeys = RELEVANCE
+    $reverse: Boolean = false
+    $variantFirst: Int = 32
+) {
+    search(
+        query: $query
+        first: $first
+        after: $after
+        productFilters: $filters
+        sortKey: $sortKey
+        reverse: $reverse
+        types: [PRODUCT]
+    ) {
+        productFilters {
+            id
+            label
+            type
+            values {
+                id
+                label
+                count
+                input
+            }
+        }
+        edges {
+            cursor
+            node {
+                ... on Product {
+                    id
+                    ...VariantSelector_Product @nonreactive
+                }
+            }
+        }
+        pageInfo {
+            hasNextPage
+            endCursor
+        }
+        totalCount
+    }
+}
+
+query PredictiveSearch($query: String!, $limit: Int = 5) {
+    predictiveSearch(query: $query, limit: $limit, limitScope: EACH, types: [PRODUCT, QUERY]) {
+        products {
+            id
+            handle
+            title
+            featuredImage {
+                id
+                altText
+                url
+            }
+            priceRange {
+                minVariantPrice {
+                    amount
+                    currencyCode
+                }
+            }
+        }
+        queries {
+            text
+            styledText
+        }
+    }
+}
+
+query GetWishlistProducts(
+    $ids: [ID!]!,
+    $variantFirst: Int = 32
+) {
+    nodes(ids: $ids) {
+        ... on Product {
+            id
+            ...VariantSelector_Product @nonreactive
+        }
+    }
+}

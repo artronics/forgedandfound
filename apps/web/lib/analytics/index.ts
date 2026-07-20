@@ -1,6 +1,6 @@
 declare global {
   interface Window {
-    dataLayer?: Object[];
+    dataLayer?: object[];
   }
 }
 

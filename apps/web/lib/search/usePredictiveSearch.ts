@@ -1,8 +1,7 @@
 "use client";
 
 import {skipToken, useQuery} from "@apollo/client/react";
-import {PredictiveSearchDocument, SearchResult_ProductFragmentDoc} from "@/graphql/generated/graphql";
-import {useFragment} from "@/graphql/generated";
+import {PredictiveSearchDocument} from "@/graphql/generated/graphql";
 import {useEffect, useState} from "react";
 
 const MIN_QUERY_LENGTH = 2;
@@ -24,8 +23,7 @@ export function usePredictiveSearch(query: string) {
       : skipToken,
   );
 
-  const rawProducts = data?.predictiveSearch?.products ?? [];
-  const products = useFragment(SearchResult_ProductFragmentDoc, rawProducts);
+  const products = data?.predictiveSearch?.products ?? [];
   const queries = data?.predictiveSearch?.queries ?? [];
 
   return {

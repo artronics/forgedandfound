@@ -1,0 +1,33 @@
+# Merge to preview → deploy the permanent preview environment (the test env)
+# and point Vercel Preview's domain at it.
+name: Preview
+
+on:
+  push:
+    branches: [preview]
+
+concurrency:
+  group: deploy-preview
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  infra:
+    uses: ./.github/workflows/infra.yaml
+    with:
+      aws_account: nonprod
+    secrets: inherit
+
+  deploy:
+    needs: infra
+    uses: ./.github/workflows/platform.yaml
+    with:
+      aws_account: nonprod
+      deployment: preview
+      retries: 2
+      vercel_target: preview
+      alias_domain: preview.forgedandfound.co.uk
+      # The CNAME itself comes from platform/env/preview.tfvars.
+    secrets: inherit

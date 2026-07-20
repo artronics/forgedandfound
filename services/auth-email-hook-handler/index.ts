@@ -29,6 +29,24 @@ function normaliseOrigin(origin: string): string {
   return origin.trim().replace(/\/+$/, "");
 }
 
+/**
+ * Allowlist entries may be exact origins or wildcard patterns like
+ * "https://*.nonprod.forgedandfound.co.uk". The lambda is account-level and
+ * serves every platform deployment, so the set of valid origins is open-ended
+ * within those suffixes. The wildcard matches exactly one label (no dots), and
+ * only the hostname — scheme and port must match literally.
+ */
+function originAllowed(origin: string): boolean {
+  return ALLOWED_APP_ORIGINS.some((entry) => {
+    if (!entry.includes("*")) return entry === origin;
+    const pattern = entry
+      .split("*")
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("[a-z0-9-]+");
+    return new RegExp(`^${pattern}$`, "i").test(origin);
+  });
+}
+
 type TriggerSource =
   | "CustomEmailSender_SignUp"
   | "CustomEmailSender_ResendCode"
@@ -87,7 +105,7 @@ function resolveAppOrigin(event: CustomEmailSenderEvent): string {
   if (!requested) return APP_URL;
 
   const normalised = normaliseOrigin(requested);
-  if (ALLOWED_APP_ORIGINS.includes(normalised)) {
+  if (originAllowed(normalised)) {
     return normalised;
   }
 
