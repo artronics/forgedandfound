@@ -54,20 +54,16 @@ jobs:
       - run: task tf:platform:init
 
       - name: Apply
-        run: |
-          attempt=1
-          until task tf:platform:apply; do
-            if [ "$attempt" -ge "${{ inputs.retries }}" ]; then
-              echo "::error::terraform apply failed after $attempt attempt(s)"
-              exit 1
-            fi
-            attempt=$((attempt + 1))
-            echo "::warning::terraform apply failed — retrying ($attempt/${{ inputs.retries }})"
-            sleep 30
-          done
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0, pinned: third-party
+        with:
+          command: task tf:platform:apply
+          max_attempts: ${{ inputs.retries }}
+          timeout_minutes: 15
+          retry_wait_seconds: 30
 
       - name: Rollback (destroy failed ephemeral deployment)
         if: failure() && inputs.destroy_on_failure
+        timeout-minutes: 15
         run: task tf:platform:destroy
 
       - name: Read deployment outputs

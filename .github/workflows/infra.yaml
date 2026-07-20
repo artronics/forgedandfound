@@ -63,3 +63,4 @@ jobs:
       - run: task tf:infra:init
       # No retry: infra failures should be looked at, not hammered.
       - run: task tf:infra:apply
+        timeout-minutes: 15

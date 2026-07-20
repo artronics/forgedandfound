@@ -33,6 +33,13 @@ output "ses_configuration_set" {
   value = aws_sesv2_configuration_set.cognito.configuration_set_name
 }
 
+output "account_wildcard_cert_arn" {
+  value = module.account_wildcard_cert.cert_arn
+}
+output "env_wildcard_cert_arns" {
+  value = {for env, cert in module.env_wildcard_cert : env => cert.cert_arn}
+}
+
 output "ecr_repo_urls" {
   value = { for name, repo in aws_ecr_repository.service : name => repo.repository_url }
 }

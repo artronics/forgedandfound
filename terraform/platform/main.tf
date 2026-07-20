@@ -107,6 +107,9 @@ provider "aws" {
   }
 }
 
+# No longer used by current resources (certs moved to infra), but kept so
+# terraform can still destroy module.cert leftovers recorded in older
+# deployment states.
 provider "aws" {
   alias               = "us_east_1"
   region              = "us-east-1"

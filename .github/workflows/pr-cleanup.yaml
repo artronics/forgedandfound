@@ -29,6 +29,7 @@ jobs:
 
       - run: task tf:platform:init
       - run: task tf:platform:destroy
+        timeout-minutes: 15
 
       - name: Remove Vercel alias
         env:

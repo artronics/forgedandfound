@@ -5,7 +5,12 @@
 # ---------------------------------------------------------------------------
 
 locals {
-  api_domain = "api.${local.deployment_domain}"
+  # Domains must stay inside a shared infra wildcard cert (one label deep):
+  # prod api.<env>.prod.<root> is covered by the env wildcard; nonprod flattens
+  # to api-<deployment>.<account-zone> to stay under the account wildcard.
+  api_domain = local.is_prod ? "api.${local.deployment_domain}" : "api-${var.deployment}.${local.account_zone_name}"
+
+  api_cert_arn = local.is_prod ? data.terraform_remote_state.infra.outputs.env_wildcard_cert_arns[local.environment] : data.terraform_remote_state.infra.outputs.account_wildcard_cert_arn
 }
 
 resource "aws_api_gateway_rest_api" "this" {
@@ -51,24 +56,13 @@ resource "aws_lambda_permission" "user_service_invoke" {
 }
 
 # ---------------------------------------------------------------------------
-# Custom domain: api.<deployment-domain>, edge-optimized (us-east-1 ACM via
-# the shared cert module + CloudFront), mirroring the Cognito custom domain.
+# Custom domain, edge-optimized, using the shared wildcard certificate from
+# infra — no per-deployment ACM issuance or validation.
 # ---------------------------------------------------------------------------
-
-module "cert" {
-  source = "../modules/cert"
-  providers = {
-    aws           = aws
-    aws.us_east_1 = aws.us_east_1
-  }
-
-  domain_name = local.api_domain
-  zone_id     = local.dns_zone_id
-}
 
 resource "aws_api_gateway_domain_name" "this" {
   domain_name     = local.api_domain
-  certificate_arn = module.cert.cert_arn
+  certificate_arn = local.api_cert_arn
 
   endpoint_configuration {
     types = ["EDGE"]
