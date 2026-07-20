@@ -1,7 +1,8 @@
 "use client";
 
 import React, {useState} from "react";
-import {SearchProductsQuery, SearchSortKeys} from "@/graphql/generated/graphql";
+import {SearchProductsDocument, SearchProductsQuery, SearchSortKeys} from "@/graphql/generated/graphql";
+import {skipToken, useQuery} from "@apollo/client/react";
 import {Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger} from "@/components/ui/sheet";
 import {Button} from "@/components/ui/button";
 import {Icon} from "@/components/ui/icon";
@@ -14,7 +15,9 @@ import {Separator} from "@/components/ui/separator";
 import {ProductItemCard} from "@/components/product/ProductItemCard";
 import {GalleryGrid} from "@/components/ui/gallery";
 import {cn} from "@/lib/utils";
-import {useSearch} from "@/lib/search/useSearch";
+import {QueryGate} from "@/components/feedback";
+
+const PAGE_SIZE = 12;
 
 type Sort = {
   value: "relevance" | "price-asc" | "price-desc";
@@ -66,14 +69,25 @@ export function SearchResults({query}: SearchResultsProps) {
   const [filters, setFilters] = useState<Filter[]>([]);
   const [sort, setSort] = useState<Sort>(SORT_OPTIONS[0]);
 
-  const {data, loading, fetchMore} = useSearch({
-    query,
-    filters: filters.map(f => f.input),
-    sortKey: sort.sortKey,
-    reverse: sort.reverse,
-  });
+  const isActive = !!query.trim();
+  const {data, previousData, loading, error, refetch, fetchMore} = useQuery(
+    SearchProductsDocument,
+    isActive
+      ? {
+        variables: {
+          query,
+          first: PAGE_SIZE,
+          filters: filters.map(f => f.input),
+          sortKey: sort.sortKey,
+          reverse: sort.reverse,
+        },
+        fetchPolicy: "cache-first",
+      }
+      : skipToken,
+  );
 
-  const searchData = data?.search;
+  // Keep the previous results visible while a filter/sort change is in flight.
+  const searchData = (data ?? previousData)?.search;
   const edges = searchData?.edges ?? [];
   const products = edges.map(e => e.node).filter(isProductNode);
   const pageInfo = searchData?.pageInfo;
@@ -96,6 +110,7 @@ export function SearchResults({query}: SearchResultsProps) {
   }
 
   return (
+    <QueryGate loading={loading && !searchData} error={error} onRetry={() => refetch()}>
     <Page>
       <PageHeader>
         <h2>Results for &ldquo;{query}&rdquo;</h2>
@@ -155,6 +170,7 @@ export function SearchResults({query}: SearchResultsProps) {
         </div>
       </PageContent>
     </Page>
+    </QueryGate>
   );
 }
 

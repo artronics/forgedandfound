@@ -4,6 +4,8 @@ import {
   type AuthenticationResultType,
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
+  ConfirmSignUpCommand,
+  DeleteUserCommand,
   ForgotPasswordCommand,
   InitiateAuthCommand,
   ResendConfirmationCodeCommand,
@@ -52,16 +54,48 @@ export async function signInWithPassword(
 }
 
 /**
+ * Exchange a refresh token for a fresh access + ID token. `username` must be
+ * the user's actual Cognito Username for the SECRET_HASH — the generated UUID
+ * (== sub) for SignUp-created users, `<Provider>_<id>` for federated users —
+ * so callers should pass the `cognito:username` claim captured at sign-in.
+ */
+export async function refreshTokens(
+  username: string,
+  refreshToken: string,
+): Promise<AuthenticationResultType | undefined> {
+  const result = await cognitoClient.send(
+    new InitiateAuthCommand({
+      AuthFlow: "REFRESH_TOKEN_AUTH",
+      ClientId: oidc_config.cognito_client_id,
+      AuthParameters: {
+        REFRESH_TOKEN: refreshToken,
+        SECRET_HASH: secretHash(username),
+      },
+    }),
+  );
+
+  return result.AuthenticationResult;
+}
+
+/**
  * Register a new user. Cognito emails the verification link/code based on the
  * user pool configuration. Returns whether the user is auto-confirmed.
  */
 export async function signUp(
   email: string,
   password: string,
-  {firstName, lastName}: { firstName?: string; lastName?: string } = {},
+  {firstName, lastName, acceptsMarketing}: {
+    firstName?: string;
+    lastName?: string;
+    acceptsMarketing?: boolean;
+  } = {},
+  clientMetadata?: Record<string, string>,
 ): Promise<{ userConfirmed: boolean }> {
   const userAttributes: { Name: string; Value: string }[] = [
     {Name: "email", Value: email},
+    // Persisted so the Post-Confirmation Lambda can set the matching Shopify
+    // email-marketing consent when it creates the customer.
+    {Name: "custom:accepts_marketing", Value: acceptsMarketing ? "true" : "false"},
   ];
   if (firstName) userAttributes.push({Name: "given_name", Value: firstName});
   if (lastName) userAttributes.push({Name: "family_name", Value: lastName});
@@ -73,6 +107,7 @@ export async function signUp(
       Username: email,
       Password: password,
       UserAttributes: userAttributes,
+      ClientMetadata: clientMetadata,
     }),
   );
 
@@ -80,16 +115,38 @@ export async function signUp(
 }
 
 /**
+ * Confirm a sign-up with the code from the verification link, marking the user's
+ * email as verified. Requires the SECRET_HASH (the app client has a secret), so
+ * this must run server-side. Throws the underlying Cognito error so callers can
+ * map it (e.g. CodeMismatchException, ExpiredCodeException, or
+ * NotAuthorizedException when the user is already confirmed).
+ */
+export async function confirmSignUp(email: string, code: string): Promise<void> {
+  await cognitoClient.send(
+    new ConfirmSignUpCommand({
+      ClientId: oidc_config.cognito_client_id,
+      SecretHash: secretHash(email),
+      Username: email,
+      ConfirmationCode: code,
+    }),
+  );
+}
+
+/**
  * Resend the sign-up confirmation link/code. Cognito re-sends via the user
  * pool's Custom Message Lambda. Throws the underlying Cognito error so callers
  * can map it (e.g. InvalidParameterException when already confirmed).
  */
-export async function resendConfirmationCode(email: string): Promise<void> {
+export async function resendConfirmationCode(
+  email: string,
+  clientMetadata?: Record<string, string>,
+): Promise<void> {
   await cognitoClient.send(
     new ResendConfirmationCodeCommand({
       ClientId: oidc_config.cognito_client_id,
       SecretHash: secretHash(email),
       Username: email,
+      ClientMetadata: clientMetadata,
     }),
   );
 }
@@ -99,12 +156,16 @@ export async function resendConfirmationCode(email: string): Promise<void> {
  * pool's Custom Message Lambda, which builds the /account/login/reset link).
  * Throws the underlying Cognito error so callers can map it.
  */
-export async function forgotPassword(email: string): Promise<void> {
+export async function forgotPassword(
+  email: string,
+  clientMetadata?: Record<string, string>,
+): Promise<void> {
   await cognitoClient.send(
     new ForgotPasswordCommand({
       ClientId: oidc_config.cognito_client_id,
       SecretHash: secretHash(email),
       Username: email,
+      ClientMetadata: clientMetadata,
     }),
   );
 }
@@ -130,12 +191,47 @@ export async function confirmForgotPassword(
   );
 }
 
+/**
+ * Delete the signed-in user's own Cognito account. Authorized by the user's
+ * access token (no admin credentials needed, so this can run on Vercel). Works
+ * for native and federated users alike — for federated users it removes the
+ * Cognito record only; signing in with the provider again creates a fresh one.
+ * Throws the underlying Cognito error (e.g. NotAuthorizedException when the
+ * access token is expired or revoked).
+ */
+export async function deleteUser(accessToken: string): Promise<void> {
+  await cognitoClient.send(new DeleteUserCommand({AccessToken: accessToken}));
+}
+
+/**
+ * Build the ClientMetadata map Cognito forwards to the Custom Email Sender
+ * Lambda, carrying the storefront the request came from so the Lambda can point
+ * the verification/reset link back at the right origin (and page). Only defined
+ * values are included — Cognito requires all ClientMetadata values to be strings.
+ */
+export function buildAppMetadata(
+  origin?: string,
+  returnTo?: string,
+): Record<string, string> | undefined {
+  const metadata: Record<string, string> = {};
+  if (origin) metadata.origin = origin;
+  if (returnTo) metadata.returnTo = returnTo;
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
 export type CognitoIdTokenClaims = {
   sub?: string;
   email?: string;
+  /** Full display name — social IdPs may provide only this, with no given/family split. */
+  name?: string;
   given_name?: string;
   family_name?: string;
+  /** Present (non-empty) only on federated users — its absence marks a native user. */
+  identities?: unknown;
+  "cognito:username"?: string;
   "custom:shopify_customer_id"?: string;
+  "custom:accepts_marketing"?: string;
+  "custom:email_placeholder"?: string;
 };
 
 /**

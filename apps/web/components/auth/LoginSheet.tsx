@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import {Sheet, SheetContent, SheetDescription, SheetTitle} from "@/components/ui/sheet";
 import {useLoginSheet} from "@/lib/auth/useLoginSheet";

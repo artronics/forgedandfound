@@ -1,0 +1,158 @@
+# Cart queries and mutations.
+#
+# The cart fragments are shared between CartGet and every mutation payload so
+# Apollo normalises the same shape into the cache and the cart UI updates
+# reactively after each mutation.
+
+fragment CartSummary_Cart on Cart {
+    id
+    totalQuantity
+    checkoutUrl
+    cost {
+        totalAmount {
+            amount
+        }
+        subtotalAmount {
+            amount
+        }
+        subtotalAmountEstimated
+    }
+}
+
+fragment CartLines_Cart on Cart {
+    id
+    lines(first: $first) {
+        nodes {
+            ... on CartLine {
+                id
+                quantity
+                ...CartLine_CartLine @nonreactive
+            }
+        }
+    }
+}
+
+fragment CartLine_CartLine on CartLine {
+    id
+    quantity
+    maxQuantity @client
+    merchandise {
+        ... on ProductVariant {
+            id
+            ...Variant_ProductVariant
+        }
+    }
+}
+
+query CartGetTotalQuantity($cartId: ID!) {
+    cart(id: $cartId) {
+        id
+        totalQuantity
+    }
+}
+
+query CartGet($cartId: ID!, $first: Int = 100) {
+    cart(id: $cartId) {
+        id
+        ...CartSummary_Cart
+        ...CartLines_Cart
+    }
+}
+
+mutation CartCreate($input: CartInput!) {
+    cartCreate(input: $input) {
+        cart {
+            id
+            ...CartSummary_Cart
+        }
+        userErrors {
+            field
+            message
+        }
+    }
+}
+
+mutation CartLineAdd($cartId: ID!, $line: CartLineInput!, $first: Int = 100) {
+    cartLinesAdd(cartId: $cartId, lines: [$line]) {
+        cart {
+            id
+            ...CartSummary_Cart
+            ...CartLines_Cart
+            # Unmasked line list so the update callback can match the added
+            # variant to its line id without unwrapping fragment masks.
+            lines(first: $first) {
+                nodes {
+                    id
+                    quantity
+                    merchandise {
+                        ... on ProductVariant {
+                            id
+                        }
+                    }
+                }
+            }
+        }
+        userErrors {
+            field
+            message
+        }
+        warnings {
+            code
+            message
+            target
+        }
+    }
+}
+
+mutation CartLineUpdate($cartId: ID!, $line: CartLineUpdateInput!, $first: Int = 100) {
+    cartLinesUpdate(cartId: $cartId, lines: [$line]) {
+        cart {
+            id
+            ...CartSummary_Cart
+            ...CartLines_Cart
+        }
+        userErrors {
+            field
+            message
+        }
+        warnings {
+            code
+            message
+            target
+        }
+    }
+}
+
+mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!, $first: Int = 100) {
+    cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
+        cart {
+            id
+            ...CartSummary_Cart
+            ...CartLines_Cart
+        }
+        userErrors {
+            field
+            message
+        }
+        warnings {
+            code
+            message
+            target
+        }
+    }
+}
+
+mutation CartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+        cart {
+            id
+            buyerIdentity {
+                email
+            }
+        }
+        userErrors {
+            field
+            message
+        }
+    }
+}

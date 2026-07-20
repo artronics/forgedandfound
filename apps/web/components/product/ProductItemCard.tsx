@@ -35,7 +35,7 @@ export function ProductItemCard({fragment}: VariantSelectorCardProps) {
 
   const {price, compareAtPrice} = useVariantPrice(filteredVariants);
   const image = filteredVariants[0]?.image;
-  const productUrl = `/shop/${product.handle}`;
+  const productUrl = `/products/${product.handle}`;
 
   const label = "new arrival";
 
@@ -58,7 +58,7 @@ export function ProductItemCard({fragment}: VariantSelectorCardProps) {
         </Badge>
       </Frame>
       <CardHeader className="mb-4">
-        <Link href={`/shop/${product.handle}`}>
+        <Link href={`/products/${product.handle}`}>
           <div className="flex flex-col">
             <CardTitle>{product.title}</CardTitle>
             <Label className="tracking-wide text-sm">{variantLabel}</Label>

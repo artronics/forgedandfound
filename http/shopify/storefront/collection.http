@@ -1,0 +1,166 @@
+### [page] Product Collection
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetProductsByCollectionHandle(
+    $first: Int!
+    $after: String
+    $handle: String!
+    $filters: [ProductFilter!]
+) {
+    collection(handle: $handle) {
+        title
+        description
+        handle
+        products(
+            first: $first
+            after: $after
+            filters: $filters
+        ) {
+            filters {
+                id
+                label
+                type
+                values {
+                    id
+                    label
+                    count
+                    input
+                }
+            }
+            edges {
+                cursor
+                node {
+                    id
+                    title
+                    options {
+                        name
+                        optionValues {
+                            name
+                        }
+                    }
+                    variants(first: 12) {
+                        edges {
+                            node {
+                                title
+                                availableForSale
+                                currentlyNotInStock
+                            }
+                        }
+                    }
+                }
+            }
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+        }
+    }
+}
+
+{
+  "handle": "necklaces",
+  "first": 10,
+  "after": null,
+  "filters": []
+}
+
+### Get Collection With Filter
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetCollectionFilters(
+    $handle: String!
+    $filters: [ProductFilter!]
+) {
+    collection(handle: $handle) {
+        title
+        description
+        handle
+        products( first: 10, filters: $filters, sortKey: CREATED, reverse: true) {
+            filters {
+                label
+                type
+                id
+                values {
+                    id
+                    label
+                    count
+                    input
+                }
+            }
+            edges {
+                node {
+                    id
+                    title
+                }
+            }
+        }
+    }
+}
+
+{
+  "handle": "necklaces",
+  "filters": [
+    {
+      "productMetafield": {
+        "namespace": "custom",
+        "key": "jewellery_style",
+        "value": "gid://shopify/Metaobject/192164593970"
+      }
+    },
+    {
+      "taxonomyMetafield": {
+        "namespace": "shopify",
+        "key": "jewelry-material",
+        "value": "gid://shopify/TasonomyValue/17181"
+      }
+    },
+    {
+      "taxonomyMetafield": {
+        "namespace": "shopify",
+        "key": "color-pattern",
+        "value": "gid://shopify/TasonomyValue/5"
+      }
+    },
+    {
+      "price": {
+        "min": 10.00,
+        "max": 200.00
+      }
+    }
+  ]
+}
+
+### Get All Filters for a Collection
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+
+query GetCollectionFilters(
+    $handle: String!
+) {
+    collection(handle: $handle) {
+        title
+        description
+        handle
+        products( first: 0) {
+            filters {
+                label
+                type
+                id
+                values {
+                    id
+                    label
+                    count
+                    input
+                }
+            }
+        }
+    }
+}
+
+{
+  "handle": "necklaces",
+  "first": 10
+}
+

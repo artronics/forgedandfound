@@ -2,7 +2,7 @@ import React from "react";
 import type {Metadata} from "next";
 import {fiona, inter, noto_serif} from "@/app/fonts";
 import "@/app/globals.css";
-import {GoogleAnalytics} from "@next/third-parties/google";
+import {GoogleTagManager} from "@next/third-parties/google";
 
 export const metadata: Metadata = {
   title: "Forged & Found",
@@ -19,7 +19,7 @@ export default function RootLayout({children}: { children: React.ReactNode }) {
     <body className="flex flex-col min-h-screen w-full">
     {children}
     </body>
-    <GoogleAnalytics gaId="G-44HCGKY32P"/>
+    <GoogleTagManager gtmId="GTM-T6X2LVNV"/>
     </html>
   );
 }

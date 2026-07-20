@@ -1,0 +1,71 @@
+### Get Main Menu
+GRAPHQL {{gqlUrl}}
+X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+cache-control: no-cache
+
+query GetMenu {
+    menu(handle: "main-menu") {
+        main: items {
+            title
+            url
+            resource {
+                ... on Collection {
+                    id
+                    handle
+                    description
+                    image {
+                        url
+                        altText
+                    }
+                }
+            }
+            filters: items {
+                title
+                collections: items {
+                    url
+                    title
+                    resource {
+                        ... on Collection {
+                            id
+                            handle
+                            description
+                            metafield(key: "styles", namespace: "custom") {
+                                value
+                                references(first: 32) {
+                                    edges {
+                                        node {
+                                            ... on Metaobject {
+                                                id
+                                                handle
+                                                type
+                                                fields {
+                                                    key
+                                                    value
+                                                    references(first: 4) {
+                                                        edges {
+                                                            node {
+                                                                ... on MediaImage {
+                                                                    image {
+                                                                        url
+                                                                        altText
+                                                                        width
+                                                                        height
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

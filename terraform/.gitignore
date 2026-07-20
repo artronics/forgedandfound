@@ -1,0 +1,7 @@
+# Local Terraform / Stacks init caches
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Keep: .terraform.lock.hcl (provider locks) and .terraform-version

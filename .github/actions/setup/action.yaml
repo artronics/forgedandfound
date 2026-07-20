@@ -1,0 +1,25 @@
+name: Deploy setup
+description: AWS OIDC credentials + terraform + task, ready to run tf tasks.
+
+inputs:
+  aws_account:
+    description: nonprod | prod
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: aws-actions/configure-aws-credentials@v6
+      with:
+        role-to-assume: ${{ inputs.aws_account == 'prod' && 'arn:aws:iam::028607041427:role/GithubDeployRole' || 'arn:aws:iam::939103584423:role/GithubDeployRole' }}
+        aws-region: eu-west-2
+
+    - uses: hashicorp/setup-terraform@v4
+      with:
+        # The wrapper corrupts $(terraform output -raw ...) captures.
+        terraform_wrapper: false
+
+    - uses: arduino/setup-task@v2
+      with:
+        version: 3.x
+        repo-token: ${{ github.token }}

@@ -6,21 +6,22 @@ import {NavActions} from "@/components/navbar/nav-actions";
 import {MenuSheet} from "@/components/navbar/MenuSheet";
 import {Brand} from "@/components/brand";
 import {useBreakpoint} from "@/lib/layout/BreakpointProvider";
+import {type Menu} from "@/lib/menu/menu";
 
-function DesktopLayout() {
+function DesktopLayout({menu}: { menu: Menu[] }) {
   return (
     <>
       <Brand size="lg"/>
-      <DesktopNav className="flex-1"/>
+      <DesktopNav menu={menu} className="flex-1"/>
       <NavActions/>
     </>
   );
 }
 
-function MobileLayout() {
+function MobileLayout({menu}: { menu: Menu[] }) {
   return (
     <>
-      <MenuSheet/>
+      <MenuSheet menu={menu}/>
       <div className="flex flex-1 justify-center">
         <Brand size="sm" variant="wordmark"/>
       </div>
@@ -29,17 +30,17 @@ function MobileLayout() {
   );
 }
 
-function TabletLayout() {
+function TabletLayout({menu}: { menu: Menu[] }) {
   return (
     <>
       <Brand size="md"/>
-      <DesktopNav className="flex-1"/>
+      <DesktopNav menu={menu} className="flex-1"/>
       <NavActions/>
     </>
   );
 }
 
-export function Navbar() {
+export function Navbar({menu}: { menu: Menu[] }) {
   const {isDesktop, isTablet} = useBreakpoint();
 
   return (
@@ -47,10 +48,10 @@ export function Navbar() {
       <div
         className="flex h-16 items-center gap-4 border-b border-border/40 bg-background/75 px-4 backdrop-blur-lg lg:h-20 lg:px-12">
         {isDesktop
-          ? <DesktopLayout/>
+          ? <DesktopLayout menu={menu}/>
           : isTablet
-            ? <TabletLayout/>
-            : <MobileLayout/>}
+            ? <TabletLayout menu={menu}/>
+            : <MobileLayout menu={menu}/>}
       </div>
     </header>
   );

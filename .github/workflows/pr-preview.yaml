@@ -1,0 +1,51 @@
+# Any branch may PR into preview. Each PR gets an ephemeral platform
+# deployment (pr-<number>) plus a Vercel deployment aliased onto
+# pr-<number>.nonprod.forgedandfound.co.uk. These checks gate the merge;
+# pr-cleanup.yaml tears the deployment down when the PR closes.
+name: PR
+
+on:
+  pull_request:
+    branches: [preview]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-${{ github.event.number }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+
+  infra:
+    uses: ./.github/workflows/infra.yaml
+    with:
+      aws_account: nonprod
+    secrets: inherit
+
+  deploy:
+    needs: infra
+    uses: ./.github/workflows/platform.yaml
+    with:
+      aws_account: nonprod
+      deployment: pr-${{ github.event.number }}
+      retries: 3
+      destroy_on_failure: true
+      vercel_target: preview
+      alias_domain: pr-${{ github.event.number }}.nonprod.forgedandfound.co.uk
+      vercel_alias_target: '["cname.vercel-dns.com"]'
+    secrets: inherit

@@ -1,0 +1,72 @@
+### Create Customer
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+mutation customerCreate($input: CustomerInput!) {
+  customerCreate(input: $input) {
+    customer {
+      id
+      defaultEmailAddress {
+        emailAddress
+      }
+      firstName
+      lastName
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+{
+  "input": {
+    "email": "jhosseini.dev@gmail.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "emailMarketingConsent": {
+      "marketingState": "SUBSCRIBED",
+      "marketingOptInLevel": "SINGLE_OPT_IN"
+    }
+  }
+}
+
+### Get Whishlist
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query getWhishlist($id: ID!) {
+  customer(id: $id) {
+    id
+    metafield(namespace: "custom", key: "wishlist") {
+      value
+      type
+    }
+  }
+}
+
+{
+  "id": "gid://shopify/Customer/10639359082833"
+}
+
+### Set Whishlist
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+mutation setWhishlist($metafields: [MetafieldsSetInput!]!) {
+  metafieldsSet(metafields: $metafields) {
+    userErrors { field message }
+  }
+}
+
+{
+  "metafields": [
+    {
+      "ownerId": "gid://shopify/Customer/10639359082833",
+      "namespace": "custom",
+      "key": "wishlist",
+      "type": "list.variant_reference",
+      "value": "[\"foo\", \"bar\"]"
+    }
+  ]
+}

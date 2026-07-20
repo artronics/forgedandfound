@@ -1,0 +1,14 @@
+version: 3
+
+# must be run from root
+tasks:
+  build:
+    desc: Build
+    cmds:
+      - pnpm run build
+
+  deploy:dev:
+    desc: Deploy to Development
+    deps: [ build ]
+    cmds:
+      - vercel alias set "$(vercel deploy --yes)" development.forgedandfound.co.uk

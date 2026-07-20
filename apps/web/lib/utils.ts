@@ -1,4 +1,4 @@
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 import {type ClassValue, clsx} from "clsx";
 import {twMerge} from "tailwind-merge";
 import {thumbHashToDataURL} from "thumbhash";

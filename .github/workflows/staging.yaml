@@ -1,0 +1,36 @@
+# Merge to staging (only from preview — see branch-guard.yaml) → deploy the
+# prod-account staging environment. No retries: prod-account failures should
+# fail loudly and be investigated.
+#
+# NOTE: inert until the prod migration (terraform/README.md) — the prod infra
+# state does not exist yet.
+name: Staging
+
+on:
+  push:
+    branches: [staging]
+
+concurrency:
+  group: deploy-staging
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  infra:
+    uses: ./.github/workflows/infra.yaml
+    with:
+      aws_account: prod
+    secrets: inherit
+
+  deploy:
+    needs: infra
+    uses: ./.github/workflows/platform.yaml
+    with:
+      aws_account: prod
+      deployment: staging
+      retries: 1
+      # Vercel wiring for staging is decided at the prod migration
+      # (staging has no Vercel domain yet).
+    secrets: inherit

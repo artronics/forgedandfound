@@ -1,0 +1,5 @@
+version: 3
+
+tasks:
+  code_flow:
+    cmd: pnpm run code_flow

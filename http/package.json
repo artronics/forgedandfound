@@ -1,0 +1,16 @@
+{
+  "name": "@forgedandfound/http",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "shopify-admin-auth": "node shopify/shopify-admin-auth.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "dotenv": "catalog:"
+  }
+}

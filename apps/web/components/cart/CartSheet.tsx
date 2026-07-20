@@ -9,14 +9,22 @@ import Link from "next/link";
 import {Spinner} from "@/components/ui/spinner";
 import {Icon} from "@/components/ui/icon";
 import {Price, Text} from "@/components/typography";
-import {useCart} from "@/lib/cart/useCart";
+import {skipToken, useQuery} from "@apollo/client/react";
+import {CartGetDocument, CartSummary_CartFragmentDoc} from "@/graphql/generated/graphql";
+import {useFragment} from "@/graphql/generated";
+import {useCartId} from "@/lib/cart/useCartId.store";
 import {useCartPrice} from "@/lib/cart/useCartPrice";
 
 export default function CartSheet() {
   const {open, setOpen} = useCartSheet();
-  const {data, loading, error} = useCart();
-  const {total} = useCartPrice(data?.cart?.cost);
-  const checkoutUrl = data?.cart?.checkoutUrl ?? "/shop/checkout/cart";
+  const cartId = useCartId();
+  const {data, loading, error} = useQuery(
+    CartGetDocument,
+    cartId ? {variables: {cartId}} : skipToken,
+  );
+  const summary = useFragment(CartSummary_CartFragmentDoc, data?.cart);
+  const {total} = useCartPrice(summary?.cost);
+  const checkoutUrl = summary?.checkoutUrl ?? "/shop/checkout/cart";
   if (error) return (
     <div className="flex h-screen w-screen items-center justify-center">
       <p className="text-xl">Sorry, an error occurred whilst loading you shopping cart content.</p>
@@ -44,7 +52,7 @@ export default function CartSheet() {
             </section>
             {/*// TODO: the loading requires to be notified from mutations. useQuery is not getting updated until mutation is completed*/}
             <Button asChild onClick={() => setOpen(false)}>
-              <Link href={checkoutUrl ?? "/shop/checkout/cart"}>
+              <Link href={checkoutUrl ?? "/app/(store)/checkout/cart"}>
                 checkout
                 {loading ? (<Spinner/>) : (<Icon icon="arrow-right"/>)}
               </Link>

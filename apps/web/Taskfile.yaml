@@ -17,17 +17,10 @@ tasks:
     cmds:
       - pnpm run build
 
-  deploy:preview:
-    desc: Deploy preview
-    deps: [ build ]
-    cmds:
-      - vercel env pull .env.preview.local
-      - vercel deploy --target preview
   codegen:
     desc: Generate GraphQL types
     cmds:
-#      - pnpm run codegen
-      - echo $NEXT_PUBLIC_SHOPIFY_STORE_NAME
+      - pnpm run codegen
   codegen:watch:
     desc: Generate GraphQL types
     cmds:
