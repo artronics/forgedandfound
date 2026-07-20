@@ -66,7 +66,7 @@ variable "vercel_ip" {
 
 variable "vercel_domains" {
   type        = list(string)
-  default     = ["development", "preview", "production", "www"]
+  default = ["development", "preview", "staging", "production", "www"]
   description = "Simple URLs in the root zone pointing at Vercel (prod only)."
 }
 
