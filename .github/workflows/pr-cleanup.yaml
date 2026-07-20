@@ -28,8 +28,14 @@ jobs:
           aws_account: nonprod
 
       - run: task tf:platform:init
-      - run: task tf:platform:destroy
-        timeout-minutes: 15
+
+      - name: Destroy deployment
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0, pinned: third-party
+        with:
+          command: task tf:platform:destroy
+          max_attempts: 2
+          timeout_minutes: 15
+          retry_wait_seconds: 30
 
       - name: Remove Vercel alias
         env:
@@ -41,5 +47,16 @@ jobs:
           npm install -g vercel
           vercel alias rm "${DEPLOYMENT_NAME}.nonprod.forgedandfound.co.uk" --yes --token="$VERCEL_TOKEN" || true
 
+      # Only after a clean destroy — a failed destroy's state is the record of
+      # what leaked and must survive for diagnosis. The state-list guard
+      # protects against the destroy step lying about success.
       - name: Delete empty state file
-        run: aws s3 rm "s3://artronics-ff-nonprod-platform-tf-state/deployments/${DEPLOYMENT_NAME}.tfstate"
+        if: success()
+        run: |
+          export TF_DATA_DIR=".terraform/${TF_VAR_aws_account}-${DEPLOYMENT_NAME}"
+          remaining=$(cd terraform/platform && terraform state list | wc -l)
+          if [ "$remaining" -ne 0 ]; then
+            echo "::error::state still tracks $remaining resource(s) — keeping state file"
+            exit 1
+          fi
+          aws s3 rm "s3://artronics-ff-nonprod-platform-tf-state/deployments/${DEPLOYMENT_NAME}.tfstate"

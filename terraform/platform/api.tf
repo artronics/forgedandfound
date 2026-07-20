@@ -22,7 +22,7 @@ resource "aws_api_gateway_rest_api" "this" {
   })
 
   endpoint_configuration {
-    types = ["EDGE"]
+    types = ["REGIONAL"]
   }
 }
 
@@ -56,16 +56,16 @@ resource "aws_lambda_permission" "user_service_invoke" {
 }
 
 # ---------------------------------------------------------------------------
-# Custom domain, edge-optimized, using the shared wildcard certificate from
-# infra — no per-deployment ACM issuance or validation.
+# Custom domain, REGIONAL (no CloudFront — creates and destroys in seconds),
+# using the shared regional wildcard certificate from infra.
 # ---------------------------------------------------------------------------
 
 resource "aws_api_gateway_domain_name" "this" {
-  domain_name     = local.api_domain
-  certificate_arn = local.api_cert_arn
+  domain_name              = local.api_domain
+  regional_certificate_arn = local.api_cert_arn
 
   endpoint_configuration {
-    types = ["EDGE"]
+    types = ["REGIONAL"]
   }
 }
 
@@ -73,6 +73,13 @@ resource "aws_api_gateway_base_path_mapping" "this" {
   api_id      = aws_api_gateway_rest_api.this.id
   stage_name  = aws_api_gateway_stage.this.stage_name
   domain_name = aws_api_gateway_domain_name.this.domain_name
+
+  # Replacing the domain silently deletes its mappings while the mapping's
+  # attributes (the domain *name*) look unchanged — force the mapping to be
+  # recreated together with the domain.
+  lifecycle {
+    replace_triggered_by = [aws_api_gateway_domain_name.this.id]
+  }
 }
 
 resource "aws_route53_record" "api" {
@@ -81,8 +88,8 @@ resource "aws_route53_record" "api" {
   type    = "A"
 
   alias {
-    name                   = aws_api_gateway_domain_name.this.cloudfront_domain_name
-    zone_id                = aws_api_gateway_domain_name.this.cloudfront_zone_id
+    name    = aws_api_gateway_domain_name.this.regional_domain_name
+    zone_id = aws_api_gateway_domain_name.this.regional_zone_id
     evaluate_target_health = false
   }
 }

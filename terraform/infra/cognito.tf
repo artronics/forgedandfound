@@ -148,11 +148,12 @@ resource "aws_kms_alias" "cognito_email" {
 # Hosted UI custom domain
 # ---------------------------------------------------------------------------
 
+# CloudFront-backed (Cognito custom domain) — cert must be us-east-1.
 module "cognito_domain_cert" {
   source = "../modules/cert"
   providers = {
-    aws           = aws
-    aws.us_east_1 = aws.us_east_1
+    aws             = aws
+    aws.cert_region = aws.us_east_1
   }
 
   domain_name = local.cognito_domain

@@ -63,8 +63,12 @@ jobs:
 
       - name: Rollback (destroy failed ephemeral deployment)
         if: failure() && inputs.destroy_on_failure
-        timeout-minutes: 15
-        run: task tf:platform:destroy
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0, pinned: third-party
+        with:
+          command: task tf:platform:destroy
+          max_attempts: 2
+          timeout_minutes: 15
+          retry_wait_seconds: 30
 
       - name: Read deployment outputs
         if: inputs.vercel_target != ''
