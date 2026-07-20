@@ -1,5 +1,6 @@
 terraform {
-  required_version = ">= 1.10"
+  # Pinned; keep in sync with .terraform-version and CI setup-terraform.
+  required_version = "1.15.5"
 
   required_providers {
     aws = {
