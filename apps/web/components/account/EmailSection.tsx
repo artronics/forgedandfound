@@ -37,11 +37,20 @@ export function EmailSection({me, onSaved}: {
   if (me.isSocial) {
     return (
       <Section title="Email">
-        <p className="text-sm">{me.email ?? "No email address on file."}</p>
-        <p className="text-xs text-muted-foreground mt-2">
-          Your email is managed by your social sign-in provider and can&apos;t be
-          changed here.
-        </p>
+        {me.email ? (
+          <>
+            <p className="text-sm">{me.email}</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Your email comes from your social sign-in provider and can&apos;t be
+              changed here.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            You signed in with a social account, so there&apos;s no email address
+            on your account.
+          </p>
+        )}
       </Section>
     );
   }
