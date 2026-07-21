@@ -1,7 +1,6 @@
 export const oidc_config = {
   cognito_client_id: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID!,
   cognito_client_secret: process.env.COGNITO_CLIENT_SECRET!,
-  redirect_uri: process.env.NEXT_PUBLIC_APP_URL + "/account/callback",
   cognito_issuer_url: process.env.COGNITO_ISSUER_URL,
 };
 

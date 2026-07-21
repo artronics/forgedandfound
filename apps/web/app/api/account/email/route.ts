@@ -1,16 +1,20 @@
 import {NextRequest, NextResponse} from "next/server";
 import {getLogger, withWebLogger} from "@forgedandfound/logger/web";
 import {getAccountAuth} from "@/lib/account/session.server";
-import {patchUser} from "@/lib/account/user-service.server";
-import {updateCustomerProfile} from "@/lib/shopify/admin/customer";
+import {updateUserEmail} from "@/lib/auth/cognito";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Change the user's email address. Native (email/password) accounts only — a
- * social account's address belongs to its identity provider. Cognito is
- * updated first (via the user-service Lambda, which also marks the address
- * verified so alias sign-in keeps working), then the Shopify customer follows.
+ * Start changing the user's email address. Native (email/password) accounts
+ * only — a social account's address belongs to its identity provider.
+ *
+ * This does NOT change the email in place. The pool is configured to verify
+ * email before update, so Cognito keeps the current (verified) address active —
+ * sign-in keeps working — and sends a confirmation code to the new address. The
+ * change only lands once the user confirms it via POST /api/account/email/verify.
+ * The Shopify customer is synced there, not here, so we never mirror an
+ * unconfirmed address.
  */
 export async function POST(req: NextRequest) {
   return withWebLogger(req, async () => {
@@ -45,24 +49,55 @@ export async function POST(req: NextRequest) {
         {status: 422},
       );
     }
-
-    const result = await patchUser(auth.sub, auth.idToken, {email});
-    if (!result.ok) {
-      return NextResponse.json({error: result.error}, {status: result.status});
+    if (!auth.accessToken) {
+      return NextResponse.json(
+        {error: "Your session has expired. Please sign in again."},
+        {status: 401},
+      );
     }
 
-    if (auth.shopifyCustomerId) {
-      try {
-        await updateCustomerProfile(auth.shopifyCustomerId, {email});
-      } catch (err) {
-        getLogger().error({err}, "email: shopify customer sync failed");
-        return NextResponse.json(
-          {error: "Your email was updated, but syncing it to your customer profile failed."},
-          {status: 502},
-        );
+    try {
+      await updateUserEmail(auth.accessToken, email);
+    } catch (err) {
+      const name = (err as { name?: string }).name;
+      getLogger().warn({err}, "account: email change initiation failed");
+      switch (name) {
+        case "AliasExistsException":
+          return NextResponse.json(
+            {error: "That email is already in use by another account.", field: "email"},
+            {status: 409},
+          );
+        case "InvalidParameterException":
+          return NextResponse.json(
+            {error: "Enter a valid email address.", field: "email"},
+            {status: 422},
+          );
+        case "LimitExceededException":
+        case "TooManyRequestsException":
+          return NextResponse.json(
+            {error: "Too many attempts. Please try again later."},
+            {status: 429},
+          );
+        case "NotAuthorizedException":
+          return NextResponse.json(
+            {error: "Your session has expired. Please sign in again."},
+            {status: 401},
+          );
+        case "CodeDeliveryFailureException":
+          return NextResponse.json(
+            {error: "We couldn't send a code to that address. Check it and try again.", field: "email"},
+            {status: 502},
+          );
+        default:
+          return NextResponse.json(
+            {error: "Could not start the email change. Please try again."},
+            {status: 500},
+          );
       }
     }
 
-    return NextResponse.json({email});
+    // Code sent to the new address; the caller now collects it and calls
+    // /api/account/email/verify. The current email stays active until then.
+    return NextResponse.json({pending: true, email});
   });
 }

@@ -149,7 +149,14 @@ export const {
     async session({session, token}) {
       session.shopifyCustomerId = token.shopifyCustomerId as string;
       session.userId = token.sub ?? "";
-      session.emailPlaceholder = token.emailPlaceholder ?? false;
+      // True when the account has no real, deliverable address: a social sign-up
+      // whose provider gave no email (so there's none at all) or one carrying our
+      // synthetic placeholder. Derived here rather than from `token.emailPlaceholder`
+      // /`custom:email_placeholder`, which the pool never actually sets — so
+      // consumers (e.g. the cart buyer-identity sync) can trust it.
+      const email = token.email ?? undefined;
+      session.emailPlaceholder =
+        !email || email === placeholderEmailFor(token.cognitoUsername);
       return session;
     },
   },

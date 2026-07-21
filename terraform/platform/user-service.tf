@@ -18,14 +18,20 @@ resource "aws_iam_role_policy_attachment" "user_service_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# The service applies users' own profile edits (name, email + email_verified,
-# marketing consent) — the admin call lives here because the web app runs on
+# The service applies users' own profile edits (name, marketing consent) and
+# deletes their account — the admin calls live here because the web app runs on
 # Vercel with no AWS credentials.
 data "aws_iam_policy_document" "user_service_cognito" {
   statement {
-    sid       = "CognitoUpdateAttributes"
-    effect    = "Allow"
-    actions   = ["cognito-idp:AdminUpdateUserAttributes"]
+    sid    = "CognitoAdminUserWrite"
+    effect = "Allow"
+    actions = [
+      "cognito-idp:AdminUpdateUserAttributes",
+      "cognito-idp:AdminDeleteUser",
+      # Account deletion looks up every Cognito user sharing the caller's email
+      # (a person can have both a federated and a native user) to delete them all.
+      "cognito-idp:ListUsers",
+    ]
     resources = [data.terraform_remote_state.infra.outputs.cognito_user_pool_arn]
   }
 }

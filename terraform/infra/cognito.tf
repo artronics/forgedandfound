@@ -28,6 +28,16 @@ resource "aws_cognito_user_pool" "main" {
 
   mfa_configuration = "OFF"
 
+  # When a signed-in user changes their email, keep the previous (verified)
+  # value active until the new address is verified. Cognito sends a code to the
+  # new address instead of trusting the update. Critical for security: email is
+  # a sign-in alias, so without this an update would instantly make an
+  # unverified, possibly attacker-chosen address a valid verified alias. It also
+  # means the old email keeps working for sign-in during the pending window.
+  user_attribute_update_settings {
+    attributes_require_verification_before_update = ["email"]
+  }
+
   email_configuration {
     email_sending_account = "DEVELOPER"
     source_arn            = aws_sesv2_email_identity.account.arn
