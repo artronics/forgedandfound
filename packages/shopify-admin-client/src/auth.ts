@@ -2,8 +2,9 @@ import {getSecret} from "@forgedandfound/secret-manager";
 import * as process from "node:process";
 
 const SHOPIFY_SECRET_NAME = process.env.SHOPIFY_SECRET_NAME ?? "forgedandfound/infra/shopify";
+const DEFAULT_API_VERSION = "2026-01";
 
-interface ShopifySecret {
+interface ShopifyConfig {
   store_name: string;
   app_client_id: string;
   app_client_secret: string;
@@ -23,12 +24,38 @@ interface CachedToken {
 }
 
 // Module-level cache — survives Lambda warm invocations
-let cachedSecret: ShopifySecret | null = null;
+let cachedSecret: ShopifyConfig | null = null;
 let cachedToken: CachedToken | null = null;
 
-async function getShopifySecret(): Promise<ShopifySecret> {
+/**
+ * Credentials from env vars when the full set is present, otherwise from AWS
+ * Secrets Manager. Env mode is opt-in by presence: the Lambdas set only
+ * SHOPIFY_SECRET_NAME (never the client credentials), so they always take the
+ * Secrets Manager path — the contract there is unchanged. These are the same
+ * names used in the app's .env files, so local/Vercel callers just work.
+ */
+function configFromEnv(): ShopifyConfig | null {
+  const store_name = process.env.NEXT_PUBLIC_SHOPIFY_STORE_NAME;
+  const app_client_id = process.env.SHOPIFY_ADMIN_CLIENT_ID;
+  const app_client_secret = process.env.SHOPIFY_ADMIN_CLIENT_SECRET;
+  if (!store_name || !app_client_id || !app_client_secret) {
+    return null;
+  }
+  return {
+    store_name,
+    app_client_id,
+    app_client_secret,
+    api_version: process.env.NEXT_PUBLIC_SHOPIFY_API_VERSION ?? DEFAULT_API_VERSION,
+  };
+}
+
+async function getShopifyConfig(): Promise<ShopifyConfig> {
+  const fromEnv = configFromEnv();
+  if (fromEnv) {
+    return fromEnv;
+  }
   if (!cachedSecret) {
-    cachedSecret = await getSecret<ShopifySecret>(SHOPIFY_SECRET_NAME);
+    cachedSecret = await getSecret<ShopifyConfig>(SHOPIFY_SECRET_NAME);
   }
   return cachedSecret;
 }
@@ -43,7 +70,7 @@ export async function getAdminAccessToken(): Promise<string> {
     return cachedToken.access_token;
   }
 
-  const { store_name, app_client_id, app_client_secret } = await getShopifySecret();
+  const { store_name, app_client_id, app_client_secret } = await getShopifyConfig();
 
   const res = await fetch(`https://${store_name}.myshopify.com/admin/oauth/access_token`, {
     method: "POST",
@@ -68,6 +95,6 @@ export async function getAdminAccessToken(): Promise<string> {
 
 /** Returns the Admin GraphQL endpoint for the configured store and API version. */
 export async function getAdminGraphqlUrl(): Promise<string> {
-  const { store_name, api_version } = await getShopifySecret();
+  const { store_name, api_version } = await getShopifyConfig();
   return `https://${store_name}.myshopify.com/admin/api/${api_version}/graphql.json`;
 }

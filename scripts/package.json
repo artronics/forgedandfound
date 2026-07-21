@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "bin": {
+    "ff": "cli/ff.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "sign": "pnpm dlx ts-node apple-sign-jwt.ts",
     "code_flow": "pnpm dlx ts-node code_flow.ts"
@@ -11,6 +17,10 @@
   "author": "",
   "license": "ISC",
   "type": "module",
+  "dependencies": {
+    "@forgedandfound/shopify-admin-client": "workspace:*",
+    "tsx": "^4.20.0"
+  },
   "devDependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1089.0",
     "@types/jsonwebtoken": "^9.0.10",

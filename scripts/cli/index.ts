@@ -1,9 +1,7 @@
-#!/usr/bin/env node
-
 import {Command} from "commander";
 
-import {getAdminToken} from "./shopify/get-admin-token.js";
-import {cognitoDeleteAll} from "./aws/cognito-delete-all";
+import {registerShopify} from "./shopify/register.ts";
+import {cognitoDeleteAll} from "./aws/cognito-delete-all.ts";
 
 const program = new Command();
 
@@ -11,14 +9,7 @@ program
   .name("ff")
   .description("Development utilities");
 
-const shopify = program.command("shopify");
-
-shopify
-  .command("get-admin-token")
-  .description("Print Shopify admin access token")
-  .action(async () => {
-    await getAdminToken();
-  });
+registerShopify(program);
 
 const aws = program.command("aws");
 
@@ -29,4 +20,8 @@ aws
     await cognitoDeleteAll();
   });
 
-program.parseAsync();
+program.parseAsync().catch((err: unknown) => {
+  // Failures go to stderr only; stdout stays clean for piping.
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+});

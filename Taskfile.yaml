@@ -1,7 +1,7 @@
 version: 3
 
 dotenv:
-  - .env.development
+  - .env.development.local
   - .env.local
   - .env.scripts
   - .env.terraform
@@ -10,6 +10,9 @@ includes:
   web:
     taskfile: ./apps/web/Taskfile.yaml
     dir: ./apps/web
+  shopify:
+    taskfile: ./apps/shopify/Taskfile.yaml
+    dir: ./apps/shopify
   vercel:web:
     taskfile: ./apps/web/Taskfile.vercel.yaml
     dir: .
@@ -28,6 +31,11 @@ tasks:
     desc: Build all projects
     cmds:
       - turbo build
+  ff:
+    desc: 'Run ff with CLI arguments. Optionally create `alias ff="task ff --"`'
+    silent: true
+    cmds:
+      - pnpm exec ff {{.CLI_ARGS}}
 
   deploy:web:dev:
     desc: 'Deploy platform DEPLOYMENT_NAME, then the web app to Vercel wired to it, aliased onto development.forgedandfound.co.uk'
@@ -81,22 +89,35 @@ tasks:
           --build-env NEXT_PUBLIC_APP_URL="https://development.forgedandfound.co.uk")
         vercel alias set "$url" development.forgedandfound.co.uk
   wt:symlinks:
-    desc: Symlink shared .env files from the main worktree
+    desc: Symlink root .env files from the main worktree
+    silent: true
     cmds:
       - |
-        ROOT="$(git worktree list --porcelain | awk '/^worktree / {print $2; exit}')"
+        CURRENT="$(pwd -P)"
+        ROOT="$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')"
+        if [ "$CURRENT" = "$ROOT" ]; then
+          echo "⏭️  Running in the main worktree; nothing to do."
+          exit 0
+        fi
+        link() {
+          local dst="$1"
+          local src
 
-        for file in \
-          .env \
-          .env.local \
-          .env.development \
-          .env.terraform \
-          .env.scripts
-        do
-          if [ -f "$ROOT/$file" ]; then
-            ln -snf "$ROOT/$file" "$file"
-            echo "Linked $file"
-          else
-            echo "Skipping $file (not found)"
-          fi
+          [ -e "$ROOT/$dst" ] || { echo "⏭️  $dst"; return; }
+
+          src="$(realpath "$ROOT/$dst")"
+          # Don't overwrite a real file.
+          [ -e "$dst" ] && [ ! -L "$dst" ] && { echo "⏭️  $dst"; return; }
+          # Avoid self-links.
+          [ -L "$dst" ] && [ "$(realpath "$dst")" = "$src" ] && {
+            echo "⏭️  $dst"
+            return
+          }
+          ln -snf "$src" "$dst"
+          echo "✅ $dst"
+        }
+
+        for f in "$ROOT"/.env*; do
+          [ -e "$f" ] || continue
+          link "$(basename "$f")"
         done
