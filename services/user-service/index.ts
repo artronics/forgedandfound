@@ -33,7 +33,6 @@ function errName(err: unknown): string | undefined {
 }
 
 interface PatchUserBody {
-  email?: string;
   firstName?: string;
   lastName?: string;
   acceptsMarketing?: boolean;
@@ -83,11 +82,6 @@ async function patchUser(
     return json(400, {error: "Invalid request body."});
   }
 
-  // Federated users carry an `identities` claim; native (email/password) users
-  // don't. Email changes are native-only — a federated user's address belongs
-  // to their IdP and swapping it in Cognito would desync the two.
-  const isFederated = Boolean(claims.identities);
-
   const attributes: AttributeType[] = [];
 
   if (body.firstName !== undefined) {
@@ -102,21 +96,13 @@ async function patchUser(
       Value: body.acceptsMarketing ? "true" : "false",
     });
   }
-  if (body.email !== undefined) {
-    if (isFederated) {
-      return json(403, {
-        error: "Email is managed by your social sign-in provider and can't be changed here.",
-      });
-    }
-    const email = body.email.trim().toLowerCase();
-    if (!email.includes("@")) {
-      return json(400, {error: "A valid email is required."});
-    }
-    // Set verified in the same call: an unverified email breaks alias sign-in,
-    // which would lock the user out of the account they just edited.
-    attributes.push({Name: "email", Value: email});
-    attributes.push({Name: "email_verified", Value: "true"});
-  }
+
+  // Email is deliberately NOT handled here. Changing it admin-side would force
+  // email_verified=true on an unverified address — and since email is a sign-in
+  // alias, that's an account-takeover vector. Email changes go through the
+  // user's own access token via UpdateUserAttributes / VerifyUserAttribute (see
+  // apps/web app/api/account/email/*), which makes Cognito verify the new
+  // address before it becomes active.
 
   if (attributes.length === 0) {
     return json(400, {error: "Nothing to update."});
@@ -137,8 +123,6 @@ async function patchUser(
   } catch (err) {
     logger.warn({err, attributes: attributes.map((a) => a.Name)}, "user update failed");
     switch (errName(err)) {
-      case "AliasExistsException":
-        return json(409, {error: "That email is already in use by another account."});
       case "InvalidParameterException":
         return json(400, {error: "Invalid value."});
       case "UserNotFoundException":

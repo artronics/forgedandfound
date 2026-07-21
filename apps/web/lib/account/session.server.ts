@@ -19,6 +19,12 @@ import {
 export interface AccountAuth {
   sub: string;
   idToken: string;
+  /**
+   * Fresh Cognito access token from the same refresh. Authorizes self-service
+   * calls the user makes about their own account (e.g. changing their email),
+   * which take an access token rather than an ID token.
+   */
+  accessToken?: string;
   claims: CognitoIdTokenClaims;
   /** True for federated (social) users, who carry an `identities` claim. */
   isSocial: boolean;
@@ -46,6 +52,7 @@ export async function getAccountAuth(req: NextRequest): Promise<AccountAuth | nu
     return {
       sub: token.sub,
       idToken: refreshed.IdToken,
+      accessToken: refreshed.AccessToken,
       claims,
       isSocial: Boolean(claims.identities),
       shopifyCustomerId:
