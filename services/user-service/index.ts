@@ -1,5 +1,6 @@
 import {APIGatewayProxyEvent, APIGatewayProxyResult, Context} from "aws-lambda";
 import {
+  AdminDeleteUserCommand,
   AdminUpdateUserAttributesCommand,
   type AttributeType,
   CognitoIdentityProviderClient,
@@ -45,11 +46,41 @@ const userService = async (
   const logger = getLogger();
   logger.debug({path: event.path, method: event.httpMethod}, "received event");
 
-  if (event.httpMethod !== "PATCH") {
-    return json(404, {error: "Not found."});
+  switch (event.httpMethod) {
+    case "PATCH":
+      return patchUser(event);
+    case "DELETE":
+      return deleteUser(event);
+    default:
+      return json(404, {error: "Not found."});
   }
-  return patchUser(event);
 };
+
+/**
+ * The caller's Cognito identity from the API Gateway authorizer, having
+ * verified the path id matches the token's own subject. Returns an error
+ * response instead when the caller isn't signed in or is targeting another
+ * user — the same guard both handlers need.
+ */
+function authorizeSelf(event: APIGatewayProxyEvent):
+  | {claims: Record<string, string>; sub: string; username: string}
+  | {error: APIGatewayProxyResult} {
+  const claims = (event.requestContext.authorizer as
+    | {claims?: Record<string, string>}
+    | undefined)?.claims;
+  const sub = claims?.sub;
+  const id = event.pathParameters?.id;
+
+  if (!sub) {
+    return {error: json(401, {error: "Not signed in."})};
+  }
+  if (!id || id !== sub) {
+    return {error: json(403, {error: "You can only update your own account."})};
+  }
+  // The admin APIs take the Username, not the sub — for federated users those
+  // differ (`<Provider>_<id>`), so read it from the token.
+  return {claims, sub, username: claims["cognito:username"] ?? sub};
+}
 
 /**
  * PATCH /user/{id} — update the caller's own Cognito profile. The API Gateway
@@ -63,18 +94,9 @@ async function patchUser(
 ): Promise<APIGatewayProxyResult> {
   const logger = getLogger();
 
-  const claims = (event.requestContext.authorizer as
-    | { claims?: Record<string, string> }
-    | undefined)?.claims;
-  const sub = claims?.sub;
-  const id = event.pathParameters?.id;
-
-  if (!sub) {
-    return json(401, {error: "Not signed in."});
-  }
-  if (!id || id !== sub) {
-    return json(403, {error: "You can only update your own account."});
-  }
+  const authorized = authorizeSelf(event);
+  if ("error" in authorized) return authorized.error;
+  const {claims, username} = authorized;
 
   let body: PatchUserBody;
   try {
@@ -122,10 +144,6 @@ async function patchUser(
     return json(400, {error: "Nothing to update."});
   }
 
-  // The admin APIs take the Username, not the sub — for federated users those
-  // differ (`<Provider>_<id>`), so read it from the token.
-  const username = claims["cognito:username"] ?? sub;
-
   try {
     await cognito.send(
       new AdminUpdateUserAttributesCommand({
@@ -151,5 +169,41 @@ async function patchUser(
   }
 
   logger.info({attributes: attributes.map((a) => a.Name)}, "user updated");
+  return json(200, {ok: true});
+}
+
+/**
+ * DELETE /user/{id} — permanently delete the caller's own Cognito user. Uses
+ * the admin API (not self-service DeleteUser) so it works for every sign-in
+ * kind: hosted-UI/social access tokens lack the `aws.cognito.signin.user.admin`
+ * scope that self-service DeleteUser requires.
+ */
+async function deleteUser(
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  const logger = getLogger();
+
+  const authorized = authorizeSelf(event);
+  if ("error" in authorized) return authorized.error;
+  const {username} = authorized;
+
+  try {
+    await cognito.send(
+      new AdminDeleteUserCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: username,
+      }),
+    );
+  } catch (err) {
+    // Already gone (double-submit, or a prior partial delete) is success from
+    // the caller's point of view.
+    if (errName(err) === "UserNotFoundException") {
+      return json(200, {ok: true});
+    }
+    logger.error({err}, "user deletion failed");
+    return json(500, {error: "Could not delete your account."});
+  }
+
+  logger.info("user deleted");
   return json(200, {ok: true});
 }

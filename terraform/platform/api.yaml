@@ -47,6 +47,30 @@ paths:
         httpMethod: POST
         uri: ${user_service_uri}
         passthroughBehavior: when_no_match
+    delete:
+      summary: Delete the caller's own account
+      operationId: deleteUser
+      security:
+        - CognitoAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Cognito user id (sub)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${user_service_uri}
+        passthroughBehavior: when_no_match
 components:
   securitySchemes:
     CognitoAuth:

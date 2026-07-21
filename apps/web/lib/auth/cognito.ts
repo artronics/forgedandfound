@@ -5,7 +5,6 @@ import {
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
   ConfirmSignUpCommand,
-  DeleteUserCommand,
   ForgotPasswordCommand,
   InitiateAuthCommand,
   ResendConfirmationCodeCommand,
@@ -189,18 +188,6 @@ export async function confirmForgotPassword(
       Password: newPassword,
     }),
   );
-}
-
-/**
- * Delete the signed-in user's own Cognito account. Authorized by the user's
- * access token (no admin credentials needed, so this can run on Vercel). Works
- * for native and federated users alike — for federated users it removes the
- * Cognito record only; signing in with the provider again creates a fresh one.
- * Throws the underlying Cognito error (e.g. NotAuthorizedException when the
- * access token is expired or revoked).
- */
-export async function deleteUser(accessToken: string): Promise<void> {
-  await cognitoClient.send(new DeleteUserCommand({AccessToken: accessToken}));
 }
 
 /**

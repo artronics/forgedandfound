@@ -44,7 +44,11 @@ export async function getAccountAuth(req: NextRequest): Promise<AccountAuth | nu
 
     const claims = decodeIdToken(refreshed.IdToken);
     return {
-      sub: token.sub,
+      // Use the ID token's own sub, not the NextAuth JWT sub: the user-service
+      // Lambda authorizes against this exact token's claims.sub, and for
+      // federated (social) users the NextAuth sub can differ — sending that as
+      // the path id got rejected with "You can only update your own account".
+      sub: claims.sub ?? token.sub,
       idToken: refreshed.IdToken,
       claims,
       isSocial: Boolean(claims.identities),

@@ -19,13 +19,16 @@ resource "aws_iam_role_policy_attachment" "user_service_basic" {
 }
 
 # The service applies users' own profile edits (name, email + email_verified,
-# marketing consent) — the admin call lives here because the web app runs on
-# Vercel with no AWS credentials.
+# marketing consent) and deletes their account — the admin calls live here
+# because the web app runs on Vercel with no AWS credentials.
 data "aws_iam_policy_document" "user_service_cognito" {
   statement {
-    sid       = "CognitoUpdateAttributes"
-    effect    = "Allow"
-    actions   = ["cognito-idp:AdminUpdateUserAttributes"]
+    sid    = "CognitoAdminUserWrite"
+    effect = "Allow"
+    actions = [
+      "cognito-idp:AdminUpdateUserAttributes",
+      "cognito-idp:AdminDeleteUser",
+    ]
     resources = [data.terraform_remote_state.infra.outputs.cognito_user_pool_arn]
   }
 }
