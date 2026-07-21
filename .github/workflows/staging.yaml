@@ -30,6 +30,7 @@ jobs:
     with:
       aws_account: prod
       deployment: staging
+      vercel_target: staging
       retries: 1
       # Vercel wiring for staging is decided at the prod migration
       # (staging has no Vercel domain yet).

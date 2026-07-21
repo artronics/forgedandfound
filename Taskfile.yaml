@@ -47,6 +47,7 @@ tasks:
       # Vercel builds remotely from the whole-monorepo upload (Root Directory =
       # apps/web); no local build step. We only read the platform outputs to
       # (a) write the local-dev env file and (b) pass build-env to Vercel.
+      # TODO: in vercel --build-env is for build-time env vars, not runtime look at .github/workflows/platform.yml
       - |
         set -euo pipefail
         cd terraform/platform
