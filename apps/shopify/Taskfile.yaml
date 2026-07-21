@@ -1,0 +1,23 @@
+version: 3
+
+tasks:
+  app:dev:config:
+    desc: Configure Shopify
+    cmds:
+      - shopify app config use shopify.app.forgedandfound-dev.toml
+  app:dev:
+    desc: Start app dev
+    deps:
+      - app:dev:config
+    cmds:
+      - shopify app dev
+  app:dev:deploy:
+    desc: Deploy app dev
+    deps:
+      - app:dev:config
+    cmds:
+      - shopify app deploy
+  auth:
+    desc: Refresh Shopify auth token
+    cmds:
+      - shopify auth login

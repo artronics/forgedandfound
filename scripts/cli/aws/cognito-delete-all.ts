@@ -1,4 +1,5 @@
-import {aws} from "../../env";
+import {awsEnv} from "../../env.ts";
+import {info} from "../log.ts";
 
 import {
   AdminDeleteUserCommand,
@@ -9,6 +10,7 @@ import {
 const MAX_DELETE = 4;
 
 export async function cognitoDeleteAll() {
+  const aws = awsEnv();
   const client = new CognitoIdentityProviderClient({});
 
   const users = await client.send(
@@ -19,18 +21,16 @@ export async function cognitoDeleteAll() {
   );
 
   if (!users.Users?.length) {
-    console.log("No users found.");
+    info("No users found.");
     return;
   }
 
-  console.log(
-    `Deleting ${users.Users.length} user(s) (maximum ${MAX_DELETE}).`,
-  );
+  info(`Deleting ${users.Users.length} user(s) (maximum ${MAX_DELETE}).`);
 
   for (const user of users.Users) {
     if (!user.Username) continue;
 
-    console.log(`Deleting ${user.Username}`);
+    info(`Deleting ${user.Username}`);
 
     await client.send(
       new AdminDeleteUserCommand({
@@ -40,5 +40,5 @@ export async function cognitoDeleteAll() {
     );
   }
 
-  console.log("Done.");
+  info("Done.");
 }

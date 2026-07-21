@@ -1,7 +1,0 @@
-version: 3
-
-tasks:
-  shopify:auth:
-    desc: Refresh Shopify auth token
-    cmds:
-      - shopify auth login

@@ -11,6 +11,9 @@ includes:
   web:
     taskfile: ./apps/web/Taskfile.yaml
     dir: ./apps/web
+  shopify:
+    taskfile: ./apps/shopify/Taskfile.yaml
+    dir: ./apps/shopify
   vercel:web:
     taskfile: ./apps/web/Taskfile.vercel.yaml
     dir: .
@@ -29,6 +32,11 @@ tasks:
     desc: Build all projects
     cmds:
       - turbo build
+  ff:
+    desc: 'Run ff with CLI arguments. Optionally create `alias ff="task ff --"`'
+    silent: true
+    cmds:
+      - pnpm exec ff {{.CLI_ARGS}}
 
   deploy:web:dev:
     desc: 'Deploy platform DEPLOYMENT_NAME, then the web app to Vercel wired to it, aliased onto development.forgedandfound.co.uk'
