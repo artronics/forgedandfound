@@ -4,6 +4,7 @@ import {
   AdminUpdateUserAttributesCommand,
   type AttributeType,
   CognitoIdentityProviderClient,
+  ListUsersCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import {withLambdaLogger} from "@forgedandfound/logger/lambda";
 import {getLogger} from "@forgedandfound/logger";
@@ -95,7 +96,7 @@ async function patchUser(
 
   const authorized = authorizeSelf(event);
   if ("error" in authorized) return authorized.error;
-  const {claims, username} = authorized;
+  const {username} = authorized;
 
   let body: PatchUserBody;
   try {
@@ -157,10 +158,46 @@ async function patchUser(
 }
 
 /**
- * DELETE /user/{id} — permanently delete the caller's own Cognito user. Uses
- * the admin API (not self-service DeleteUser) so it works for every sign-in
- * kind: hosted-UI/social access tokens lack the `aws.cognito.signin.user.admin`
- * scope that self-service DeleteUser requires.
+ * Every Cognito Username whose `email` attribute exactly matches `email`.
+ * Paginated because the pool holds every deployment's users. Filter values are
+ * quoted; escape any `"`/`\` so an address can't break out of the filter.
+ */
+async function findUsernamesByEmail(email: string): Promise<string[]> {
+  const escaped = email.replace(/(["\\])/g, "\\$1");
+  const usernames: string[] = [];
+  let paginationToken: string | undefined;
+
+  do {
+    const res = await cognito.send(
+      new ListUsersCommand({
+        UserPoolId: USER_POOL_ID,
+        Filter: `email = "${escaped}"`,
+        Limit: 60,
+        PaginationToken: paginationToken,
+      }),
+    );
+    for (const user of res.Users ?? []) {
+      if (user.Username) usernames.push(user.Username);
+    }
+    paginationToken = res.PaginationToken;
+  } while (paginationToken);
+
+  return usernames;
+}
+
+/**
+ * DELETE /user/{id} — permanently delete the caller's account. Uses the admin
+ * API (not self-service DeleteUser) so it works for every sign-in kind:
+ * hosted-UI/social access tokens lack the `aws.cognito.signin.user.admin` scope
+ * that self-service DeleteUser requires.
+ *
+ * One person can hold more than one Cognito user for the same verified email —
+ * e.g. a Google (federated) `Google_<id>` user AND a native email/password user
+ * (the pool doesn't link them). They share a single Shopify customer. So a
+ * delete must remove EVERY Cognito record for that email, not just the one the
+ * caller signed in with; otherwise the other is orphaned and left pointing at a
+ * now-deleted Shopify customer. The caller's token proves they own the email,
+ * which is what authorises deleting its siblings.
  */
 async function deleteUser(
   event: APIGatewayProxyEvent,
@@ -169,25 +206,45 @@ async function deleteUser(
 
   const authorized = authorizeSelf(event);
   if ("error" in authorized) return authorized.error;
-  const {username} = authorized;
+  const {claims, username} = authorized;
 
-  try {
-    await cognito.send(
-      new AdminDeleteUserCommand({
-        UserPoolId: USER_POOL_ID,
-        Username: username,
-      }),
-    );
-  } catch (err) {
-    // Already gone (double-submit, or a prior partial delete) is success from
-    // the caller's point of view.
-    if (errName(err) === "UserNotFoundException") {
-      return json(200, {ok: true});
+  const email = claims.email?.trim().toLowerCase();
+
+  let usernames: string[] = [];
+  if (email) {
+    try {
+      usernames = await findUsernamesByEmail(email);
+    } catch (err) {
+      // Fall back to deleting just the caller below — a lookup failure must not
+      // leave the account they explicitly asked to delete intact.
+      logger.warn({err}, "listing users by email failed; deleting caller only");
     }
-    logger.error({err}, "user deletion failed");
+  }
+  // Always include the caller's own user, even if the lookup missed it (e.g. a
+  // differing email attribute) — its identity is proven by the token.
+  if (!usernames.includes(username)) usernames.push(username);
+
+  const failed: string[] = [];
+  for (const name of usernames) {
+    try {
+      await cognito.send(
+        new AdminDeleteUserCommand({
+          UserPoolId: USER_POOL_ID,
+          Username: name,
+        }),
+      );
+    } catch (err) {
+      // Already gone (double-submit, or a prior partial delete) is fine.
+      if (errName(err) === "UserNotFoundException") continue;
+      logger.error({err}, "user deletion failed");
+      failed.push(name);
+    }
+  }
+
+  if (failed.length > 0) {
     return json(500, {error: "Could not delete your account."});
   }
 
-  logger.info("user deleted");
+  logger.info({count: usernames.length}, "user(s) deleted");
   return json(200, {ok: true});
 }

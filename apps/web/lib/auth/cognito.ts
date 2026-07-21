@@ -4,7 +4,7 @@ import {
   type AuthenticationResultType,
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
-  ConfirmSignUpCommand,
+  ConfirmSignUpCommand, DeleteUserCommand,
   ForgotPasswordCommand,
   GetUserAttributeVerificationCodeCommand,
   InitiateAuthCommand,
