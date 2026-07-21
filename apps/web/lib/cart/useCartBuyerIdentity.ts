@@ -18,6 +18,12 @@ export function useCartBuyerIdentity() {
     if (status === "loading") return;
     if (!cartId) return;
 
+    // A placeholder (synthetic/undeliverable) email — e.g. a social sign-up with
+    // no real address — must not be attached to the cart: it would carry a bogus
+    // buyer email into checkout. Leave the buyer identity untouched so Shopify's
+    // checkout collects a real address, as it does for any unregistered shopper.
+    if (session?.emailPlaceholder) return;
+
     const email = session?.user?.email ?? null;
     const syncKey = `${cartId}:${email}`;
 
