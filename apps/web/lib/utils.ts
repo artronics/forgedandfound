@@ -1,4 +1,4 @@
-import DOMPurify from "isomorphic-dompurify";
+import sanitize from "sanitize-html";
 import {type ClassValue, clsx} from "clsx";
 import {twMerge} from "tailwind-merge";
 import {thumbHashToDataURL} from "thumbhash";
@@ -8,9 +8,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function sanitizeHtml(html: string) {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ["p", "br", "strong", "em", "ul", "ol", "li", "h2", "h3"],
-    ALLOWED_ATTR: [],
+  return sanitize(html, {
+    allowedTags: ["p", "br", "strong", "em", "ul", "ol", "li", "h2", "h3"],
+    allowedAttributes: {},
   });
 }
 

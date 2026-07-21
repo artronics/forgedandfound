@@ -107,13 +107,19 @@ jobs:
           APP_DOMAIN: ${{ inputs.alias_domain != '' && inputs.alias_domain || steps.tf.outputs.domain }}
         run: |
           npm install -g vercel
+          # NEXT_PUBLIC_* are inlined at build, so they go in --build-env.
+          # The server-only vars are read from process.env at request time, so
+          # they must be attached to the deployment's functions via --env — a
+          # --build-env value is gone by runtime (that was the InvalidEndpoints bug).
           url=$(vercel deploy --yes --target=${{ inputs.vercel_target }} --token="$VERCEL_TOKEN" \
             --build-env NEXT_PUBLIC_COGNITO_CLIENT_ID="${{ steps.tf.outputs.client_id }}" \
-            --build-env COGNITO_CLIENT_SECRET="${{ steps.tf.outputs.client_secret }}" \
-            --build-env COGNITO_ISSUER_URL="https://cognito-idp.eu-west-2.amazonaws.com/${{ steps.tf.outputs.pool_id }}" \
-            --build-env USER_API_URL="${{ steps.tf.outputs.api_url }}" \
-            --build-env NEXT_PUBLIC_APP_URL="https://${APP_DOMAIN}")
+            --build-env NEXT_PUBLIC_APP_URL="https://${APP_DOMAIN}" \
+            --env COGNITO_CLIENT_SECRET="${{ steps.tf.outputs.client_secret }}" \
+            --env COGNITO_ISSUER_URL="https://cognito-idp.eu-west-2.amazonaws.com/${{ steps.tf.outputs.pool_id }}" \
+            --env USER_API_URL="${{ steps.tf.outputs.api_url }}")
           echo "deployed: $url"
           if [ -n "${{ inputs.alias_domain }}" ]; then
             vercel alias set "$url" "${{ inputs.alias_domain }}" --token="$VERCEL_TOKEN"
           fi
+
+      
