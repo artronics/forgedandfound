@@ -13,7 +13,13 @@ version: '3'
 
 tasks:
   apply-all:
-    deps: [infra:init, infra:apply, platform:init, platform:apply]
+    desc: Apply all infra and platform modules
+    cmds:
+      - task: infra:init
+      - task: infra:apply
+      - task: platform:init
+      - task: platform:apply
+
 
   infra:init:
     desc: Init infra root (per account)
