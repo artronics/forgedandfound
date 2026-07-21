@@ -51,3 +51,35 @@ export async function patchUser(
     error: data.error ?? "Could not update your account. Please try again.",
   };
 }
+
+/**
+ * DELETE /user/{sub} on the user-service Lambda. Deletes the caller's Cognito
+ * user via the admin API — works for social sign-ins too, whose access tokens
+ * lack the scope self-service DeleteUser needs. Authorized by the fresh ID token.
+ */
+export async function deleteUserAccount(
+  sub: string,
+  idToken: string,
+): Promise<UserServiceResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${userApi.url}/user/${encodeURIComponent(sub)}`, {
+      method: "DELETE",
+      headers: {authorization: idToken},
+      cache: "no-store",
+    });
+  } catch (err) {
+    getLogger().error({err}, "user-service unreachable");
+    return {ok: false, status: 502, error: "Could not delete your account. Please try again."};
+  }
+
+  if (res.ok) return {ok: true, status: res.status};
+
+  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  getLogger().warn({status: res.status, error: data.error}, "user-service delete rejected");
+  return {
+    ok: false,
+    status: res.status,
+    error: data.error ?? "Could not delete your account. Please try again.",
+  };
+}

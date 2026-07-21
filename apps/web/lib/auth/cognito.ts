@@ -5,7 +5,6 @@ import {
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
   ConfirmSignUpCommand,
-  DeleteUserCommand,
   ForgotPasswordCommand,
   GetUserAttributeVerificationCodeCommand,
   InitiateAuthCommand,

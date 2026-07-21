@@ -203,9 +203,9 @@ export async function updateCustomerMarketingConsent(
   }
 }
 
-interface CustomerRequestDataErasureResponse {
-  customerRequestDataErasure: {
-    customerId?: string;
+interface CustomerDeleteResponse {
+  customerDelete: {
+    deletedCustomerId?: string;
     userErrors: {
       field?: string[];
       message: string;
@@ -214,20 +214,23 @@ interface CustomerRequestDataErasureResponse {
 }
 
 /**
- * Ask Shopify to erase the customer's personal data (the GDPR redaction flow).
- * Preferred over `customerDelete` for account deletion: it succeeds even when
- * the customer has order history — Shopify redacts the PII after its grace
- * period instead of refusing.
+ * Delete the Shopify customer record on account deletion.
+ *
+ * NOTE: this is a plain delete, not the GDPR `customerRequestDataErasure`
+ * redaction flow — that requires the app to hold protected customer data
+ * access, which we don't have yet. TODO: switch to customerRequestDataErasure
+ * once those permissions are granted, so deletion also works for customers with
+ * order history (which customerDelete refuses).
  */
-export async function requestCustomerDataErasure(
+export async function deleteCustomer(
   customerId: string,
 ): Promise<void> {
   const data =
-    await shopifyAdminFetch<CustomerRequestDataErasureResponse>(
+    await shopifyAdminFetch<CustomerDeleteResponse>(
       `
-      mutation RequestCustomerErasure($customerId: ID!) {
-        customerRequestDataErasure(customerId: $customerId) {
-          customerId
+      mutation DeleteCustomer($id: ID!) {
+        customerDelete(input: {id: $id}) {
+          deletedCustomerId
           userErrors {
             field
             message
@@ -235,10 +238,10 @@ export async function requestCustomerDataErasure(
         }
       }
       `,
-      {customerId},
+      {id: customerId},
     );
 
-  const errors = data.customerRequestDataErasure.userErrors;
+  const errors = data.customerDelete.userErrors;
   if (errors.length > 0) {
     throw new Error(errors.map((e) => e.message).join(", "));
   }
