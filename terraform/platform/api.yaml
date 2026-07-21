@@ -6,7 +6,7 @@ info:
 paths:
   /user/{id}:
     patch:
-      summary: Update a user's own profile (name, email, marketing consent)
+      summary: Update a user's own profile (name, marketing consent)
       operationId: patchUser
       security:
         - CognitoAuth: [ ]
@@ -24,9 +24,6 @@ paths:
             schema:
               type: object
               properties:
-                email:
-                  type: string
-                  format: email
                 firstName:
                   type: string
                 lastName:

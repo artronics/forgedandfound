@@ -1,7 +1,11 @@
 import {buildClient, CommitmentPolicy, KmsKeyringNode} from "@aws-crypto/client-node";
 import {withLambdaLogger} from "@forgedandfound/logger/lambda";
 import {SendEmailCommand, SESv2Client} from "@aws-sdk/client-sesv2";
-import {renderResetPasswordEmail, renderVerifyEmail} from "@forgedandfound/email/emails";
+import {
+  renderResetPasswordEmail,
+  renderVerifyEmail,
+  renderVerifyEmailChangeEmail,
+} from "@forgedandfound/email/emails";
 import {Context} from "aws-lambda";
 import {getLogger} from "@forgedandfound/logger";
 
@@ -174,6 +178,10 @@ export const shopifyHandler = async (
       "CustomEmailSender_SignUp",
       "CustomEmailSender_ResendCode",
       "CustomEmailSender_ForgotPassword",
+      // Signed-in email change: Cognito sends a code to the new address on the
+      // update, and again if the user asks to resend it.
+      "CustomEmailSender_UpdateUserAttribute",
+      "CustomEmailSender_VerifyUserAttribute",
     ];
 
     if (!supportedTriggers.includes(event.triggerSource)) {
@@ -238,6 +246,19 @@ export const shopifyHandler = async (
           await renderResetPasswordEmail({
             verificationUrl: verificationUrl,
           }),
+        );
+
+        break;
+      }
+      case "CustomEmailSender_UpdateUserAttribute":
+      case "CustomEmailSender_VerifyUserAttribute": {
+        // Email change: `userAttributes.email` is the new (pending) address the
+        // code was delivered to. The code is entered on the account page (the
+        // user is already signed in there), so this email carries no link.
+        await sendEmail(
+          toAddress,
+          "Confirm your new Forged & Found email address",
+          await renderVerifyEmailChangeEmail({code}),
         );
 
         break;

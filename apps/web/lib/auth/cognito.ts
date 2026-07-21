@@ -4,11 +4,14 @@ import {
   type AuthenticationResultType,
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
-  ConfirmSignUpCommand,
+  ConfirmSignUpCommand, DeleteUserCommand,
   ForgotPasswordCommand,
+  GetUserAttributeVerificationCodeCommand,
   InitiateAuthCommand,
   ResendConfirmationCodeCommand,
   SignUpCommand,
+  UpdateUserAttributesCommand,
+  VerifyUserAttributeCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import {oidc_config} from "@/lib/env";
 
@@ -186,6 +189,75 @@ export async function confirmForgotPassword(
       Username: email,
       ConfirmationCode: code,
       Password: newPassword,
+    }),
+  );
+}
+
+/**
+ * Delete the signed-in user's own Cognito account. Authorized by the user's
+ * access token (no admin credentials needed, so this can run on Vercel). Works
+ * for native and federated users alike — for federated users it removes the
+ * Cognito record only; signing in with the provider again creates a fresh one.
+ * Throws the underlying Cognito error (e.g. NotAuthorizedException when the
+ * access token is expired or revoked).
+ */
+export async function deleteUser(accessToken: string): Promise<void> {
+  await cognitoClient.send(new DeleteUserCommand({AccessToken: accessToken}));
+}
+
+/**
+ * Start a signed-in user's email change. Authorized by their own access token
+ * (self-service, no admin creds — runs on Vercel). Because the user pool has
+ * `attributes_require_verification_before_update` set for email, Cognito keeps
+ * the user's current verified email active and sends a confirmation code to the
+ * new address (firing the Custom Email Sender lambda) instead of switching the
+ * alias over immediately. The change only takes effect once verifyUserEmail
+ * succeeds. Throws the underlying Cognito error (e.g. AliasExistsException,
+ * LimitExceededException, CodeDeliveryFailureException).
+ */
+export async function updateUserEmail(
+  accessToken: string,
+  email: string,
+): Promise<void> {
+  await cognitoClient.send(
+    new UpdateUserAttributesCommand({
+      AccessToken: accessToken,
+      UserAttributes: [{Name: "email", Value: email}],
+    }),
+  );
+}
+
+/**
+ * Confirm a pending email change with the code sent to the new address. On
+ * success Cognito marks the new email verified and makes it the active
+ * sign-in alias. Throws the underlying Cognito error (e.g. CodeMismatchException,
+ * ExpiredCodeException).
+ */
+export async function verifyUserEmail(
+  accessToken: string,
+  code: string,
+): Promise<void> {
+  await cognitoClient.send(
+    new VerifyUserAttributeCommand({
+      AccessToken: accessToken,
+      AttributeName: "email",
+      Code: code,
+    }),
+  );
+}
+
+/**
+ * Re-send the confirmation code for a pending email change to the new address
+ * (fires the Custom Email Sender lambda again). Throws the underlying Cognito
+ * error (e.g. LimitExceededException).
+ */
+export async function resendEmailVerificationCode(
+  accessToken: string,
+): Promise<void> {
+  await cognitoClient.send(
+    new GetUserAttributeVerificationCodeCommand({
+      AccessToken: accessToken,
+      AttributeName: "email",
     }),
   );
 }

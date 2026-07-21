@@ -3,7 +3,6 @@ import {getLogger} from "@forgedandfound/logger/web";
 import {userApi} from "@/lib/env";
 
 export interface PatchUserBody {
-  email?: string;
   firstName?: string;
   lastName?: string;
   acceptsMarketing?: boolean;

@@ -4,6 +4,7 @@ import {
   AdminUpdateUserAttributesCommand,
   type AttributeType,
   CognitoIdentityProviderClient,
+  ListUsersCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import {withLambdaLogger} from "@forgedandfound/logger/lambda";
 import {getLogger} from "@forgedandfound/logger";
@@ -34,7 +35,6 @@ function errName(err: unknown): string | undefined {
 }
 
 interface PatchUserBody {
-  email?: string;
   firstName?: string;
   lastName?: string;
   acceptsMarketing?: boolean;
@@ -96,7 +96,7 @@ async function patchUser(
 
   const authorized = authorizeSelf(event);
   if ("error" in authorized) return authorized.error;
-  const {claims, username} = authorized;
+  const {username} = authorized;
 
   let body: PatchUserBody;
   try {
@@ -104,11 +104,6 @@ async function patchUser(
   } catch {
     return json(400, {error: "Invalid request body."});
   }
-
-  // Federated users carry an `identities` claim; native (email/password) users
-  // don't. Email changes are native-only — a federated user's address belongs
-  // to their IdP and swapping it in Cognito would desync the two.
-  const isFederated = Boolean(claims.identities);
 
   const attributes: AttributeType[] = [];
 
@@ -124,21 +119,13 @@ async function patchUser(
       Value: body.acceptsMarketing ? "true" : "false",
     });
   }
-  if (body.email !== undefined) {
-    if (isFederated) {
-      return json(403, {
-        error: "Email is managed by your social sign-in provider and can't be changed here.",
-      });
-    }
-    const email = body.email.trim().toLowerCase();
-    if (!email.includes("@")) {
-      return json(400, {error: "A valid email is required."});
-    }
-    // Set verified in the same call: an unverified email breaks alias sign-in,
-    // which would lock the user out of the account they just edited.
-    attributes.push({Name: "email", Value: email});
-    attributes.push({Name: "email_verified", Value: "true"});
-  }
+
+  // Email is deliberately NOT handled here. Changing it admin-side would force
+  // email_verified=true on an unverified address — and since email is a sign-in
+  // alias, that's an account-takeover vector. Email changes go through the
+  // user's own access token via UpdateUserAttributes / VerifyUserAttribute (see
+  // apps/web app/api/account/email/*), which makes Cognito verify the new
+  // address before it becomes active.
 
   if (attributes.length === 0) {
     return json(400, {error: "Nothing to update."});
@@ -155,8 +142,6 @@ async function patchUser(
   } catch (err) {
     logger.warn({err, attributes: attributes.map((a) => a.Name)}, "user update failed");
     switch (errName(err)) {
-      case "AliasExistsException":
-        return json(409, {error: "That email is already in use by another account."});
       case "InvalidParameterException":
         return json(400, {error: "Invalid value."});
       case "UserNotFoundException":
@@ -173,10 +158,46 @@ async function patchUser(
 }
 
 /**
- * DELETE /user/{id} — permanently delete the caller's own Cognito user. Uses
- * the admin API (not self-service DeleteUser) so it works for every sign-in
- * kind: hosted-UI/social access tokens lack the `aws.cognito.signin.user.admin`
- * scope that self-service DeleteUser requires.
+ * Every Cognito Username whose `email` attribute exactly matches `email`.
+ * Paginated because the pool holds every deployment's users. Filter values are
+ * quoted; escape any `"`/`\` so an address can't break out of the filter.
+ */
+async function findUsernamesByEmail(email: string): Promise<string[]> {
+  const escaped = email.replace(/(["\\])/g, "\\$1");
+  const usernames: string[] = [];
+  let paginationToken: string | undefined;
+
+  do {
+    const res = await cognito.send(
+      new ListUsersCommand({
+        UserPoolId: USER_POOL_ID,
+        Filter: `email = "${escaped}"`,
+        Limit: 60,
+        PaginationToken: paginationToken,
+      }),
+    );
+    for (const user of res.Users ?? []) {
+      if (user.Username) usernames.push(user.Username);
+    }
+    paginationToken = res.PaginationToken;
+  } while (paginationToken);
+
+  return usernames;
+}
+
+/**
+ * DELETE /user/{id} — permanently delete the caller's account. Uses the admin
+ * API (not self-service DeleteUser) so it works for every sign-in kind:
+ * hosted-UI/social access tokens lack the `aws.cognito.signin.user.admin` scope
+ * that self-service DeleteUser requires.
+ *
+ * One person can hold more than one Cognito user for the same verified email —
+ * e.g. a Google (federated) `Google_<id>` user AND a native email/password user
+ * (the pool doesn't link them). They share a single Shopify customer. So a
+ * delete must remove EVERY Cognito record for that email, not just the one the
+ * caller signed in with; otherwise the other is orphaned and left pointing at a
+ * now-deleted Shopify customer. The caller's token proves they own the email,
+ * which is what authorises deleting its siblings.
  */
 async function deleteUser(
   event: APIGatewayProxyEvent,
@@ -185,25 +206,45 @@ async function deleteUser(
 
   const authorized = authorizeSelf(event);
   if ("error" in authorized) return authorized.error;
-  const {username} = authorized;
+  const {claims, username} = authorized;
 
-  try {
-    await cognito.send(
-      new AdminDeleteUserCommand({
-        UserPoolId: USER_POOL_ID,
-        Username: username,
-      }),
-    );
-  } catch (err) {
-    // Already gone (double-submit, or a prior partial delete) is success from
-    // the caller's point of view.
-    if (errName(err) === "UserNotFoundException") {
-      return json(200, {ok: true});
+  const email = claims.email?.trim().toLowerCase();
+
+  let usernames: string[] = [];
+  if (email) {
+    try {
+      usernames = await findUsernamesByEmail(email);
+    } catch (err) {
+      // Fall back to deleting just the caller below — a lookup failure must not
+      // leave the account they explicitly asked to delete intact.
+      logger.warn({err}, "listing users by email failed; deleting caller only");
     }
-    logger.error({err}, "user deletion failed");
+  }
+  // Always include the caller's own user, even if the lookup missed it (e.g. a
+  // differing email attribute) — its identity is proven by the token.
+  if (!usernames.includes(username)) usernames.push(username);
+
+  const failed: string[] = [];
+  for (const name of usernames) {
+    try {
+      await cognito.send(
+        new AdminDeleteUserCommand({
+          UserPoolId: USER_POOL_ID,
+          Username: name,
+        }),
+      );
+    } catch (err) {
+      // Already gone (double-submit, or a prior partial delete) is fine.
+      if (errName(err) === "UserNotFoundException") continue;
+      logger.error({err}, "user deletion failed");
+      failed.push(name);
+    }
+  }
+
+  if (failed.length > 0) {
     return json(500, {error: "Could not delete your account."});
   }
 
-  logger.info("user deleted");
+  logger.info({count: usernames.length}, "user(s) deleted");
   return json(200, {ok: true});
 }
