@@ -123,3 +123,5 @@ tasks:
           [ -e "$f" ] || continue
           link "$(basename "$f")"
         done
+        
+        ln -snf "$ROOT/http/http-client.private.env.json"  "$(pwd)/http/http-client.private.env.json"

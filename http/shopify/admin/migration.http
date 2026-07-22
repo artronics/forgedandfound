@@ -1,0 +1,223 @@
+# Shopify migration diagnostics — Admin GraphQL
+#
+# A developer playground for inspecting the state the migration provisions
+# (metaobject/metafield definitions + entries). Select the `shopify-admin` HTTP
+# Client environment (supplies {{gqlUrl}} + {{X-Shopify-Access-Token}}).
+#
+# Model + migration: model/shopify/MODEL.md, model/shopify/MIGRATION.md.
+# Managed by: `ff shopify model plan|apply|seed-entries`.
+
+### Access scopes — the app's granted scopes (entries need read_/write_metaobjects; definitions need *_metaobject_definitions)
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+{
+  currentAppInstallation {
+    accessScopes { handle }
+  }
+}
+
+### All metaobject definitions — types, fields, validations, storefront access, entry count
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query MetaobjectDefinitions {
+  metaobjectDefinitions(first: 50) {
+    nodes {
+      id
+      type
+      name
+      metaobjectsCount
+      access { storefront }
+      fieldDefinitions {
+        key
+        name
+        type { name }
+        required
+        validations { name value }
+      }
+    }
+  }
+}
+
+### One metaobject definition by type — inspect jewellery_finish (change the type to any jewellery_*)
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query MetaobjectDefinitionByType {
+  metaobjectDefinitionByType(type: "jewellery_finish") {
+    id
+    type
+    name
+    fieldDefinitions {
+      key
+      name
+      type { name }
+      required
+      validations { name value }
+    }
+  }
+}
+
+### Product metafield definitions (custom.*) — design/style/material/metal_colour/purity/...
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query ProductMetafieldDefinitions {
+  metafieldDefinitions(ownerType: PRODUCT, first: 100) {
+    nodes {
+      namespace
+      key
+      name
+      type { name }
+      ownerType
+      validations { name value }
+    }
+  }
+}
+
+### Variant metafield definitions — expect custom.finish (metaobject_reference -> jewellery_finish)
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query VariantMetafieldDefinitions {
+  metafieldDefinitions(ownerType: PRODUCTVARIANT, first: 100) {
+    nodes { namespace key name type { name } validations { name value } }
+  }
+}
+
+### Collection metafield definitions
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query CollectionMetafieldDefinitions {
+  metafieldDefinitions(ownerType: COLLECTION, first: 100) {
+    nodes { namespace key name type { name } validations { name value } }
+  }
+}
+
+### Entries of a metaobject type — list jewellery_design entries with their fields (change `type`)
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query MetaobjectEntries($type: String!) {
+    metaobjects(type: $type, first: 100) {
+        nodes {
+            id
+            handle
+            displayName
+            fields { key value }
+        }
+        pageInfo { hasNextPage endCursor }
+    }
+}
+
+{
+  "type": "jewellery_design"
+}
+
+### Finish entries — resolve the material/colour references (GID -> handle + label)
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query FinishEntries {
+  metaobjects(type: "jewellery_finish", first: 100) {
+    nodes {
+      handle
+      label: field(key: "label") { value }
+      purity: field(key: "purity") { value }
+      material: field(key: "material") {
+        reference { ... on Metaobject { handle label: field(key: "label") { value } } }
+      }
+      colour: field(key: "colour") {
+        reference { ... on Metaobject { handle label: field(key: "label") { value } swatch: field(key: "swatch") { value } } }
+      }
+    }
+  }
+}
+
+### One metaobject entry by handle — {type, handle}
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query MetaobjectByHandle($handle: MetaobjectHandleInput!) {
+  metaobjectByHandle(handle: $handle) {
+    id
+    handle
+    displayName
+    fields { key value type }
+  }
+}
+
+{
+  "handle": { "type": "jewellery_finish", "handle": "solid-gold-18ct-yellow" }
+}
+
+### Inspect a PRODUCT's model metafields — references resolved to metaobject handles/labels (set the id)
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query ProductModelMetafields($id: ID!) {
+  product(id: $id) {
+    id
+    title
+    productType
+    category { name }
+    design: metafield(namespace: "custom", key: "design") {
+      reference { ... on Metaobject { handle label: field(key: "label") { value } category: field(key: "category") { value } } }
+    }
+    style: metafield(namespace: "custom", key: "style") {
+      references(first: 20) { nodes { ... on Metaobject { handle label: field(key: "label") { value } } } }
+    }
+    material: metafield(namespace: "custom", key: "material") {
+      references(first: 20) { nodes { ... on Metaobject { handle } } }
+    }
+    metalColour: metafield(namespace: "custom", key: "metal_colour") {
+      references(first: 20) { nodes { ... on Metaobject { handle } } }
+    }
+    purity: metafield(namespace: "custom", key: "purity") { value }
+  }
+}
+
+{
+  "id": "gid://shopify/Product/REPLACE_ME"
+}
+
+### Inspect a VARIANT's finish — custom.finish -> jewellery_finish -> material/purity/colour (set the id)
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query VariantFinish($id: ID!) {
+  productVariant(id: $id) {
+    id
+    title
+    finish: metafield(namespace: "custom", key: "finish") {
+      reference {
+        ... on Metaobject {
+          handle
+          label: field(key: "label") { value }
+          purity: field(key: "purity") { value }
+          material: field(key: "material") { reference { ... on Metaobject { handle } } }
+          colour: field(key: "colour") { reference { ... on Metaobject { handle swatch: field(key: "swatch") { value } } } }
+        }
+      }
+    }
+  }
+}
+
+{
+  "id": "gid://shopify/ProductVariant/REPLACE_ME"
+}
+
+### Sanity: entry counts per metaobject definition (quick, lagging "is it seeded?" check)
+# NOTE: metaobjectsCount is eventually-consistent and lags right after a seed
+# (it can read 1 while entries exist). For an exact count, list nodes with the
+# "Entries of a metaobject type" query above and count them.
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query EntryCounts {
+  metaobjectDefinitions(first: 50) {
+    nodes { type name metaobjectsCount }
+  }
+}

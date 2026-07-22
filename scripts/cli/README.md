@@ -30,8 +30,42 @@ cd scripts && pnpm link --global
 ff shopify get-admin-token                                     # print the Shopify admin access token
 ff shopify seed products -d ./data [options]                   # create products from scraped data
 ff shopify seed products -d ./data --delete [--limit N]        # delete what was seeded from that data
+ff shopify model plan --store dev                              # dry-run the data-model migration (snapshot + plan)
+ff shopify model apply --store dev [--prune]                   # provision the metaobject/metafield model
+ff shopify model seed-entries --store dev [--dry-run]          # populate metaobject entries (the values)
 ff aws cognito-delete-all                                      # delete up to 4 Cognito users (nonprod only)
 ```
+
+### Model migration
+
+`model plan|apply` drives the reconciler in
+[`@forgedandfound/model-shopify`](../../../model/shopify) (spec in
+[`MODEL.md`](../../../model/shopify/MODEL.md), design in
+[`MIGRATION.md`](../../../model/shopify/MIGRATION.md)). It converges a store's
+metaobject/metafield **definitions** to the declarative spec — idempotent (re-runs are
+no-ops), additive by default, with snapshots + a change log written per run.
+
+- `plan` is read-only: snapshots the store, prints the classified change plan, writes
+  nothing to Shopify.
+- `apply` executes it. SAFE ops (creates, name changes, added fields) run by default;
+  DESTRUCTIVE ops (deletes, prune, key/type changes) need `--allow-destructive`, and any
+  `apply` to `--store live` needs `--confirm-live`.
+- `--prune` deletes managed resources (`custom.*` metafields and non-`shopify--` metaobjects)
+  that aren't in the spec — the clean-slate path.
+- Artifacts land under `--out <dir>` or `MIGRATION_DATA_DIR`
+  (e.g. `/Users/jalal/projects/forgedandfound/migration-data`), as
+  `<store>/<timestamp>/{before,plan,after}.json` + `changes.jsonl`. The run directory is
+  printed to stdout.
+
+A store guard refuses to run unless the Shopify env (`NEXT_PUBLIC_SHOPIFY_STORE_NAME`) matches
+the requested `--store`, so `--store live` can never act on dev credentials. Uses the same
+env-var auth as the other `shopify` commands — no AWS.
+
+`seed-entries` populates the controlled-vocabulary values (materials, colours, designs,
+styles, …, and a starter set of composite finishes) from the model-owned
+[`vocabulary.json`](../../../model/shopify/vocabulary.json), via idempotent upsert-by-handle.
+It needs the app's `read_metaobjects` + `write_metaobjects` access scopes (definitions only
+need `*_metaobject_definitions`); grant those on the app before running.
 
 ### Seeding
 

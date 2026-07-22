@@ -742,10 +742,11 @@
           "definition": "Pink-toned gold alloy."
         },
         {
-          "id": "silver-colour",
+          "id": "silver",
           "label": "Silver",
           "synonyms": [
-            "silver tone"
+            "silver tone",
+            "silver colour"
           ],
           "definition": "Silver metal tone."
         },

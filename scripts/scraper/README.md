@@ -77,11 +77,14 @@ product_type, *all* tags, and raw options/variants/images, with no synonym or
 canonical conversion.
 
 **`product.json`** is the same product expressed in our data model
-([CATEGORISATION.md](CATEGORISATION.md)): canonical `category` + `product_type`,
-`tags` limited to namespaced model tags (`design:band`, `style:textured` — never
-raw marketing tags), dimension `metafields` (`material`, `gemstones`, …), and
-`options` normalised into axes with `canonical` maps for colour/material. It
-carries the `variants` needed to recreate the product in our Shopify.
+([model/shopify/MODEL.md](../../model/shopify/MODEL.md)): canonical `category` +
+`product_type`, and each classified facet as a metaobject **handle** — single-valued
+`design`/`material`/`metal_colour`/`purity`/`setting`/`chain_type` and multi-valued
+`styles`/`gemstones`/`stone_shapes`. `options` are normalised into axes with
+`canonical` maps for colour/material, alongside the `variants` needed to recreate the
+product. The seeder (`ff shopify seed products`) resolves each handle to a Shopify
+metaobject GID, composes the per-variant `finish` (material + purity + colour), and
+sets the `custom.*` metafields.
 
 ## Run
 

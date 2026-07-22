@@ -6,14 +6,22 @@ import {shopifyAdminFetch} from "@forgedandfound/shopify-admin-client/client";
 import {shopify} from "../../../env.ts";
 import {info} from "../../log.ts";
 import {lockPath, readLock, writeLock} from "./lock.ts";
+import {
+  buildProductMetafields,
+  ensureFinish,
+  finishHandleFor,
+  loadHandleMaps,
+  type MetafieldInput,
+  type ProductModel,
+} from "./model.ts";
 
 // Shapes we read from a scraped product directory. `product.json` is our data
-// model; `meta.json` carries the raw title/vendor/description and image URLs.
-interface ProductJson {
+// model (facet handles + variants); `meta.json` carries the raw title/vendor/
+// description and image URLs.
+interface ProductJson extends ProductModel {
   id: string;
   site: string;
   product_type: string;
-  tags: string[];
   options: {name: string; position: number; values: string[]}[];
   variants: {options: string[]; price: number | null; sku: string | null; barcode: string | null}[];
 }
@@ -105,17 +113,23 @@ function discover(dir: string, limit?: number): Item[] {
   return items;
 }
 
-/** Build a Shopify ProductSetInput (product + options + variants + stock). */
+/** Build a Shopify ProductSetInput (product + options + variants + model metafields). */
 function buildInput(
   product: ProductJson,
   meta: MetaJson,
-  opts: {status: string; stock: number; locationId: string},
+  opts: {status: string; stock: number; locationId: string; metafields: MetafieldInput[]; finishGid: string | null},
 ): Record<string, unknown> {
   const productOptions = product.options.map((o) => ({
     name: o.name,
     position: o.position,
     values: o.values.map((v) => ({name: v})),
   }));
+
+  // Every variant carries the product's composite finish (finish is constant per
+  // scraped product; colour/purity live on the finish metaobject, not as axes).
+  const variantMetafields = opts.finishGid
+    ? [{namespace: "custom", key: "finish", type: "metaobject_reference", value: opts.finishGid}]
+    : [];
 
   const variants = product.variants.map((v) => ({
     ...(v.price != null ? {price: String(v.price)} : {}),
@@ -127,6 +141,7 @@ function buildInput(
       .filter((ov) => ov.name != null),
     inventoryItem: {tracked: true},
     inventoryQuantities: [{locationId: opts.locationId, name: "available", quantity: opts.stock}],
+    ...(variantMetafields.length ? {metafields: variantMetafields} : {}),
   }));
 
   return {
@@ -134,10 +149,10 @@ function buildInput(
     ...(meta.description ? {descriptionHtml: meta.description} : {}),
     productType: product.product_type,
     ...(meta.vendor ? {vendor: meta.vendor} : {}),
-    tags: product.tags,
     status: opts.status,
     ...(productOptions.length ? {productOptions} : {}),
     variants,
+    ...(opts.metafields.length ? {metafields: opts.metafields} : {}),
   };
 }
 
@@ -172,10 +187,17 @@ export async function seedProducts(opts: SeedOpts): Promise<void> {
   const items = discover(dir, limit);
   info(`Found ${items.length} product(s) under ${dir}${limit ? ` (limit ${limit})` : ""}`);
 
+  // Resolve model facet handles → metaobject GIDs once for the whole run (read-only).
+  info("Loading metaobject handle maps …");
+  const maps = await loadHandleMaps();
+
   if (opts.dryRun) {
     for (const {key, product, meta} of items) {
+      const {metafields, unresolved} = buildProductMetafields(product, maps);
       info(`\n--- ${key} -> productSet (status=${status}, stock=${stock}) ---`);
-      info(JSON.stringify(buildInput(product, meta, {status, stock, locationId: PLACEHOLDER_LOCATION}), null, 2));
+      info(JSON.stringify(buildInput(product, meta, {status, stock, locationId: PLACEHOLDER_LOCATION, metafields, finishGid: null}), null, 2));
+      info(`  finish: ${finishHandleFor(product) ?? "(none)"}`);
+      if (unresolved.length) info(`  WARN unresolved metaobject handles: ${unresolved.join(", ")}`);
       if (photos !== undefined) {
         const srcs = photoSources(meta, photos);
         info(`  + ${srcs.length} photo(s): ${srcs.join(", ") || "(none)"}`);
@@ -196,8 +218,11 @@ export async function seedProducts(opts: SeedOpts): Promise<void> {
       skipped++;
       continue;
     }
+    const {metafields, unresolved} = buildProductMetafields(product, maps);
+    if (unresolved.length) info(`  WARN ${key}: unresolved metaobject handles: ${unresolved.join(", ")}`);
+    const finishGid = await ensureFinish(product, maps); // idempotent upsert of the composite finish
     const data = await shopifyAdminFetch<ProductSetResult>(PRODUCT_SET, {
-      input: buildInput(product, meta, {status, stock, locationId}),
+      input: buildInput(product, meta, {status, stock, locationId, metafields, finishGid}),
     });
     if (data.productSet.userErrors.length || !data.productSet.product) {
       throw new Error(`productSet failed for ${key}: ${JSON.stringify(data.productSet.userErrors)}`);
@@ -209,7 +234,7 @@ export async function seedProducts(opts: SeedOpts): Promise<void> {
     lock.products[key] = {id: p.id, handle: p.handle, title: p.title};
     writeLock(dir, lock); // write after each so a mid-run crash stays idempotent
     console.log(p.id); // stdout: the created product gid, one per line
-    info(`created ${key} -> ${p.id}`);
+    info(`created ${key} -> ${p.id} [${metafields.length} metafield(s)${finishGid ? " + finish" : ""}]`);
     created++;
   }
   info(`Done. created=${created} skipped=${skipped}`);

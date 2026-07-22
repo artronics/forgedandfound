@@ -2,7 +2,9 @@ packages:
   - 'apps/*'
   - 'services/*'
   - 'packages/*'
+  - "model/*"
   - 'scripts'
+  - 'http'
 
 # Native/postinstall build scripts allowed to run (pnpm 10 blocks these by
 # default). Consolidated here from the removed nested workspaces — these must

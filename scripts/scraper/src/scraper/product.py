@@ -4,10 +4,12 @@
 vendor, its own product_type, *all* its tags, raw options/variants/images. No
 conversions; it's the faithful record of the actual product.
 
-`product.json` is that product expressed in *our* data model (CATEGORISATION.md):
-canonical category, `design:`/`style:` tags, dimension metafields, and the
-variant axes normalised to taxonomy ids. It carries everything needed to
-recreate the product and its variants in our own Shopify.
+`product.json` is that product expressed in *our* data model
+(model/shopify/MODEL.md): canonical category plus each classified facet as a
+metaobject **handle** (design, styles, material, metal_colour, purity, gemstones,
+stone_shapes, setting, chain_type). The seeder resolves those handles to Shopify
+metaobject GIDs and composes the per-variant `finish`. It carries everything
+needed to recreate the product and its variants in our own Shopify.
 """
 
 from pathlib import Path
@@ -15,11 +17,6 @@ from urllib.parse import urljoin, urlparse
 
 from .classify import Classifier
 from .web import html_to_text
-
-# classification keys that are dimensions -> Shopify metafields (custom.*),
-# as opposed to design/style which become tags. See CATEGORISATION.md §2.
-_METAFIELD_KEYS = ("material", "metal_colour", "purity", "setting", "chain_type",
-                   "gemstones", "stone_shapes")
 
 
 def _filename(src: str) -> str:
@@ -126,24 +123,28 @@ def build_meta(site_name: str, base_url: str, currency: str, raw: dict, images: 
 
 def build_product(site_name: str, category: str, raw: dict, classification: dict,
                   classifier: Classifier, images: list[dict]) -> dict:
-    """The product in our data model — only taxonomy-recognised values survive."""
+    """The product in our data model — every classified facet is a metaobject
+    handle the seeder resolves to a GID. Single-valued facets are a str (or
+    null); multi-valued facets are a list. Unmatched facets are null/empty.
+    """
     category_term = classifier.tax.term("category", category)
-    # design + style are the only facets modelled as tags (namespaced); the rest
-    # are metafields. Unmatched facets simply don't appear.
-    tags = []
-    if classification.get("design"):
-        tags.append(f"design:{classification['design']}")
-    tags += [f"style:{s}" for s in classification.get("styles", [])]
-    metafields = {k: classification[k] for k in _METAFIELD_KEYS if k in classification}
-
     src_to_file = {_filename(img["src"]): img["file"] for img in images}
     return {
         "id": raw.get("handle"),
         "site": site_name,
         "category": category,
         "product_type": category_term.label if category_term else category,
-        "tags": tags,
-        "metafields": metafields,
+        # Single-valued facets (metaobject handle | null).
+        "design": classification.get("design"),
+        "material": classification.get("material"),
+        "metal_colour": classification.get("metal_colour"),
+        "purity": classification.get("purity"),
+        "setting": classification.get("setting"),
+        "chain_type": classification.get("chain_type"),
+        # Multi-valued facets (list of metaobject handles).
+        "styles": classification.get("styles", []),
+        "gemstones": classification.get("gemstones", []),
+        "stone_shapes": classification.get("stone_shapes", []),
         "options": _build_options(raw, category, classifier),
         "variants": _build_variants(raw, src_to_file),
         "images": [img["file"] for img in images],
