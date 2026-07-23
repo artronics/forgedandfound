@@ -1,0 +1,21 @@
+{
+  "name": "@forgedandfound/model-shopify",
+  "version": "1.0.0",
+  "description": "Declarative Shopify metaobject/metafield model + idempotent migration reconciler",
+  "main": "index.ts",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@forgedandfound/shopify-admin-client": "workspace:*",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "eslint": "catalog:",
+    "typescript-eslint": "catalog:"
+  }
+}

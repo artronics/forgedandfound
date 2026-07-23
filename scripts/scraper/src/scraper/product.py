@@ -4,76 +4,79 @@
 vendor, its own product_type, *all* its tags, raw options/variants/images. No
 conversions; it's the faithful record of the actual product.
 
-`product.json` is that product expressed in *our* data model (CATEGORISATION.md):
-canonical category, `design:`/`style:` tags, dimension metafields, and the
-variant axes normalised to taxonomy ids. It carries everything needed to
-recreate the product and its variants in our own Shopify.
+`product.json` is that product expressed in *our* data model
+(model/shopify/MODEL.md): canonical category plus each classified facet as a
+metaobject **handle** (design, styles, material, metal_colour, purity, gemstones,
+stone_shapes, setting, chain_type). The seeder resolves those handles to Shopify
+metaobject GIDs and composes the per-variant `finish`. It carries everything
+needed to recreate the product and its variants in our own Shopify.
 """
 
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 from .classify import Classifier
+from .config import Quality
+from .quality import axis_for, real_options
 from .web import html_to_text
-
-# classification keys that are dimensions -> Shopify metafields (custom.*),
-# as opposed to design/style which become tags. See CATEGORISATION.md §2.
-_METAFIELD_KEYS = ("material", "metal_colour", "purity", "setting", "chain_type",
-                   "gemstones", "stone_shapes")
 
 
 def _filename(src: str) -> str:
     return Path(urlparse(src).path).name
 
-# Shopify option name (lowered) -> taxonomy axis. Size/length are variant-only
-# (CATEGORISATION.md §6.8); colour and material are dimensions we can normalise.
-_AXIS_KEYWORDS = {
-    "size": "size",
-    "length": "size",
-    "colour": "metal_colour",
-    "color": "metal_colour",
-    "metal": "metal_colour",
-    "finish": "metal_colour",
-    "tone": "metal_colour",
-    "plating": "metal_colour",
-    "material": "material",
-}
-
-# A product with no real variants uses Shopify's placeholder option.
-_PLACEHOLDER_OPTION = "Default Title"
-
-
-def _axis_for(option_name: str) -> str | None:
-    lowered = option_name.lower()
-    for keyword, axis in _AXIS_KEYWORDS.items():
-        if keyword in lowered:
-            return axis
-    return None
-
 
 def classify_product(raw: dict, category: str, classifier: Classifier) -> dict:
-    """Classify from the product's own copy. product_type + title + description
-    drive subjective facets; tags/options add signal for attribute facets."""
-    marketing = "\n".join(filter(None, [raw.get("title"), raw.get("product_type"),
-                                         html_to_text(raw.get("body_html", ""))]))
+    """Classify from the product's own copy. The title carries the most authority,
+    then the fuller marketing copy; tags/option values add signal for attribute
+    facets only (see classify.Classifier)."""
+    title = raw.get("title") or ""
+    marketing = "\n".join(filter(None, [title, raw.get("product_type"),
+                                        html_to_text(raw.get("body_html", ""))]))
     option_values = [v for o in raw.get("options", []) for v in o.get("values", [])]
-    spec = " ".join(raw.get("tags", []) + option_values) if isinstance(raw.get("tags"), list) else " ".join(option_values)
-    return classifier.classify(marketing, category, spec_copy=spec)
+    tags = raw.get("tags") if isinstance(raw.get("tags"), list) else []
+    spec = " ".join(tags + option_values)
+    return classifier.classify(title, marketing, category, spec_copy=spec)
 
 
-def _build_options(raw: dict, category: str, classifier: Classifier) -> list[dict]:
+# The facets a metal option value can name. An option value is rarely just one:
+# "18ct Yellow Gold Vermeil" names all three at once.
+_METAL_FACETS = ("material", "metal_colour", "purity")
+
+
+def _metal_axis(values: list[str], category: str, classifier: Classifier) -> tuple[str, dict[str, dict]]:
+    """Read a metal option's values, and say which facet it *varies*.
+
+    Each value is classified across material, colour and purity, because an
+    option value routinely names more than one ("9ct Three Colour Gold" is a
+    purity and a colour). The axis label is the facet whose value actually
+    differs between the options — that is what the shopper is choosing — with
+    colour breaking a tie, since it is the more common swatch.
+    """
+    canonical = {
+        value: {
+            facet: cid
+            for facet in _METAL_FACETS
+            if (cid := classifier.classify_value(facet, value, category))
+        }
+        for value in values
+    }
+    distinct = {
+        facet: {f.get(facet) for f in canonical.values() if f.get(facet)}
+        for facet in _METAL_FACETS
+    }
+    varying = [f for f in ("material", "purity") if len(distinct[f]) > 1]
+    axis = varying[0] if varying and len(distinct["metal_colour"]) <= 1 else "metal_colour"
+    return axis, canonical
+
+
+def build_options(raw: dict, category: str, classifier: Classifier, quality: Quality) -> list[dict]:
     options = []
-    for opt in raw.get("options", []):
+    for opt in real_options(raw):
         name, values = opt.get("name", ""), opt.get("values", [])
-        if name == "Title" and values == [_PLACEHOLDER_OPTION]:
-            continue  # single-variant product: no real axis
-        axis = _axis_for(name)
+        axis = axis_for(name, quality)
         entry = {"name": name, "position": opt.get("position"), "axis": axis, "values": values}
-        # Normalise colour/material swatch labels to canonical ids where possible.
-        if axis in ("metal_colour", "material"):
-            entry["canonical"] = {
-                v: cid for v in values if (cid := classifier.classify_value(axis, v, category))
-            }
+        if axis == "metal":
+            entry["axis"], entry["canonical"] = _metal_axis(values, category, classifier)
         options.append(entry)
     return options
 
@@ -125,26 +128,33 @@ def build_meta(site_name: str, base_url: str, currency: str, raw: dict, images: 
 
 
 def build_product(site_name: str, category: str, raw: dict, classification: dict,
-                  classifier: Classifier, images: list[dict]) -> dict:
-    """The product in our data model — only taxonomy-recognised values survive."""
-    category_term = classifier.tax.term("category", category)
-    # design + style are the only facets modelled as tags (namespaced); the rest
-    # are metafields. Unmatched facets simply don't appear.
-    tags = []
-    if classification.get("design"):
-        tags.append(f"design:{classification['design']}")
-    tags += [f"style:{s}" for s in classification.get("styles", [])]
-    metafields = {k: classification[k] for k in _METAFIELD_KEYS if k in classification}
+                  classifier: Classifier, images: list[dict], options: list[dict]) -> dict:
+    """The product in our data model — every classified facet is a metaobject
+    handle the seeder resolves to a GID. Single-valued facets are a str (or
+    null); multi-valued facets are a list. Unmatched facets are null/empty.
 
+    `options` comes from `build_options`, which the quality gate needs before we
+    commit to a product, so it is passed in rather than rebuilt.
+    """
+    category_term = classifier.tax.term("category", category)
     src_to_file = {_filename(img["src"]): img["file"] for img in images}
     return {
         "id": raw.get("handle"),
         "site": site_name,
         "category": category,
         "product_type": category_term.label if category_term else category,
-        "tags": tags,
-        "metafields": metafields,
-        "options": _build_options(raw, category, classifier),
+        # Single-valued facets (metaobject handle | null).
+        "design": classification.get("design"),
+        "material": classification.get("material"),
+        "metal_colour": classification.get("metal_colour"),
+        "purity": classification.get("purity"),
+        "setting": classification.get("setting"),
+        "chain_type": classification.get("chain_type"),
+        # Multi-valued facets (list of metaobject handles).
+        "styles": classification.get("styles", []),
+        "gemstones": classification.get("gemstones", []),
+        "stone_shapes": classification.get("stone_shapes", []),
+        "options": options,
         "variants": _build_variants(raw, src_to_file),
         "images": [img["file"] for img in images],
     }

@@ -17,6 +17,14 @@ tasks:
       - app:dev:config
     cmds:
       - shopify app deploy
+  app:dev:release:
+    desc: Deploy app dev
+    vars:
+      RELEASE_VER: 'forgedandfound-dev-{{.VER}}'
+    deps:
+      - app:dev:config
+    cmds:
+      - shopify app release --version {{.RELEASE_VER}}
   auth:
     desc: Refresh Shopify auth token
     cmds:

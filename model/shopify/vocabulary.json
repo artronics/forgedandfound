@@ -1,0 +1,1449 @@
+{
+  "_note": "Model-owned controlled vocabulary seeded as metaobject entries. Derived from scripts/scraper/taxonomy.json; swatches + finishes are curated placeholders. Seed order follows this file (material/colour before finish).",
+  "metaobjects": {
+    "jewellery_material": [
+      {
+        "handle": "solid-gold",
+        "fields": {
+          "label": "Solid Gold",
+          "description": "Jewellery made entirely of gold alloy; purity captured separately."
+        }
+      },
+      {
+        "handle": "gold-vermeil",
+        "fields": {
+          "label": "Gold Vermeil",
+          "description": "Thick layer of gold over a sterling silver base."
+        }
+      },
+      {
+        "handle": "gold-plated",
+        "fields": {
+          "label": "Gold Plated",
+          "description": "Layer of gold over a brass or steel base."
+        }
+      },
+      {
+        "handle": "sterling-silver",
+        "fields": {
+          "label": "Sterling Silver",
+          "description": "92.5% silver alloy."
+        }
+      },
+      {
+        "handle": "platinum",
+        "fields": {
+          "label": "Platinum",
+          "description": "Naturally white precious metal used in fine and bridal jewellery."
+        }
+      },
+      {
+        "handle": "stainless-steel",
+        "fields": {
+          "label": "Stainless Steel",
+          "description": "Tarnish-resistant steel or titanium base metal."
+        }
+      },
+      {
+        "handle": "mixed-metal",
+        "fields": {
+          "label": "Mixed Metal",
+          "description": "Combination of two or more metal colours or materials."
+        }
+      }
+    ],
+    "jewellery_colour": [
+      {
+        "handle": "yellow-gold",
+        "fields": {
+          "label": "Yellow Gold",
+          "swatch": "#D4AF37"
+        }
+      },
+      {
+        "handle": "white-gold",
+        "fields": {
+          "label": "White Gold",
+          "swatch": "#E5E4E2"
+        }
+      },
+      {
+        "handle": "rose-gold",
+        "fields": {
+          "label": "Rose Gold",
+          "swatch": "#B76E79"
+        }
+      },
+      {
+        "handle": "silver",
+        "fields": {
+          "label": "Silver",
+          "swatch": "#C0C0C0"
+        }
+      },
+      {
+        "handle": "two-tone",
+        "fields": {
+          "label": "Two-Tone",
+          "swatch": "#BFA980"
+        }
+      }
+    ],
+    "jewellery_design": [
+      {
+        "handle": "chain",
+        "fields": {
+          "label": "Chain",
+          "category": "necklace",
+          "description": "Necklace whose interest is the metal links themselves; worn alone or as a layering base."
+        }
+      },
+      {
+        "handle": "choker",
+        "fields": {
+          "label": "Choker",
+          "category": "necklace",
+          "description": "Short necklace sitting tight at the base of the neck, roughly 35-40cm."
+        }
+      },
+      {
+        "handle": "pendant",
+        "fields": {
+          "label": "Pendant",
+          "category": "necklace",
+          "description": "Chain carrying a single focal drop such as a coin, medallion, amulet, cross or initial."
+        }
+      },
+      {
+        "handle": "locket",
+        "fields": {
+          "label": "Locket",
+          "category": "necklace",
+          "description": "Pendant that opens to hold a photo or keepsake."
+        }
+      },
+      {
+        "handle": "lariat",
+        "fields": {
+          "label": "Lariat",
+          "category": "necklace",
+          "description": "Open-ended necklace that drapes or pulls through itself in a Y shape."
+        }
+      },
+      {
+        "handle": "station",
+        "fields": {
+          "label": "Station",
+          "category": "necklace",
+          "description": "Chain with gems or motifs spaced at intervals along its length."
+        }
+      },
+      {
+        "handle": "tennis-necklace",
+        "fields": {
+          "label": "Tennis Necklace",
+          "category": "necklace",
+          "description": "Continuous line of uniformly set stones around the whole length."
+        }
+      },
+      {
+        "handle": "beaded-necklace",
+        "fields": {
+          "label": "Beaded Necklace",
+          "category": "necklace",
+          "description": "Necklace of strung beads or pearls rather than metal links."
+        }
+      },
+      {
+        "handle": "t-bar",
+        "fields": {
+          "label": "T-Bar",
+          "category": "necklace",
+          "description": "Chain fastened or decorated with a horizontal bar toggle at the front."
+        }
+      },
+      {
+        "handle": "band",
+        "fields": {
+          "label": "Band",
+          "category": "ring",
+          "description": "Continuous metal band without a focal stone, including wide cigar bands."
+        }
+      },
+      {
+        "handle": "signet",
+        "fields": {
+          "label": "Signet",
+          "category": "ring",
+          "description": "Flat-faced ring, traditionally engravable."
+        }
+      },
+      {
+        "handle": "stacking",
+        "fields": {
+          "label": "Stacking",
+          "category": "ring",
+          "description": "Slim ring designed to be worn in combination with others."
+        }
+      },
+      {
+        "handle": "eternity",
+        "fields": {
+          "label": "Eternity",
+          "category": "ring",
+          "description": "Stones set uniformly all or half the way around the band."
+        }
+      },
+      {
+        "handle": "solitaire",
+        "fields": {
+          "label": "Solitaire",
+          "category": "ring",
+          "description": "Single focal stone on a plain band."
+        }
+      },
+      {
+        "handle": "halo",
+        "fields": {
+          "label": "Halo",
+          "category": "ring",
+          "description": "Centre stone encircled by smaller pave stones."
+        }
+      },
+      {
+        "handle": "three-stone",
+        "fields": {
+          "label": "Three Stone",
+          "category": "ring",
+          "description": "Three or paired stones set in a row."
+        }
+      },
+      {
+        "handle": "cluster",
+        "fields": {
+          "label": "Cluster",
+          "category": "ring",
+          "description": "Multiple small stones grouped into one motif."
+        }
+      },
+      {
+        "handle": "cocktail",
+        "fields": {
+          "label": "Cocktail",
+          "category": "ring",
+          "description": "Oversized decorative ring with a dominant stone or motif."
+        }
+      },
+      {
+        "handle": "dome",
+        "fields": {
+          "label": "Dome",
+          "category": "ring",
+          "description": "Rounded, puffed profile where the metal shape is the focus."
+        }
+      },
+      {
+        "handle": "chain-ring",
+        "fields": {
+          "label": "Chain Ring",
+          "category": "ring",
+          "description": "Flexible ring made of chain links."
+        }
+      },
+      {
+        "handle": "open-ring",
+        "fields": {
+          "label": "Open Ring",
+          "category": "ring",
+          "description": "Band with a deliberate gap or wrap, often adjustable."
+        }
+      },
+      {
+        "handle": "pinky",
+        "fields": {
+          "label": "Pinky",
+          "category": "ring",
+          "description": "Small-sized ring styled for the little finger."
+        }
+      },
+      {
+        "handle": "stud",
+        "fields": {
+          "label": "Stud",
+          "category": "earring",
+          "description": "Earring that sits directly on the lobe on a post."
+        }
+      },
+      {
+        "handle": "hoop",
+        "fields": {
+          "label": "Hoop",
+          "category": "earring",
+          "description": "Closed circular earring, from small to oversized."
+        }
+      },
+      {
+        "handle": "huggie",
+        "fields": {
+          "label": "Huggie",
+          "category": "earring",
+          "description": "Small hinged hoop that hugs the lobe."
+        }
+      },
+      {
+        "handle": "drop",
+        "fields": {
+          "label": "Drop",
+          "category": "earring",
+          "description": "Earring that hangs below the lobe with movement."
+        }
+      },
+      {
+        "handle": "chandelier",
+        "fields": {
+          "label": "Chandelier",
+          "category": "earring",
+          "description": "Multi-tiered, elaborate drop earring."
+        }
+      },
+      {
+        "handle": "ear-cuff",
+        "fields": {
+          "label": "Ear Cuff",
+          "category": "earring",
+          "description": "Clamps onto the ear, no piercing needed."
+        }
+      },
+      {
+        "handle": "climber",
+        "fields": {
+          "label": "Climber",
+          "category": "earring",
+          "description": "Earring that runs up the ear line from the lobe."
+        }
+      },
+      {
+        "handle": "threader",
+        "fields": {
+          "label": "Threader",
+          "category": "earring",
+          "description": "Fine chain pulled through the piercing."
+        }
+      },
+      {
+        "handle": "chain-bracelet",
+        "fields": {
+          "label": "Chain Bracelet",
+          "category": "bracelet",
+          "description": "Linked-metal bracelet."
+        }
+      },
+      {
+        "handle": "bangle",
+        "fields": {
+          "label": "Bangle",
+          "category": "bracelet",
+          "description": "Rigid closed circle that slips over the hand."
+        }
+      },
+      {
+        "handle": "cuff",
+        "fields": {
+          "label": "Cuff",
+          "category": "bracelet",
+          "description": "Rigid bracelet with an opening at the back."
+        }
+      },
+      {
+        "handle": "tennis-bracelet",
+        "fields": {
+          "label": "Tennis Bracelet",
+          "category": "bracelet",
+          "description": "Continuous line of uniformly set stones."
+        }
+      },
+      {
+        "handle": "charm-bracelet",
+        "fields": {
+          "label": "Charm Bracelet",
+          "category": "bracelet",
+          "description": "Bracelet carrying one or more hanging charms."
+        }
+      },
+      {
+        "handle": "beaded-bracelet",
+        "fields": {
+          "label": "Beaded Bracelet",
+          "category": "bracelet",
+          "description": "Bracelet of strung beads or pearls."
+        }
+      },
+      {
+        "handle": "cord",
+        "fields": {
+          "label": "Cord",
+          "category": "bracelet",
+          "description": "Fabric or leather cord bracelet, often with a metal motif."
+        }
+      }
+    ],
+    "jewellery_style": [
+      {
+        "handle": "chunky",
+        "fields": {
+          "label": "Chunky",
+          "description": "Visually heavy, wide or thick proportions."
+        }
+      },
+      {
+        "handle": "dainty",
+        "fields": {
+          "label": "Dainty",
+          "description": "Small-scale and fine in proportion."
+        }
+      },
+      {
+        "handle": "minimalist",
+        "fields": {
+          "label": "Minimalist",
+          "description": "Clean, unadorned design about restraint rather than size."
+        }
+      },
+      {
+        "handle": "classic",
+        "fields": {
+          "label": "Classic",
+          "description": "Conventional forms that do not date, such as plain bands, solitaires and pearls."
+        }
+      },
+      {
+        "handle": "modern",
+        "fields": {
+          "label": "Modern",
+          "description": "Contemporary, design-led, architectural aesthetic."
+        }
+      },
+      {
+        "handle": "vintage",
+        "fields": {
+          "label": "Vintage",
+          "description": "Antique-inspired detailing such as milgrain, filigree and old cuts."
+        }
+      },
+      {
+        "handle": "organic",
+        "fields": {
+          "label": "Organic",
+          "description": "Fluid, irregular, molten or nature-derived forms."
+        }
+      },
+      {
+        "handle": "textured",
+        "fields": {
+          "label": "Textured",
+          "description": "Visible surface work such as hammering, ridges or twists."
+        }
+      },
+      {
+        "handle": "geometric",
+        "fields": {
+          "label": "Geometric",
+          "description": "Angular shapes as the central motif."
+        }
+      },
+      {
+        "handle": "celestial",
+        "fields": {
+          "label": "Celestial",
+          "description": "Star, moon, sun and constellation motifs."
+        }
+      },
+      {
+        "handle": "romantic",
+        "fields": {
+          "label": "Romantic",
+          "description": "Hearts, bows, ribbons and love symbolism."
+        }
+      },
+      {
+        "handle": "talisman",
+        "fields": {
+          "label": "Talisman",
+          "description": "Symbolic or protective motifs such as evil eyes, amulets, zodiac and chakra."
+        }
+      },
+      {
+        "handle": "personalised",
+        "fields": {
+          "label": "Personalised",
+          "description": "Made individual through initials, engraving, names or birthstones."
+        }
+      },
+      {
+        "handle": "everyday",
+        "fields": {
+          "label": "Everyday",
+          "description": "Low-key staples meant for constant wear."
+        }
+      },
+      {
+        "handle": "boho",
+        "fields": {
+          "label": "Boho",
+          "description": "Relaxed, beachy, festival-leaning aesthetic with shells, cords and mixed beads."
+        }
+      }
+    ],
+    "jewellery_gemstone": [
+      {
+        "handle": "diamond",
+        "fields": {
+          "label": "Diamond",
+          "description": "Natural diamond."
+        }
+      },
+      {
+        "handle": "lab-grown-diamond",
+        "fields": {
+          "label": "Lab-Grown Diamond",
+          "description": "Laboratory-created diamond."
+        }
+      },
+      {
+        "handle": "moissanite",
+        "fields": {
+          "label": "Moissanite",
+          "description": "Brilliant lab-created silicon carbide stone."
+        }
+      },
+      {
+        "handle": "cubic-zirconia",
+        "fields": {
+          "label": "Cubic Zirconia",
+          "description": "Affordable lab-created diamond simulant."
+        }
+      },
+      {
+        "handle": "pearl",
+        "fields": {
+          "label": "Pearl",
+          "description": "Natural or cultured pearl."
+        }
+      },
+      {
+        "handle": "sapphire",
+        "fields": {
+          "label": "Sapphire",
+          "description": "Corundum gemstone, classically blue."
+        }
+      },
+      {
+        "handle": "emerald",
+        "fields": {
+          "label": "Emerald",
+          "description": "Green beryl gemstone."
+        }
+      },
+      {
+        "handle": "ruby",
+        "fields": {
+          "label": "Ruby",
+          "description": "Red corundum gemstone."
+        }
+      },
+      {
+        "handle": "amethyst",
+        "fields": {
+          "label": "Amethyst",
+          "description": "Purple quartz."
+        }
+      },
+      {
+        "handle": "aquamarine",
+        "fields": {
+          "label": "Aquamarine",
+          "description": "Pale blue beryl."
+        }
+      },
+      {
+        "handle": "topaz",
+        "fields": {
+          "label": "Topaz",
+          "description": "Topaz gemstone, commonly blue or white."
+        }
+      },
+      {
+        "handle": "citrine",
+        "fields": {
+          "label": "Citrine",
+          "description": "Yellow quartz."
+        }
+      },
+      {
+        "handle": "garnet",
+        "fields": {
+          "label": "Garnet",
+          "description": "Deep red gemstone."
+        }
+      },
+      {
+        "handle": "peridot",
+        "fields": {
+          "label": "Peridot",
+          "description": "Yellow-green gemstone."
+        }
+      },
+      {
+        "handle": "opal",
+        "fields": {
+          "label": "Opal",
+          "description": "Iridescent gemstone."
+        }
+      },
+      {
+        "handle": "moonstone",
+        "fields": {
+          "label": "Moonstone",
+          "description": "Feldspar with a milky adularescence."
+        }
+      },
+      {
+        "handle": "turquoise",
+        "fields": {
+          "label": "Turquoise",
+          "description": "Opaque blue-green stone."
+        }
+      },
+      {
+        "handle": "malachite",
+        "fields": {
+          "label": "Malachite",
+          "description": "Banded green stone."
+        }
+      },
+      {
+        "handle": "lapis-lazuli",
+        "fields": {
+          "label": "Lapis Lazuli",
+          "description": "Deep blue stone with gold flecks."
+        }
+      },
+      {
+        "handle": "mother-of-pearl",
+        "fields": {
+          "label": "Mother of Pearl",
+          "description": "Iridescent shell lining."
+        }
+      },
+      {
+        "handle": "onyx",
+        "fields": {
+          "label": "Onyx",
+          "description": "Black opaque stone."
+        }
+      },
+      {
+        "handle": "enamel",
+        "fields": {
+          "label": "Enamel",
+          "description": "Coloured surface accent merchandised like a stone colour."
+        }
+      }
+    ],
+    "jewellery_stone_shape": [
+      {
+        "handle": "round",
+        "fields": {
+          "label": "Round"
+        }
+      },
+      {
+        "handle": "oval",
+        "fields": {
+          "label": "Oval"
+        }
+      },
+      {
+        "handle": "pear",
+        "fields": {
+          "label": "Pear"
+        }
+      },
+      {
+        "handle": "marquise",
+        "fields": {
+          "label": "Marquise"
+        }
+      },
+      {
+        "handle": "emerald-cut",
+        "fields": {
+          "label": "Emerald Cut"
+        }
+      },
+      {
+        "handle": "cushion",
+        "fields": {
+          "label": "Cushion"
+        }
+      },
+      {
+        "handle": "princess",
+        "fields": {
+          "label": "Princess"
+        }
+      },
+      {
+        "handle": "radiant",
+        "fields": {
+          "label": "Radiant"
+        }
+      },
+      {
+        "handle": "asscher",
+        "fields": {
+          "label": "Asscher"
+        }
+      },
+      {
+        "handle": "heart",
+        "fields": {
+          "label": "Heart"
+        }
+      },
+      {
+        "handle": "baguette",
+        "fields": {
+          "label": "Baguette"
+        }
+      },
+      {
+        "handle": "trillion",
+        "fields": {
+          "label": "Trillion"
+        }
+      },
+      {
+        "handle": "rose-cut",
+        "fields": {
+          "label": "Rose Cut"
+        }
+      },
+      {
+        "handle": "cabochon",
+        "fields": {
+          "label": "Cabochon"
+        }
+      },
+      {
+        "handle": "briolette",
+        "fields": {
+          "label": "Briolette"
+        }
+      }
+    ],
+    "jewellery_setting": [
+      {
+        "handle": "claw",
+        "fields": {
+          "label": "Claw",
+          "description": "Stone held by metal claws; UK term for prong setting."
+        }
+      },
+      {
+        "handle": "bezel",
+        "fields": {
+          "label": "Bezel",
+          "description": "Metal rim encircling the stone."
+        }
+      },
+      {
+        "handle": "pave",
+        "fields": {
+          "label": "Pavé",
+          "description": "Surface paved with many tiny stones."
+        }
+      },
+      {
+        "handle": "channel",
+        "fields": {
+          "label": "Channel",
+          "description": "Stones set in a row between two metal walls."
+        }
+      },
+      {
+        "handle": "flush",
+        "fields": {
+          "label": "Flush",
+          "description": "Stone sunk level with the metal surface."
+        }
+      },
+      {
+        "handle": "tension",
+        "fields": {
+          "label": "Tension",
+          "description": "Stone held by pressure so it appears to float."
+        }
+      }
+    ],
+    "jewellery_chain_type": [
+      {
+        "handle": "curb",
+        "fields": {
+          "label": "Curb"
+        }
+      },
+      {
+        "handle": "cable",
+        "fields": {
+          "label": "Cable"
+        }
+      },
+      {
+        "handle": "belcher",
+        "fields": {
+          "label": "Belcher"
+        }
+      },
+      {
+        "handle": "box",
+        "fields": {
+          "label": "Box"
+        }
+      },
+      {
+        "handle": "rope",
+        "fields": {
+          "label": "Rope"
+        }
+      },
+      {
+        "handle": "figaro",
+        "fields": {
+          "label": "Figaro"
+        }
+      },
+      {
+        "handle": "herringbone",
+        "fields": {
+          "label": "Herringbone"
+        }
+      },
+      {
+        "handle": "snake",
+        "fields": {
+          "label": "Snake"
+        }
+      },
+      {
+        "handle": "paperclip",
+        "fields": {
+          "label": "Paperclip"
+        }
+      },
+      {
+        "handle": "ball",
+        "fields": {
+          "label": "Ball"
+        }
+      },
+      {
+        "handle": "byzantine",
+        "fields": {
+          "label": "Byzantine"
+        }
+      }
+    ],
+    "jewellery_size": [
+      {
+        "handle": "ring-f",
+        "fields": {
+          "label": "F",
+          "category": "ring",
+          "sort_order": "1",
+          "uk": "F",
+          "us": "3",
+          "eu": "44"
+        }
+      },
+      {
+        "handle": "ring-g",
+        "fields": {
+          "label": "G",
+          "category": "ring",
+          "sort_order": "2",
+          "uk": "G",
+          "us": "3.5",
+          "eu": "45"
+        }
+      },
+      {
+        "handle": "ring-h",
+        "fields": {
+          "label": "H",
+          "category": "ring",
+          "sort_order": "3",
+          "uk": "H",
+          "us": "4",
+          "eu": "47"
+        }
+      },
+      {
+        "handle": "ring-i",
+        "fields": {
+          "label": "I",
+          "category": "ring",
+          "sort_order": "4",
+          "uk": "I",
+          "us": "4.5",
+          "eu": "48"
+        }
+      },
+      {
+        "handle": "ring-j",
+        "fields": {
+          "label": "J",
+          "category": "ring",
+          "sort_order": "5",
+          "uk": "J",
+          "us": "5",
+          "eu": "49"
+        }
+      },
+      {
+        "handle": "ring-k",
+        "fields": {
+          "label": "K",
+          "category": "ring",
+          "sort_order": "6",
+          "uk": "K",
+          "us": "5.5",
+          "eu": "50"
+        }
+      },
+      {
+        "handle": "ring-l",
+        "fields": {
+          "label": "L",
+          "category": "ring",
+          "sort_order": "7",
+          "uk": "L",
+          "us": "6",
+          "eu": "51"
+        }
+      },
+      {
+        "handle": "ring-m",
+        "fields": {
+          "label": "M",
+          "category": "ring",
+          "sort_order": "8",
+          "uk": "M",
+          "us": "6.5",
+          "eu": "52"
+        }
+      },
+      {
+        "handle": "ring-n",
+        "fields": {
+          "label": "N",
+          "category": "ring",
+          "sort_order": "9",
+          "uk": "N",
+          "us": "7",
+          "eu": "54"
+        }
+      },
+      {
+        "handle": "ring-o",
+        "fields": {
+          "label": "O",
+          "category": "ring",
+          "sort_order": "10",
+          "uk": "O",
+          "us": "7.5",
+          "eu": "55"
+        }
+      },
+      {
+        "handle": "ring-p",
+        "fields": {
+          "label": "P",
+          "category": "ring",
+          "sort_order": "11",
+          "uk": "P",
+          "us": "8",
+          "eu": "56"
+        }
+      },
+      {
+        "handle": "ring-q",
+        "fields": {
+          "label": "Q",
+          "category": "ring",
+          "sort_order": "12",
+          "uk": "Q",
+          "us": "8.5",
+          "eu": "58"
+        }
+      },
+      {
+        "handle": "ring-r",
+        "fields": {
+          "label": "R",
+          "category": "ring",
+          "sort_order": "13",
+          "uk": "R",
+          "us": "9",
+          "eu": "59"
+        }
+      },
+      {
+        "handle": "ring-s",
+        "fields": {
+          "label": "S",
+          "category": "ring",
+          "sort_order": "14",
+          "uk": "S",
+          "us": "9.5",
+          "eu": "60"
+        }
+      },
+      {
+        "handle": "ring-t",
+        "fields": {
+          "label": "T",
+          "category": "ring",
+          "sort_order": "15",
+          "uk": "T",
+          "us": "10",
+          "eu": "61"
+        }
+      },
+      {
+        "handle": "ring-u",
+        "fields": {
+          "label": "U",
+          "category": "ring",
+          "sort_order": "16",
+          "uk": "U",
+          "us": "10.5",
+          "eu": "63"
+        }
+      },
+      {
+        "handle": "ring-v",
+        "fields": {
+          "label": "V",
+          "category": "ring",
+          "sort_order": "17",
+          "uk": "V",
+          "us": "11",
+          "eu": "64"
+        }
+      },
+      {
+        "handle": "ring-w",
+        "fields": {
+          "label": "W",
+          "category": "ring",
+          "sort_order": "18",
+          "uk": "W",
+          "us": "11.5",
+          "eu": "65"
+        }
+      },
+      {
+        "handle": "ring-x",
+        "fields": {
+          "label": "X",
+          "category": "ring",
+          "sort_order": "19",
+          "uk": "X",
+          "us": "12",
+          "eu": "67"
+        }
+      },
+      {
+        "handle": "ring-y",
+        "fields": {
+          "label": "Y",
+          "category": "ring",
+          "sort_order": "20",
+          "uk": "Y",
+          "us": "12.5",
+          "eu": "68"
+        }
+      },
+      {
+        "handle": "ring-z",
+        "fields": {
+          "label": "Z",
+          "category": "ring",
+          "sort_order": "21",
+          "uk": "Z",
+          "us": "13",
+          "eu": "69"
+        }
+      },
+      {
+        "handle": "necklace-35cm",
+        "fields": {
+          "label": "35cm",
+          "category": "necklace",
+          "sort_order": "1",
+          "length_cm": "35",
+          "length_inches": "13.8"
+        }
+      },
+      {
+        "handle": "necklace-40cm",
+        "fields": {
+          "label": "40cm",
+          "category": "necklace",
+          "sort_order": "2",
+          "length_cm": "40",
+          "length_inches": "15.7"
+        }
+      },
+      {
+        "handle": "necklace-45cm",
+        "fields": {
+          "label": "45cm",
+          "category": "necklace",
+          "sort_order": "3",
+          "length_cm": "45",
+          "length_inches": "17.7"
+        }
+      },
+      {
+        "handle": "necklace-50cm",
+        "fields": {
+          "label": "50cm",
+          "category": "necklace",
+          "sort_order": "4",
+          "length_cm": "50",
+          "length_inches": "19.7"
+        }
+      },
+      {
+        "handle": "necklace-55cm",
+        "fields": {
+          "label": "55cm",
+          "category": "necklace",
+          "sort_order": "5",
+          "length_cm": "55",
+          "length_inches": "21.7"
+        }
+      },
+      {
+        "handle": "necklace-60cm",
+        "fields": {
+          "label": "60cm",
+          "category": "necklace",
+          "sort_order": "6",
+          "length_cm": "60",
+          "length_inches": "23.6"
+        }
+      },
+      {
+        "handle": "necklace-70cm",
+        "fields": {
+          "label": "70cm",
+          "category": "necklace",
+          "sort_order": "7",
+          "length_cm": "70",
+          "length_inches": "27.6"
+        }
+      },
+      {
+        "handle": "necklace-90cm",
+        "fields": {
+          "label": "90cm",
+          "category": "necklace",
+          "sort_order": "8",
+          "length_cm": "90",
+          "length_inches": "35.4"
+        }
+      },
+      {
+        "handle": "bracelet-15cm",
+        "fields": {
+          "label": "15cm",
+          "category": "bracelet",
+          "sort_order": "1",
+          "length_cm": "15",
+          "length_inches": "5.9"
+        }
+      },
+      {
+        "handle": "bracelet-15-5cm",
+        "fields": {
+          "label": "15.5cm",
+          "category": "bracelet",
+          "sort_order": "2",
+          "length_cm": "15.5",
+          "length_inches": "6.1"
+        }
+      },
+      {
+        "handle": "bracelet-16cm",
+        "fields": {
+          "label": "16cm",
+          "category": "bracelet",
+          "sort_order": "3",
+          "length_cm": "16",
+          "length_inches": "6.3"
+        }
+      },
+      {
+        "handle": "bracelet-16-5cm",
+        "fields": {
+          "label": "16.5cm",
+          "category": "bracelet",
+          "sort_order": "4",
+          "length_cm": "16.5",
+          "length_inches": "6.5"
+        }
+      },
+      {
+        "handle": "bracelet-17cm",
+        "fields": {
+          "label": "17cm",
+          "category": "bracelet",
+          "sort_order": "5",
+          "length_cm": "17",
+          "length_inches": "6.7"
+        }
+      },
+      {
+        "handle": "bracelet-17-5cm",
+        "fields": {
+          "label": "17.5cm",
+          "category": "bracelet",
+          "sort_order": "6",
+          "length_cm": "17.5",
+          "length_inches": "6.9"
+        }
+      },
+      {
+        "handle": "bracelet-18cm",
+        "fields": {
+          "label": "18cm",
+          "category": "bracelet",
+          "sort_order": "7",
+          "length_cm": "18",
+          "length_inches": "7.1"
+        }
+      },
+      {
+        "handle": "bracelet-18-5cm",
+        "fields": {
+          "label": "18.5cm",
+          "category": "bracelet",
+          "sort_order": "8",
+          "length_cm": "18.5",
+          "length_inches": "7.3"
+        }
+      },
+      {
+        "handle": "bracelet-19cm",
+        "fields": {
+          "label": "19cm",
+          "category": "bracelet",
+          "sort_order": "9",
+          "length_cm": "19",
+          "length_inches": "7.5"
+        }
+      },
+      {
+        "handle": "bracelet-19-5cm",
+        "fields": {
+          "label": "19.5cm",
+          "category": "bracelet",
+          "sort_order": "10",
+          "length_cm": "19.5",
+          "length_inches": "7.7"
+        }
+      },
+      {
+        "handle": "bracelet-20cm",
+        "fields": {
+          "label": "20cm",
+          "category": "bracelet",
+          "sort_order": "11",
+          "length_cm": "20",
+          "length_inches": "7.9"
+        }
+      },
+      {
+        "handle": "bracelet-20-5cm",
+        "fields": {
+          "label": "20.5cm",
+          "category": "bracelet",
+          "sort_order": "12",
+          "length_cm": "20.5",
+          "length_inches": "8.1"
+        }
+      },
+      {
+        "handle": "bracelet-21cm",
+        "fields": {
+          "label": "21cm",
+          "category": "bracelet",
+          "sort_order": "13",
+          "length_cm": "21",
+          "length_inches": "8.3"
+        }
+      },
+      {
+        "handle": "bracelet-21-5cm",
+        "fields": {
+          "label": "21.5cm",
+          "category": "bracelet",
+          "sort_order": "14",
+          "length_cm": "21.5",
+          "length_inches": "8.5"
+        }
+      },
+      {
+        "handle": "bracelet-xs-s",
+        "fields": {
+          "label": "XS/S",
+          "category": "bracelet",
+          "sort_order": "90"
+        }
+      },
+      {
+        "handle": "bracelet-s-m",
+        "fields": {
+          "label": "S/M",
+          "category": "bracelet",
+          "sort_order": "91"
+        }
+      },
+      {
+        "handle": "bracelet-m-l",
+        "fields": {
+          "label": "M/L",
+          "category": "bracelet",
+          "sort_order": "92"
+        }
+      },
+      {
+        "handle": "bracelet-l-xl",
+        "fields": {
+          "label": "L/XL",
+          "category": "bracelet",
+          "sort_order": "93"
+        }
+      },
+      {
+        "handle": "ring-adjustable",
+        "fields": {
+          "label": "Adjustable",
+          "category": "ring",
+          "sort_order": "99"
+        }
+      },
+      {
+        "handle": "necklace-adjustable",
+        "fields": {
+          "label": "Adjustable",
+          "category": "necklace",
+          "sort_order": "99"
+        }
+      },
+      {
+        "handle": "bracelet-adjustable",
+        "fields": {
+          "label": "Adjustable",
+          "category": "bracelet",
+          "sort_order": "99"
+        }
+      }
+    ],
+    "jewellery_finish": [
+      {
+        "handle": "solid-gold-18ct-yellow",
+        "fields": {
+          "label": "18ct Yellow Gold",
+          "material": "solid-gold",
+          "colour": "yellow-gold",
+          "purity": "18ct"
+        }
+      },
+      {
+        "handle": "solid-gold-18ct-white",
+        "fields": {
+          "label": "18ct White Gold",
+          "material": "solid-gold",
+          "colour": "white-gold",
+          "purity": "18ct"
+        }
+      },
+      {
+        "handle": "solid-gold-18ct-rose",
+        "fields": {
+          "label": "18ct Rose Gold",
+          "material": "solid-gold",
+          "colour": "rose-gold",
+          "purity": "18ct"
+        }
+      },
+      {
+        "handle": "solid-gold-14ct-yellow",
+        "fields": {
+          "label": "14ct Yellow Gold",
+          "material": "solid-gold",
+          "colour": "yellow-gold",
+          "purity": "14ct"
+        }
+      },
+      {
+        "handle": "solid-gold-9ct-yellow",
+        "fields": {
+          "label": "9ct Yellow Gold",
+          "material": "solid-gold",
+          "colour": "yellow-gold",
+          "purity": "9ct"
+        }
+      },
+      {
+        "handle": "gold-vermeil-yellow",
+        "fields": {
+          "label": "Gold Vermeil",
+          "material": "gold-vermeil",
+          "colour": "yellow-gold",
+          "purity": "18ct"
+        }
+      },
+      {
+        "handle": "gold-vermeil-rose",
+        "fields": {
+          "label": "Rose Gold Vermeil",
+          "material": "gold-vermeil",
+          "colour": "rose-gold",
+          "purity": "18ct"
+        }
+      },
+      {
+        "handle": "gold-plated-yellow",
+        "fields": {
+          "label": "Gold Plated",
+          "material": "gold-plated",
+          "colour": "yellow-gold"
+        }
+      },
+      {
+        "handle": "sterling-silver",
+        "fields": {
+          "label": "Sterling Silver",
+          "material": "sterling-silver",
+          "colour": "silver",
+          "purity": "925"
+        }
+      }
+    ]
+  }
+}

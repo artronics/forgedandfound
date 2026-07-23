@@ -10,10 +10,13 @@ from .config import TAXONOMY_PATH
 
 
 def fold(text: str) -> str:
-    """Lowercase, strip diacritics and collapse whitespace so that scraped copy
-    and taxonomy synonyms compare equal regardless of case/accents (pavé==pave)."""
+    """Lowercase, strip diacritics, split joined words and collapse whitespace so
+    that scraped copy and taxonomy synonyms compare equal regardless of case,
+    accents (pavé==pave) or punctuation. Shopify tags are routinely written
+    `18K-solid-white-gold`, so hyphens have to read as spaces."""
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = re.sub(r"[-_/\\&,+|]+", " ", text)
     return re.sub(r"\s+", " ", text.lower()).strip()
 
 

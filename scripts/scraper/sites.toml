@@ -1,0 +1,161 @@
+# Scraper configuration — the site roster, how much to take, and what counts as
+# good enough to keep. Everything here is data; the rules that read it live in
+# config.py (loading), quality.py (filtering) and dispatch.py (quotas).
+
+# Where scraped products land. Override with --out or SEED_DATA_DIR.
+output_dir = "/Users/jalal/projects/forgedandfound/seed-data"
+
+
+[defaults]
+# Products kept PER SITE, spread as an even quota across that site's categories.
+# A category that can't fill its share does not borrow from the others — we would
+# rather come back with 7 good rings than 12 padded ones.
+limit = 12
+
+categories = ["ring", "necklace", "earring", "bracelet"]
+
+# Candidates to consider for each product kept. Strict filtering rejects most of
+# what a collection lists, so the pool has to be much larger than the quota.
+# Raised to a ceiling of `max_pages` * 250 products before we give up.
+oversample = 15
+max_pages = 4
+
+
+[quality]
+# A "product" that isn't jewellery, or isn't one piece of it. Matched as whole
+# words against the title and the site's own product_type.
+not_a_product = [
+    "gift card", "gift voucher", "e-gift", "egift", "voucher", "sample",
+    "gift wrap", "gift box", "gift bag", "jewellery box", "jewelry box",
+    "pouch", "care kit", "cleaning", "polishing cloth", "repair", "resize",
+    "warranty", "insurance", "donation", "deposit", "test product",
+    "mystery", "look", "lookbook", "bundle",
+    # Multi-piece listings. One product is one piece in our model, so a "Ring Set"
+    # or a "Stack" would seed as a single item with the wrong everything.
+    "set", "sets", "stack", "duo", "trio", "pack",
+]
+
+# Option names that spell personalisation. These blow a product up into dozens of
+# near-identical variants (26 initials, 12 birth months) that say nothing about
+# the model, so the whole product goes.
+personalisation_options = [
+    "initial", "initials", "letter", "letters", "character", "characters",
+    "engraving", "engrave", "personalisation", "personalization", "monogram",
+    "name", "zodiac", "sign", "birth month", "birthstone", "symbol",
+]
+
+# Option names we can place on a model axis. Anything else means the product has
+# a dimension we cannot represent, so we skip it rather than flatten it.
+# (Matched as substrings, lowercased — "Choose Ring Size" hits "size".)
+size_options = ["size", "length", "fit"]
+metal_options = ["metal", "colour", "color", "finish", "tone", "plating", "material", "gold"]
+
+# Values that give an axis away as a quantity rather than a dimension, whatever
+# it calls itself — an earring listed with a "Size" of Pair or Single is choosing
+# how many you get.
+quantity_values = ["pair", "single", "singles", "one", "both", "left", "right"]
+
+# A product with more variants than this is a configurator, not a product.
+max_variants = 24
+
+# Every kept product must classify to a design and a material: the design is the
+# folder it lands in, and without a material the seeder cannot resolve a finish
+# (both were real gaps in the first pass). Turn off to inspect what gets dropped.
+require_design = true
+require_material = true
+require_image = true
+require_price = true
+require_available = true
+
+
+# --- The roster -------------------------------------------------------------
+# Each site is a Shopify storefront serving /collections/<handle>/products.json.
+# `collections` maps our canonical category id to that site's handle; a category
+# a site doesn't have is simply left out. `currency` is config because the JSON
+# endpoint reports prices without one.
+
+[[site]]
+name = "dlouise.com"
+base_url = "https://dlouise.com"
+currency = "GBP"
+collections = {ring = "rings", necklace = "necklaces", earring = "earrings", bracelet = "bracelet"}
+notes = "Publishes no material information at all — see finish-aliases.yaml in the seeder."
+
+[[site]]
+name = "astridandmiyu.com"
+base_url = "https://www.astridandmiyu.com"
+currency = "GBP"
+collections = {ring = "rings", necklace = "necklaces", earring = "earrings", bracelet = "bracelets"}
+
+[[site]]
+name = "missoma.com"
+base_url = "https://www.missoma.com"
+currency = "GBP"
+collections = {ring = "rings", necklace = "necklaces", earring = "earrings", bracelet = "bracelets"}
+notes = "Richest copy of the roster; titles carry the exact finish (\"18ct Gold Plated\")."
+
+[[site]]
+name = "foundrae.com"
+base_url = "https://foundrae.com"
+currency = "GBP"
+collections = {ring = "rings", necklace = "necklaces-chains", earring = "earrings", bracelet = "bracelets"}
+notes = "Solid 18k only; states material in the copy rather than in tags."
+
+[[site]]
+name = "edgeofember.com"
+base_url = "https://www.edgeofember.com"
+currency = "GBP"
+collections = {ring = "rings", necklace = "necklaces", earring = "earrings", bracelet = "bracelets"}
+
+[[site]]
+name = "otiumberg.com"
+base_url = "https://otiumberg.com"
+currency = "GBP"
+collections = {ring = "rings", necklace = "necklaces-1", earring = "earrings-1", bracelet = "bracelets"}
+
+[[site]]
+name = "aureejewellery.com"
+base_url = "https://www.aureejewellery.com"
+currency = "GBP"
+collections = {ring = "rings", necklace = "necklaces-pendants", earring = "earrings", bracelet = "bracelets"}
+notes = "Vermeil pieces are tagged sterling silver too (a vermeil core is silver); the title is the accurate signal."
+
+[[site]]
+name = "ottomanhands.com"
+base_url = "https://ottomanhands.com"
+currency = "GBP"
+collections = {ring = "rings", necklace = "necklaces", earring = "earrings", bracelet = "bracelets"}
+
+[[site]]
+name = "pdpaola.com"
+base_url = "https://www.pdpaola.com"
+currency = "GBP"
+collections = {ring = "rings", necklace = "necklaces", earring = "earrings", bracelet = "bracelets"}
+notes = """Weakest copy of the roster — hyphenated tags, lookbook entries listed as products. \
+Expect a low yield. Its ring sizes are its own even-numbered scale (8, 10, 12 …), not US, so the \
+few sized rings it contributes resolve to the wrong curated size."""
+
+
+# --- Candidates we cannot scrape --------------------------------------------
+# Recorded so nobody re-derives this. All were on the original brand shortlist in
+# INSTRUCTION.md; none serve the Shopify products.json endpoint we rely on.
+
+[[unsupported]]
+name = "mejuri.com"
+reason = "Shopify Hydrogen/Oxygen (headless). Serves no /collections/*/products.json."
+
+[[unsupported]]
+name = "monicavinader.com"
+reason = "Cloudflare bot challenge — 403 on every request, browser headers included."
+
+[[unsupported]]
+name = "brilliantearth.com"
+reason = "Not Shopify, and behind Cloudflare."
+
+[[unsupported]]
+name = "gabrielny.com"
+reason = "Not Shopify."
+
+[[unsupported]]
+name = "davidyurman.com"
+reason = "Not Shopify (own platform)."

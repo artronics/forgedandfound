@@ -61,12 +61,16 @@ export default function AccountSettings() {
     await refetch();
   };
 
+  // A social sign-up with no real email (placeholder) has nothing to email, so a
+  // marketing toggle is meaningless — keep their page to just what applies.
+  const emailPlaceholder = me.isSocial && !me.email;
+
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
       <ProfileSection me={me} onSaved={handleSaved}/>
       <EmailSection me={me} onSaved={handleSaved}/>
       <PasswordSection me={me}/>
-      <MarketingSection me={me} onSaved={handleSaved}/>
+      {!emailPlaceholder && <MarketingSection me={me} onSaved={handleSaved}/>}
       <DeleteAccountSection/>
     </div>
   );

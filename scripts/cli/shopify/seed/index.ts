@@ -6,16 +6,28 @@ import {shopifyAdminFetch} from "@forgedandfound/shopify-admin-client/client";
 import {shopify} from "../../../env.ts";
 import {info} from "../../log.ts";
 import {lockPath, readLock, writeLock} from "./lock.ts";
+import {
+  bindProduct,
+  loadCatalogue,
+  resolveCategories,
+  type BoundProduct,
+  type ScrapedProduct,
+} from "./model.ts";
 
 // Shapes we read from a scraped product directory. `product.json` is our data
-// model; `meta.json` carries the raw title/vendor/description and image URLs.
-interface ProductJson {
+// model (facet handles + variants); `meta.json` carries the raw title/vendor/
+// description and image URLs.
+interface ProductJson extends ScrapedProduct {
   id: string;
   site: string;
   product_type: string;
-  tags: string[];
-  options: {name: string; position: number; values: string[]}[];
-  variants: {options: string[]; price: number | null; sku: string | null; barcode: string | null}[];
+  variants: {
+    title?: string | null;
+    options: string[];
+    price: number | null;
+    sku: string | null;
+    barcode: string | null;
+  }[];
 }
 interface MetaJson {
   title?: string;
@@ -32,6 +44,9 @@ interface Item {
 interface SeedOpts {
   dir: string;
   limit?: string;
+  perCategory?: string;
+  category?: string[];
+  site?: string[];
   dryRun?: boolean;
   delete?: boolean;
   status?: string; // "draft" | "active"
@@ -86,58 +101,131 @@ function photoSources(meta: MetaJson, limit: number): string[] {
   return Number.isFinite(limit) ? srcs.slice(0, limit) : srcs;
 }
 
-/** Walk the data dir (our `products/<category>/<design>/<id>/` convention) and
- * load each product.json alongside its meta.json, in stable order. */
-function discover(dir: string, limit?: number): Item[] {
-  const files = (readdirSync(dir, {recursive: true}) as string[])
-    .filter((p) => p.endsWith("product.json"))
-    .map((p) => join(dir, p))
-    .sort();
-
-  const items: Item[] = [];
-  for (const file of files) {
-    const product = JSON.parse(readFileSync(file, "utf8")) as ProductJson;
-    const metaPath = join(dirname(file), "meta.json");
-    const meta = existsSync(metaPath) ? (JSON.parse(readFileSync(metaPath, "utf8")) as MetaJson) : {};
-    items.push({key: `${product.site}:${product.id}`, product, meta});
-    if (limit && items.length >= limit) break;
-  }
-  return items;
+interface Selection {
+  categories?: string[];
+  sites?: string[];
+  perCategory?: number;
+  limit?: number;
 }
 
-/** Build a Shopify ProductSetInput (product + options + variants + stock). */
+/** Walk the data dir (our `products/<category>/<design>/<id>/` convention) and
+ * load each product.json alongside its meta.json, in stable order. */
+function loadAll(dir: string): Item[] {
+  return (readdirSync(dir, {recursive: true}) as string[])
+    .filter((p) => p.endsWith("product.json"))
+    .map((p) => join(dir, p))
+    .sort()
+    .map((file) => {
+      const product = JSON.parse(readFileSync(file, "utf8")) as ProductJson;
+      const metaPath = join(dirname(file), "meta.json");
+      const meta = existsSync(metaPath) ? (JSON.parse(readFileSync(metaPath, "utf8")) as MetaJson) : {};
+      return {key: `${product.site}:${product.id}`, product, meta};
+    });
+}
+
+/** Pick what to seed. `--limit` is spread across categories rather than taken off
+ * the top: the tree is sorted by path, so a flat slice of 8 would be 8 bracelets
+ * and no rings. Taking one category at a time in turn means a small limit still
+ * gives a look at each. */
+function discover(dir: string, sel: Selection): Item[] {
+  let items = loadAll(dir);
+  if (sel.categories?.length) items = items.filter((i) => sel.categories!.includes(i.product.category));
+  if (sel.sites?.length) items = items.filter((i) => sel.sites!.includes(i.product.site));
+
+  const byCategory = new Map<string, Item[]>();
+  for (const item of items) {
+    const bucket = byCategory.get(item.product.category) ?? [];
+    if (!sel.perCategory || bucket.length < sel.perCategory) bucket.push(item);
+    byCategory.set(item.product.category, bucket);
+  }
+
+  const rounds = Math.max(0, ...[...byCategory.values()].map((b) => b.length));
+  const spread: Item[] = [];
+  for (let i = 0; i < rounds; i++) {
+    for (const bucket of byCategory.values()) {
+      if (bucket[i]) spread.push(bucket[i]);
+      if (sel.limit && spread.length >= sel.limit) return spread;
+    }
+  }
+  return spread;
+}
+
+// Shopify has no concept of a product without options: a single-variant product
+// carries a placeholder "Title / Default Title" pair, and `productSet` rejects
+// variants outright unless the options are declared. Nearly half our products
+// vary in nothing at all, so they need it supplied.
+const DEFAULT_OPTION = "Title";
+const DEFAULT_OPTION_VALUE = "Default Title";
+
+/** Build a Shopify ProductSetInput from the bound model (options, per-variant
+ * finish/size bindings, metafields) plus the raw commercial fields.
+ *
+ * Returns any variants dropped along the way, for the caller to report. */
 function buildInput(
   product: ProductJson,
   meta: MetaJson,
-  opts: {status: string; stock: number; locationId: string},
-): Record<string, unknown> {
-  const productOptions = product.options.map((o) => ({
-    name: o.name,
-    position: o.position,
-    values: o.values.map((v) => ({name: v})),
-  }));
+  bound: BoundProduct,
+  opts: {status: string; stock: number; locationId: string; categoryGid: string | null},
+): {input: Record<string, unknown>; dropped: string[]} {
+  const varies = bound.options.length > 0;
+  const productOptions = varies
+    ? bound.options.map((o, i) => ({
+        name: o.name,
+        position: i + 1,
+        values: o.values.map((v) => ({name: v})),
+      }))
+    : [{name: DEFAULT_OPTION, position: 1, values: [{name: DEFAULT_OPTION_VALUE}]}];
 
-  const variants = product.variants.map((v) => ({
-    ...(v.price != null ? {price: String(v.price)} : {}),
-    ...(v.sku ? {sku: v.sku} : {}),
-    ...(v.barcode ? {barcode: v.barcode} : {}),
-    // Pair each variant option value with its option name, in option order.
-    optionValues: product.options
-      .map((o, i) => ({optionName: o.name, name: v.options[i]}))
-      .filter((ov) => ov.name != null),
-    inventoryItem: {tracked: true},
-    inventoryQuantities: [{locationId: opts.locationId, name: "available", quantity: opts.stock}],
-  }));
+  // Shopify identifies a variant by its option values, so two variants can't
+  // share a tuple. Source values sometimes collapse onto one of ours — Aurée
+  // sells a ring as "9ct Three Colour Gold" and "18ct Three Colour Gold", both
+  // of which our vocabulary only knows as gold — and the second would be
+  // rejected. If the model says they're the same variant, they are: keep the
+  // first and say which went.
+  const dropped: string[] = [];
+  const seen = new Set<string>();
+
+  const variants = product.variants.flatMap((v, index) => {
+    const {optionValues, finishGid, sizeGid} = bound.variants[index];
+    const values = varies ? optionValues : [{optionName: DEFAULT_OPTION, name: DEFAULT_OPTION_VALUE}];
+    const key = values.map((o) => `${o.optionName}=${o.name}`).join(" | ");
+    if (seen.has(key)) {
+      dropped.push(`variant '${v.title ?? key}' duplicates '${key}' once bound to the model`);
+      return [];
+    }
+    seen.add(key);
+
+    const metafields = [
+      finishGid && {namespace: "custom", key: "finish", type: "metaobject_reference", value: finishGid},
+      sizeGid && {namespace: "custom", key: "size", type: "metaobject_reference", value: sizeGid},
+    ].filter(Boolean);
+
+    return [
+      {
+        ...(v.price != null ? {price: String(v.price)} : {}),
+        ...(v.sku ? {sku: v.sku} : {}),
+        ...(v.barcode ? {barcode: v.barcode} : {}),
+        optionValues: values,
+        inventoryItem: {tracked: true},
+        inventoryQuantities: [{locationId: opts.locationId, name: "available", quantity: opts.stock}],
+        ...(metafields.length ? {metafields} : {}),
+      },
+    ];
+  });
 
   return {
-    title: meta.title ?? product.id,
-    ...(meta.description ? {descriptionHtml: meta.description} : {}),
-    productType: product.product_type,
-    ...(meta.vendor ? {vendor: meta.vendor} : {}),
-    tags: product.tags,
-    status: opts.status,
-    ...(productOptions.length ? {productOptions} : {}),
-    variants,
+    input: {
+      title: meta.title ?? product.id,
+      ...(meta.description ? {descriptionHtml: meta.description} : {}),
+      productType: product.product_type,
+      ...(opts.categoryGid ? {category: opts.categoryGid} : {}),
+      ...(meta.vendor ? {vendor: meta.vendor} : {}),
+      status: opts.status,
+      productOptions,
+      variants,
+      ...(bound.metafields.length ? {metafields: bound.metafields} : {}),
+    },
+    dropped,
   };
 }
 
@@ -165,17 +253,38 @@ async function uploadPhotos(productId: string, sources: string[], alt: string): 
 
 export async function seedProducts(opts: SeedOpts): Promise<void> {
   const dir = resolve(opts.dir);
-  const limit = opts.limit ? parseInt(opts.limit, 10) : undefined;
   const status = normStatus(opts.status);
   const stock = opts.stock ? parseInt(opts.stock, 10) : 5;
   const photos = photoLimit(opts.withPhotos);
-  const items = discover(dir, limit);
-  info(`Found ${items.length} product(s) under ${dir}${limit ? ` (limit ${limit})` : ""}`);
+  const items = discover(dir, {
+    categories: opts.category,
+    sites: opts.site,
+    perCategory: opts.perCategory ? parseInt(opts.perCategory, 10) : undefined,
+    limit: opts.limit ? parseInt(opts.limit, 10) : undefined,
+  });
+  const spread = [...new Set(items.map((i) => i.product.category))]
+    .map((c) => `${c} ${items.filter((i) => i.product.category === c).length}`)
+    .join(", ");
+  info(`Selected ${items.length} product(s) under ${dir}${spread ? ` (${spread})` : ""}`);
+
+  // Load the curated vocabularies once for the whole run (read-only), and verify
+  // the pinned standard-taxonomy categories still resolve.
+  info("Loading curated vocabularies …");
+  const catalogue = await loadCatalogue();
+  const categoryGids = await resolveCategories(items.map((i) => i.product.category));
 
   if (opts.dryRun) {
     for (const {key, product, meta} of items) {
+      const bound = bindProduct(product, catalogue);
+      const {input, dropped} = buildInput(product, meta, bound, {
+        status,
+        stock,
+        locationId: PLACEHOLDER_LOCATION,
+        categoryGid: categoryGids.get(product.category) ?? null,
+      });
       info(`\n--- ${key} -> productSet (status=${status}, stock=${stock}) ---`);
-      info(JSON.stringify(buildInput(product, meta, {status, stock, locationId: PLACEHOLDER_LOCATION}), null, 2));
+      info(JSON.stringify(input, null, 2));
+      for (const w of [...bound.warnings, ...dropped]) info(`  WARN ${w}`);
       if (photos !== undefined) {
         const srcs = photoSources(meta, photos);
         info(`  + ${srcs.length} photo(s): ${srcs.join(", ") || "(none)"}`);
@@ -196,9 +305,17 @@ export async function seedProducts(opts: SeedOpts): Promise<void> {
       skipped++;
       continue;
     }
-    const data = await shopifyAdminFetch<ProductSetResult>(PRODUCT_SET, {
-      input: buildInput(product, meta, {status, stock, locationId}),
+
+    const bound = bindProduct(product, catalogue);
+    const {input, dropped} = buildInput(product, meta, bound, {
+      status,
+      stock,
+      locationId,
+      categoryGid: categoryGids.get(product.category) ?? null,
     });
+    for (const w of [...bound.warnings, ...dropped]) info(`  WARN ${key}: ${w}`);
+
+    const data = await shopifyAdminFetch<ProductSetResult>(PRODUCT_SET, {input});
     if (data.productSet.userErrors.length || !data.productSet.product) {
       throw new Error(`productSet failed for ${key}: ${JSON.stringify(data.productSet.userErrors)}`);
     }
@@ -209,7 +326,11 @@ export async function seedProducts(opts: SeedOpts): Promise<void> {
     lock.products[key] = {id: p.id, handle: p.handle, title: p.title};
     writeLock(dir, lock); // write after each so a mid-run crash stays idempotent
     console.log(p.id); // stdout: the created product gid, one per line
-    info(`created ${key} -> ${p.id}`);
+    const linked = bound.variants.filter((v) => v.finishGid).length;
+    info(
+      `created ${key} -> ${p.id} [${bound.metafields.length} metafield(s), ` +
+        `${linked}/${bound.variants.length} variant(s) linked to a finish]`,
+    );
     created++;
   }
   info(`Done. created=${created} skipped=${skipped}`);

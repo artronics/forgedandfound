@@ -1,0 +1,147 @@
+# Metafield definitions — the typed slots products and variants carry.
+#
+# The namespace is always `custom` (it is what the merchant Custom Data admin UI
+# exposes and the only one attachable to variants there), so it is not repeated
+# per entry. `ref` must name a metaobject declared in metaobjects.yaml.
+#
+# `description` is sent to Shopify and read by whoever is entering data, so it is
+# worded for them. `meta` stays local.
+
+metafields:
+  # --- Product: the model facets ---
+  - owner: PRODUCT
+    key: design
+    name: Design
+    type: metaobject_reference
+    ref: jewellery_design
+    pin: true
+    description: The physical form of this product. Pick the design matching its category.
+
+  - owner: PRODUCT
+    key: style
+    name: Style
+    type: list.metaobject_reference
+    ref: jewellery_style
+    pin: true
+    description: The looks that describe this product. You can pick more than one.
+
+  - owner: PRODUCT
+    key: gemstone
+    name: Gemstone
+    type: list.metaobject_reference
+    ref: jewellery_gemstone
+    pin: true
+    description: The stones set into this product. You can pick more than one.
+
+  - owner: PRODUCT
+    key: stone_shape
+    name: Stone Shape
+    type: list.metaobject_reference
+    ref: jewellery_stone_shape
+    pin: true
+    description: The cuts or shapes of the stones in this product.
+
+  - owner: PRODUCT
+    key: setting
+    name: Setting
+    type: metaobject_reference
+    ref: jewellery_setting
+    pin: true
+    description: How the stones are held in the metal.
+
+  - owner: PRODUCT
+    key: chain_type
+    name: Chain Type
+    type: metaobject_reference
+    ref: jewellery_chain_type
+    pin: true
+    description: The link pattern of this product's chain.
+
+  # --- Product: denormalised filter projections ---
+  # Storefront collection filters read product-level metafields; metaobject fields
+  # (material inside a finish) are not directly filterable. These carry the union
+  # of the product's variants so collection pages can filter on them.
+  - owner: PRODUCT
+    key: material
+    name: Material
+    type: list.metaobject_reference
+    ref: jewellery_material
+    pin: true
+    description: >
+      Every metal this product is available in. Taken from the product's finishes and used for
+      filtering — it should match the finishes on its variants.
+    meta:
+      denormalised_from: finish.material
+
+  - owner: PRODUCT
+    key: metal_colour
+    name: Metal Colour
+    type: list.metaobject_reference
+    ref: jewellery_colour
+    pin: true
+    description: >
+      Every metal colour this product is available in. Taken from the product's finishes and
+      used for filtering.
+    meta:
+      denormalised_from: finish.colour
+
+  - owner: PRODUCT
+    key: purity
+    name: Purity
+    type: list.single_line_text_field
+    pin: true
+    description: >
+      Every gold purity or silver standard this product is available in. Taken from the
+      product's finishes and used for filtering.
+    meta:
+      denormalised_from: finish.purity
+      rationale: Free text list rather than a metaobject, so filtering stays simple.
+
+  - owner: PRODUCT
+    key: size
+    name: Size
+    type: list.metaobject_reference
+    ref: jewellery_size
+    pin: true
+    description: >
+      Every size this product is available in. Taken from the product's variants and used for
+      filtering.
+    meta:
+      denormalised_from: variant.size
+
+  - owner: PRODUCT
+    key: finish
+    name: Finish
+    type: list.metaobject_reference
+    ref: jewellery_finish
+    pin: true
+    description: >
+      Every finish this product is available in. Taken from the product's variants and used for
+      filtering — the quickest way to see at a glance which metals a product comes in.
+    meta:
+      denormalised_from: variant.finish
+
+  # --- Variant: the axis bindings ---
+  - owner: PRODUCTVARIANT
+    key: size
+    name: Size
+    type: metaobject_reference
+    ref: jewellery_size
+    pin: true
+    description: The size or length of this variant.
+    meta:
+      rationale: >
+        Gives the storefront the conversions and sort order behind the plain option value.
+
+  - owner: PRODUCTVARIANT
+    key: finish
+    name: Finish
+    type: metaobject_reference
+    ref: jewellery_finish
+    pin: true
+    description: The metal this variant is made in — material, purity and colour combined.
+    meta:
+      rationale: >
+        The substrate the storefront reads for a variant's material/purity/colour. The visible
+        "Finish" option can additionally be linked to this same metafield via Shopify's native
+        linkedMetafield for admin pickers and option swatches.

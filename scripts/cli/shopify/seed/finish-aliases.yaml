@@ -1,0 +1,21 @@
+# Curated finish aliases for scraped seed data.
+#
+# Third-party option values are often ambiguous: a "Gold" ring might be solid
+# gold, vermeil or plated, and the source frequently never says. The seeder will
+# not guess — inventing a finish is what previously produced impossible entries
+# like "sterling silver that is yellow gold". So a human resolves it once here.
+#
+# Keyed by site, then by the option value exactly as the source writes it. The
+# value is a handle in the curated `jewellery_finish` vocabulary.
+#
+# This is seed-data curation, NOT part of the model: it exists only to map messy
+# third-party data onto our vocabulary.
+
+aliases:
+  # d.louise offers most silver pieces in a "Gold" and a "Silver" option but
+  # publishes no material information at all (no tags, nothing in the copy), so
+  # the scraper classifies every one of them as sterling silver. Their gold is a
+  # plated demi-fine finish — change this line if that is wrong.
+  dlouise.com:
+    Gold: gold-plated-yellow
+    Silver: sterling-silver

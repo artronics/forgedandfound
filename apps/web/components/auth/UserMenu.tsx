@@ -31,6 +31,14 @@ export default function UserMenu({open, setOpen, children}: {
       {children && <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>}
       <DropdownMenuContent className="px-4 bg-surface-container" align="end">
         <DropdownMenuGroup>
+          <DropdownMenuItem
+            onSelect={() => router.push("/account")}
+            className="cursor-pointer"
+          >
+            <MenuItem icon={<Icon icon="user"/>}>
+              Account
+            </MenuItem>
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={handleLogout} className="cursor-pointer">
             <MenuItem icon={<Icon icon="log-out"/>}>
               Log Out
