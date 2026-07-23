@@ -1,0 +1,65 @@
+### Collections
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+Cache-Control: no-cache
+
+#/685048758609
+query GetCollections {
+    collections(first: 50) {
+        edges {
+            node {
+                id
+                title
+                handle
+            }
+        }
+
+    }
+}
+### Collections
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+Cache-Control: no-cache
+
+#/685048758609
+query GetCollection {
+    collection(id: "gid://shopify/Collection/685048758609") {
+        id
+        ruleSet {
+            appliedDisjunctively
+            rules {
+                column
+                condition
+                conditionObject {
+                    __typename
+                }
+                relation
+            }
+        }
+    }
+}
+### Menu
+GRAPHQL {{gqlUrl}}
+X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
+
+query GetMenu {
+    menus(first: 50) {
+        nodes {
+            id
+            title
+            handle
+            items(limit: 50) {
+                title
+                url
+                items {
+                    resourceId
+                    tags
+                    type
+                    url
+                    resourceId
+                }
+                collectionId: resourceId
+            }
+        }
+    }
+}

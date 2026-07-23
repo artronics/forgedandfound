@@ -1,4 +1,11 @@
-import {getStore, reconcile, seedEntries, type StoreType} from "@forgedandfound/model-shopify";
+import {
+  applyCollections,
+  getStore,
+  reconcile,
+  seedEntries,
+  stores,
+  type StoreType,
+} from "@forgedandfound/model-shopify";
 
 import {shopify} from "../../env.ts";
 import {info} from "../log.ts";
@@ -78,6 +85,35 @@ export function modelApply(opts: ModelOpts): Promise<void> {
 export interface SeedEntriesOpts {
   store: string;
   dryRun?: boolean;
+}
+
+/** `ff shopify model collections` — apply spec/collections.yaml + spec/menu.yaml:
+ * the smart collections and the navigation tree that links to them. */
+export async function modelCollections(opts: SeedEntriesOpts): Promise<void> {
+  const store = resolveStore(opts.store);
+  const apply = !opts.dryRun;
+
+  if (apply && store.type === "live") {
+    throw new Error("Refusing to apply collections to the LIVE store. Run against dev for now.");
+  }
+
+  const result = await applyCollections({
+    apply,
+    publication: stores.find((s) => s.type === store.type)?.publication,
+    log: info,
+  });
+
+  const by = (s: string) => result.changes.filter((c) => c.status === s).length;
+  info(
+    `\n${result.failed ? "ABORTED" : apply ? "Done" : "Dry run"}. ` +
+      (apply
+        ? `created=${by("created")} updated=${by("updated")} failed=${by("failed")}`
+        : `${by("planned")} resource(s) would be applied`),
+  );
+
+  console.log(String(by("created") + by("updated"))); // stdout: count changed
+
+  if (result.failed) process.exitCode = 1;
 }
 
 /** `ff shopify model seed-entries` — populate the metaobject entries (values). */

@@ -1,6 +1,7 @@
 ### Get Products
 GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
+Cache-Control: no-cache
 
 query GetProducts {
     products(first: 10) {

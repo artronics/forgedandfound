@@ -5,7 +5,7 @@ projects:
     extensions:
       endpoints:
         admin:
-          url: https://${SHOPIFY_STORE_NAME}.myshopify.com/admin/api/2026-01/graphql.json
+          url: https://${NEXT_PUBLIC_SHOPIFY_STORE_NAME}.myshopify.com/admin/api/2026-01/graphql.json
           schema: ./admin.schema.graphql
           headers:
             Content-Type: "application/json"

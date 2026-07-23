@@ -1,0 +1,126 @@
+# Navigation menus — the tree a customer walks, and the only place nesting lives.
+#
+# Shopify's menu resource nests natively (`MenuItemCreateInput.items`), and the
+# Storefront API serves it back via `menu(handle:)`, so the headless storefront
+# reads this rather than hardcoding a nav. Collections are declared in
+# collections.yaml; here we only point at them.
+#
+# --- An item is one of three things ------------------------------------------
+#
+#   collection: <id>              a link to a collection declared in
+#                                 collections.yaml. Becomes a COLLECTION item
+#                                 whose resourceId is resolved at apply time.
+#
+#   collection: <id> + filters:   a FILTER LINK. Lands on that collection and
+#                                 carries the extra conditions as query
+#                                 parameters. Becomes an HTTP item. This is how
+#                                 anything a smart collection cannot express is
+#                                 reached (see collections.yaml).
+#
+#   url: <path>                   an explicit link (HTTP item).
+#
+# An item with none of these is a HEADING: it only groups its children. Shopify
+# has no heading type, so it is applied as an HTTP item pointing at `#`, which is
+# the convention Shopify's own nav editor uses.
+#
+# `title` is required on every item — it is the visible label and nothing else
+# derives it.
+#
+# --- Filter parameter convention ---------------------------------------------
+# `filters` is a map of facet -> handle(s), serialised as query parameters:
+#
+#   filters: {finish: [gold-vermeil-yellow], design: [chain]}
+#     -> ?finish=gold-vermeil-yellow&design=chain
+#
+#   filters: {tag: [new, sale]}
+#     -> ?tag=new,sale
+#
+# Different keys AND together; comma-separated values within one key OR together
+# — matching the Storefront filter engine exactly (verified: design=chain+pendant
+# -> 22 products, design=chain AND style=dainty -> 3).
+#
+# Values are our own HANDLES, never Shopify GIDs: the storefront filter input
+# embeds a metaobject GID, and those differ between dev and live. The frontend
+# resolves handle -> GID from a cached metaobject lookup, so these URLs stay
+# portable across stores.
+#
+# IMPORTANT: a facet only filters if it is configured in the Search & Discovery
+# app. An unconfigured facet is IGNORED SILENTLY — the page returns unfiltered
+# results with no error — so the storefront should check the facet is present in
+# `collection.products.filters` before trusting it.
+
+menus:
+  - handle: main-menu
+    title: Main menu
+    items:
+      - title: Necklaces
+        collection: necklaces
+        items:
+          - title: By Design
+            items:
+              - title: Chains
+                collection: necklace-chains
+              - title: Pendants
+                collection: necklace-pendants
+              - title: Chokers
+                collection: necklace-chokers
+              - title: Lariats
+                collection: necklace-lariats
+
+          # Filter links, not collections: "necklaces that are vermeil" is
+          # category AND finish, which a single smart collection could express —
+          # but as soon as a second finish is offered it becomes
+          # category AND (a OR b), which it cannot. Keeping the whole group as
+          # filter links means the shape does not change when that happens.
+          - title: By Finish
+            items:
+              - title: Gold Vermeil
+                collection: necklaces
+                filters:
+                  finish: [gold-vermeil-yellow]
+              - title: Sterling Silver
+                collection: necklaces
+                filters:
+                  finish: [sterling-silver]
+              - title: Solid Gold
+                collection: necklaces
+                filters:
+                  finish: [solid-gold-18ct-yellow, solid-gold-14ct-yellow, solid-gold-9ct-yellow]
+
+          - title: By Style
+            items:
+              - title: Minimalist
+                collection: necklaces
+                filters:
+                  style: [minimalist]
+              - title: Chunky
+                collection: necklaces
+                filters:
+                  style: [chunky]
+
+          # The node that has no smart-collection equivalent at all:
+          # finish AND design AND (tag OR tag) mixes AND with OR.
+          - title: New Arrivals
+            collection: necklaces
+            filters:
+              finish: [gold-vermeil-yellow]
+              design: [chain]
+              tag: [new-in, ss26]
+
+      - title: Rings
+        collection: rings
+
+      - title: Earrings
+        collection: earrings
+
+      - title: Bracelets
+        collection: bracelets
+
+      # Cross-category pages: these ARE collections (no category rule to fight
+      # with), so they link straight to the resource.
+      - title: Shop by Metal
+        items:
+          - title: Gold Vermeil
+            collection: gold-vermeil
+          - title: Sterling Silver
+            collection: sterling-silver

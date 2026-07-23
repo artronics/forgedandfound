@@ -16,6 +16,15 @@ export type {ApplyOptions} from "./src/apply.ts";
 export {seedEntries} from "./src/seed-entries.ts";
 export type {SeedEntriesOptions, SeedEntriesResult, EntryChange} from "./src/seed-entries.ts";
 
+export {applyCollections} from "./src/apply-collections.ts";
+export type {
+  ApplyCollectionsOptions,
+  ApplyCollectionsResult,
+  CollectionChange,
+} from "./src/apply-collections.ts";
+
+export {collections, menus, collectionWarnings, CollectionsError} from "./src/collections.ts";
+
 export {vocabulary} from "./src/vocabulary.ts";
 export type {Vocabulary, VocabEntry} from "./src/vocabulary.ts";
 

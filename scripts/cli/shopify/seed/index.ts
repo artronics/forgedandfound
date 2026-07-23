@@ -2,6 +2,8 @@ import {existsSync, readdirSync, readFileSync} from "node:fs";
 import {dirname, join, resolve} from "node:path";
 
 import {shopifyAdminFetch} from "@forgedandfound/shopify-admin-client/client";
+import {publicationIdByName, publishTo} from "@forgedandfound/shopify-admin-client/publications";
+import {stores} from "@forgedandfound/model-shopify";
 
 import {shopify} from "../../../env.ts";
 import {info} from "../../log.ts";
@@ -52,6 +54,8 @@ interface SeedOpts {
   status?: string; // "draft" | "active"
   stock?: string; // available inventory per variant
   withPhotos?: boolean | string; // switch; optional value is a photo count
+  publication?: string; // sales channel name; defaults to the store's configured one
+  noPublish?: boolean; // create without publishing to any channel
 }
 
 const PRODUCT_SET = `
@@ -78,6 +82,19 @@ mutation DeleteProduct($input: ProductDeleteInput!) {
 const PRIMARY_LOCATION = `query { locations(first: 1) { nodes { id } } }`;
 
 const PLACEHOLDER_LOCATION = "gid://shopify/Location/PRIMARY"; // stand-in for dry-run previews
+
+/** The sales channel to publish to: an explicit `--publication`, else the one
+ * configured for whichever store the env points at. */
+function publicationName(explicit?: string): string {
+  if (explicit) return explicit;
+  const store = stores.find((s) => s.name === shopify.storeName);
+  if (!store) {
+    throw new Error(
+      `No store configured for '${shopify.storeName}'. Pass --publication to name the sales channel.`,
+    );
+  }
+  return store.publication;
+}
 
 function normStatus(status?: string): "DRAFT" | "ACTIVE" {
   const value = (status ?? "draft").toUpperCase();
@@ -295,6 +312,11 @@ export async function seedProducts(opts: SeedOpts): Promise<void> {
   }
 
   const locationId = await primaryLocationId();
+  // Resolved once, before anything is created: a wrong channel name should fail
+  // the run up front rather than leave a half-published catalogue.
+  const publicationId = opts.noPublish ? null : await publicationIdByName(publicationName(opts.publication));
+  if (publicationId) info(`publishing to '${publicationName(opts.publication)}'`);
+
   const lock = readLock(dir, shopify.shopDomain);
   let created = 0;
   let skipped = 0;
@@ -320,6 +342,7 @@ export async function seedProducts(opts: SeedOpts): Promise<void> {
       throw new Error(`productSet failed for ${key}: ${JSON.stringify(data.productSet.userErrors)}`);
     }
     const p = data.productSet.product;
+    if (publicationId) await publishTo(p.id, publicationId);
     if (photos !== undefined) {
       await uploadPhotos(p.id, photoSources(meta, photos), p.title);
     }
@@ -329,11 +352,50 @@ export async function seedProducts(opts: SeedOpts): Promise<void> {
     const linked = bound.variants.filter((v) => v.finishGid).length;
     info(
       `created ${key} -> ${p.id} [${bound.metafields.length} metafield(s), ` +
-        `${linked}/${bound.variants.length} variant(s) linked to a finish]`,
+        `${linked}/${bound.variants.length} variant(s) linked to a finish` +
+        `${publicationId ? ", published" : ""}]`,
     );
     created++;
   }
   info(`Done. created=${created} skipped=${skipped}`);
+}
+
+/**
+ * Publish products that are already in the store to the sales channel.
+ *
+ * Seeding used to create products without publishing them, which leaves a
+ * catalogue that looks complete in the admin but is invisible to the Storefront
+ * API. This repairs those in place — re-seeding would not, since the lock makes
+ * it skip everything it has already created.
+ */
+export async function publishSeeded(opts: SeedOpts): Promise<void> {
+  const dir = resolve(opts.dir);
+  const lock = readLock(dir, shopify.shopDomain);
+  const keys = Object.keys(lock.products);
+  const name = publicationName(opts.publication);
+  info(`${keys.length} seeded product(s) in ${lockPath(dir)} -> '${name}'`);
+  if (lock.shop !== shopify.shopDomain) {
+    info(`WARNING: lock is for ${lock.shop}, current store is ${shopify.shopDomain}`);
+  }
+
+  if (opts.dryRun) {
+    info(`\nDry run: ${keys.length} product(s) would be published to '${name}'. No changes made.`);
+    return;
+  }
+
+  const publicationId = await publicationIdByName(name);
+  let published = 0;
+  for (const key of keys) {
+    const {id} = lock.products[key];
+    try {
+      await publishTo(id, publicationId); // idempotent: already-published is a no-op
+      published++;
+    } catch (e) {
+      info(`WARN publish ${key}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  console.log(String(published)); // stdout: how many are on the channel
+  info(`Done. published=${published}/${keys.length}`);
 }
 
 export async function deleteSeeded(opts: SeedOpts): Promise<void> {

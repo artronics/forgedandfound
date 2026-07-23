@@ -80,6 +80,54 @@ export interface CategoryMapping {
   taxonomy_name: string;
 }
 
+// --- Collections + menus (spec/collections.yaml, spec/menu.yaml) ---
+
+/** A facet → the handle(s) a product must carry. `category` resolves through
+ * categories.yaml, `tag`/`product_type` are literal strings, everything else is
+ * a `custom.<key>` metafield whose handle resolves to a metaobject GID. */
+export type Conditions = Record<string, string | string[]>;
+
+/**
+ * One smart collection. Exactly one of `all`/`any` must be present — Shopify has
+ * a single `appliedDisjunctively` flag per collection, so a rule set is entirely
+ * AND or entirely OR and mixed logic is unrepresentable by construction.
+ */
+export interface SpecCollection {
+  /** Identity *and* Shopify handle — /collections/<id>. */
+  id: string;
+  title: string;
+  description?: string;
+  /** Every condition must match (appliedDisjunctively: false). */
+  all?: Conditions;
+  /** Any condition may match (appliedDisjunctively: true). */
+  any?: Conditions;
+  meta?: SpecMeta;
+}
+
+/**
+ * One navigation item. What it links to is inferred from which keys are present,
+ * so there is no redundant `type`:
+ *   `collection`            → a COLLECTION item
+ *   `collection` + `filters`→ an HTTP filter link (query params)
+ *   `url`                   → an explicit HTTP link
+ *   none of them            → a heading (HTTP `#`), grouping its children
+ */
+export interface SpecMenuItem {
+  title: string;
+  /** An `id` from collections.yaml. */
+  collection?: string;
+  /** Extra facet conditions carried as query parameters. */
+  filters?: Conditions;
+  url?: string;
+  items?: SpecMenuItem[];
+}
+
+export interface SpecMenu {
+  handle: string;
+  title: string;
+  items: SpecMenuItem[];
+}
+
 // --- Plan types ---
 
 export type OpClass = "SAFE" | "DESTRUCTIVE";

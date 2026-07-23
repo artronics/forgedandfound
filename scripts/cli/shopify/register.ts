@@ -1,8 +1,8 @@
 import {Command} from "commander";
 
 import {getAdminToken} from "./get-admin-token.ts";
-import {modelApply, modelPlan, modelSeedEntries} from "./model.ts";
-import {deleteSeeded, seedProducts} from "./seed/index.ts";
+import {modelApply, modelCollections, modelPlan, modelSeedEntries} from "./model.ts";
+import {deleteSeeded, publishSeeded, seedProducts} from "./seed/index.ts";
 
 /** Wire up `ff shopify ...`. Commands live one-per-file under this directory and
  * are registered here (in-process), so they share the env/token/GraphQL client. */
@@ -29,7 +29,17 @@ export function registerShopify(program: Command): void {
     .option("--status <status>", "draft or active", "draft")
     .option("--stock <n>", "available inventory per variant", "5")
     .option("--with-photos [n]", "also upload photos; optional n limits how many")
+    .option("--publication <name>", "sales channel to publish to (default: the store's configured one)")
+    .option("--no-publish", "create without publishing to a sales channel")
     .action((opts) => (opts.delete ? deleteSeeded(opts) : seedProducts(opts)));
+
+  seed
+    .command("publish")
+    .description("Publish already-seeded products to the sales channel (repairs an unpublished catalogue)")
+    .requiredOption("-d, --dir <path>", "data directory (reads its seed-lock.json)")
+    .option("--publication <name>", "sales channel (default: the store's configured one)")
+    .option("--dry-run", "list what would be published, without calling Shopify")
+    .action(publishSeeded);
 
   const model = shopify
     .command("model")
@@ -59,4 +69,11 @@ export function registerShopify(program: Command): void {
     .requiredOption("--store <type>", "dev or live")
     .option("--dry-run", "print intended upserts, without calling Shopify")
     .action(modelSeedEntries);
+
+  model
+    .command("collections")
+    .description("Apply the smart collections (collections.yaml) and navigation (menu.yaml)")
+    .requiredOption("--store <type>", "dev or live")
+    .option("--dry-run", "resolve and print the plan, without calling Shopify")
+    .action(modelCollections);
 }

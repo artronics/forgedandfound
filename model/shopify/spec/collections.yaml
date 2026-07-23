@@ -1,0 +1,121 @@
+# Smart collections — the rule-based product sets.
+#
+# This file is FLAT. Nesting lives in menu.yaml, which is the navigation tree and
+# refers back to the `id`s declared here. A collection is a set of products; a
+# menu is how a customer walks to it. Keeping them apart means neither file has
+# to model the other's problem.
+#
+# `id` is the identity AND the Shopify handle (so a collection is reached at
+# /collections/<id>) — there is no separate handle field to drift out of sync.
+#
+# --- What a collection may express -------------------------------------------
+# A Shopify smart collection is a flat rule list with ONE and/or switch
+# (`appliedDisjunctively`). It cannot do "A AND (B OR C)". So each entry declares
+# exactly one of:
+#
+#   all:   every condition must match   (appliedDisjunctively: false)
+#   any:   any condition may match      (appliedDisjunctively: true)
+#
+# Declaring both, or neither, is a spec error — the loader refuses it rather than
+# let Shopify silently apply the wrong operator.
+#
+# Inside a block, each key is a facet and its value is one handle or a list:
+#
+#   all: {category: necklace, design: chain}   -> necklace AND chain
+#   any: {finish: [a, b]}                      -> finish a OR finish b
+#
+# A list inside `all` means a product must carry EVERY value, which is impossible
+# for single-valued facets like design — the loader rejects that too.
+#
+# --- The rule you cannot break -----------------------------------------------
+# A category-scoped OR — "necklaces that are vermeil OR sterling" — is
+# `category AND (a OR b)`. That is mixed logic, so it is NOT a collection. Express
+# it in menu.yaml as a filter link: land on the category collection and pass the
+# facet as a query parameter. The storefront filter engine does AND-across-keys
+# and OR-within-a-key, which is exactly the missing capability (verified: on 24
+# necklaces, design=chain+pendant -> 22, design=chain AND style=dainty -> 3).
+#
+# Facet keys map to Shopify rule columns: `category` -> PRODUCT_CATEGORY_ID (via
+# categories.yaml); `tag` -> TAG; `product_type` -> TYPE; everything else is a
+# `custom.<key>` product metafield, whose handle resolves to a metaobject GID at
+# apply time — so one spec serves dev and live, which hold different GIDs.
+
+collections:
+  # --- Category roots ---------------------------------------------------------
+  # One rule each. These are the main-menu landing pages, and the superset every
+  # filter link for that category narrows down from.
+  - id: necklaces
+    title: Necklaces
+    description: Every necklace, from fine chains to statement pendants.
+    all:
+      category: necklace
+
+  - id: rings
+    title: Rings
+    description: Bands, signets, stacking rings and solitaires.
+    all:
+      category: ring
+
+  - id: earrings
+    title: Earrings
+    description: Studs, hoops, huggies and drops.
+    all:
+      category: earring
+
+  - id: bracelets
+    title: Bracelets
+    description: Chains, bangles and cuffs.
+    all:
+      category: bracelet
+
+  # --- Necklaces by design ----------------------------------------------------
+  # Real collections because each is one design — a single AND rule set, and a
+  # page worth its own URL. Other categories follow the same pattern; only the
+  # designs that actually have stock are worth declaring.
+  - id: necklace-chains
+    title: Chains
+    description: Necklaces worn as a chain, on their own or layered.
+    all:
+      category: necklace
+      design: chain
+
+  - id: necklace-pendants
+    title: Pendants
+    description: Necklaces built around a single hanging piece.
+    all:
+      category: necklace
+      design: pendant
+
+  - id: necklace-chokers
+    title: Chokers
+    description: Short necklaces that sit high on the neck.
+    all:
+      category: necklace
+      design: choker
+
+  - id: necklace-lariats
+    title: Lariats
+    description: Open necklaces that drape rather than clasp.
+    all:
+      category: necklace
+      design: lariat
+
+  # --- Cross-category finish --------------------------------------------------
+  # `any` is legitimate here precisely BECAUSE there is no category rule to AND
+  # against: this is one page spanning every category. Adding `category` to an
+  # `any` block would OR it in and quietly match the whole catalogue — the loader
+  # warns on that combination.
+  - id: gold-vermeil
+    title: Gold Vermeil
+    description: Everything we make in gold vermeil, across every category.
+    any:
+      finish:
+        - gold-vermeil-yellow
+        - gold-vermeil-rose
+
+  - id: sterling-silver
+    title: Sterling Silver
+    description: Everything we make in sterling silver, across every category.
+    any:
+      finish:
+        - sterling-silver
