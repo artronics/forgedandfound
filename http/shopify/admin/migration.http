@@ -7,16 +7,6 @@
 # Model + migration: model/shopify/MODEL.md, model/shopify/MIGRATION.md.
 # Managed by: `ff shopify model plan|apply|seed-entries`.
 
-### Access scopes — the app's granted scopes (entries need read_/write_metaobjects; definitions need *_metaobject_definitions)
-GRAPHQL {{gqlUrl}}
-X-Shopify-Access-Token: {{X-Shopify-Access-Token}}
-
-{
-  currentAppInstallation {
-    accessScopes { handle }
-  }
-}
-
 ### All metaobject definitions — types, fields, validations, storefront access, entry count
 GRAPHQL {{gqlUrl}}
 X-Shopify-Access-Token: {{X-Shopify-Access-Token}}

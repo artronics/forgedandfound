@@ -642,7 +642,31 @@
             "14ct solid gold",
             "recycled gold",
             "real gold",
-            "solid 9ct gold"
+            "solid 9ct gold",
+            "18ct gold",
+            "18k gold",
+            "14ct gold",
+            "14k gold",
+            "9ct gold",
+            "9k gold",
+            "18ct yellow gold",
+            "18k yellow gold",
+            "14ct yellow gold",
+            "14k yellow gold",
+            "9ct yellow gold",
+            "9k yellow gold",
+            "18ct white gold",
+            "18k white gold",
+            "18ct rose gold",
+            "18k rose gold",
+            "14ct rose gold",
+            "14k rose gold",
+            "solid 14ct gold",
+            "solid 18ct gold",
+            "solid gold",
+            "solid white gold",
+            "solid yellow gold",
+            "solid rose gold"
           ],
           "definition": "Jewellery made entirely of gold alloy; purity captured separately."
         },
@@ -651,7 +675,10 @@
           "label": "Gold Vermeil",
           "synonyms": [
             "vermeil",
-            "18ct gold vermeil"
+            "18ct gold vermeil",
+            "18k gold vermeil",
+            "vermeil plated",
+            "gold vermeil"
           ],
           "definition": "Thick layer of gold over a sterling silver base."
         },
@@ -663,7 +690,17 @@
             "gold plate",
             "pvd gold",
             "gold tone",
-            "gold-plated brass"
+            "gold-plated brass",
+            "gold plating",
+            "plated gold",
+            "18k gold plate",
+            "18k gold plated",
+            "18ct gold plating",
+            "18k gold plating",
+            "gold vermeil plated",
+            "18ct gold plated",
+            "gold filled",
+            "gold fill"
           ],
           "definition": "Layer of gold over a brass or steel base."
         },
@@ -673,14 +710,21 @@
           "synonyms": [
             "925 silver",
             "recycled sterling silver",
-            "silver"
+            "silver",
+            "sterling",
+            "925 sterling silver",
+            "s925",
+            "solid silver"
           ],
           "definition": "92.5% silver alloy."
         },
         {
           "id": "platinum",
           "label": "Platinum",
-          "synonyms": [],
+          "synonyms": [
+            "950 platinum",
+            "pt950"
+          ],
           "definition": "Naturally white precious metal used in fine and bridal jewellery."
         },
         {
@@ -700,7 +744,12 @@
           "synonyms": [
             "two tone",
             "mixed metals",
-            "bi-metal"
+            "bi-metal",
+            "mixed gold",
+            "mixed metal",
+            "two-tone",
+            "bi colour",
+            "bi-colour"
           ],
           "definition": "Combination of two or more metal colours or materials."
         }

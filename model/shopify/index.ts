@@ -19,7 +19,7 @@ export type {SeedEntriesOptions, SeedEntriesResult, EntryChange} from "./src/see
 export {vocabulary} from "./src/vocabulary.ts";
 export type {Vocabulary, VocabEntry} from "./src/vocabulary.ts";
 
-export {spec} from "./src/spec.ts";
+export {spec, metaobjectTypes, categories, getCategory} from "./src/spec.ts";
 
 export {stores, getStore} from "./src/config.ts";
 export type {StoreType, StoreConfig} from "./src/config.ts";

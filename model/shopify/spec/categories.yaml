@@ -1,0 +1,31 @@
+# Our categories → Shopify Standard Product Taxonomy.
+#
+# Setting the standard category is what feeds Google Shopping / marketplace
+# listings and Shopify's own discovery — custom metafields are NOT exported
+# there, so every product gets one of these regardless of the custom model.
+#
+# The ids are stable semantic slugs (aa = Apparel & Accessories, 6 = Jewelry).
+# They are pinned rather than looked up by name, but the seeder verifies each id
+# still resolves to `taxonomy_name` and fails loudly if Shopify ever changes
+# them — a silent mis-categorisation would be worse than a hard error.
+
+categories:
+  - id: ring
+    product_type: Ring
+    taxonomy_id: gid://shopify/TaxonomyCategory/aa-6-9
+    taxonomy_name: Apparel & Accessories > Jewelry > Rings
+
+  - id: necklace
+    product_type: Necklace
+    taxonomy_id: gid://shopify/TaxonomyCategory/aa-6-8
+    taxonomy_name: Apparel & Accessories > Jewelry > Necklaces
+
+  - id: earring
+    product_type: Earring
+    taxonomy_id: gid://shopify/TaxonomyCategory/aa-6-6
+    taxonomy_name: Apparel & Accessories > Jewelry > Earrings
+
+  - id: bracelet
+    product_type: Bracelet
+    taxonomy_id: gid://shopify/TaxonomyCategory/aa-6-3
+    taxonomy_name: Apparel & Accessories > Jewelry > Bracelets

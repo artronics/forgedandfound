@@ -854,6 +854,515 @@
         }
       }
     ],
+    "jewellery_size": [
+      {
+        "handle": "ring-f",
+        "fields": {
+          "label": "F",
+          "category": "ring",
+          "sort_order": "1",
+          "uk": "F",
+          "us": "3",
+          "eu": "44"
+        }
+      },
+      {
+        "handle": "ring-g",
+        "fields": {
+          "label": "G",
+          "category": "ring",
+          "sort_order": "2",
+          "uk": "G",
+          "us": "3.5",
+          "eu": "45"
+        }
+      },
+      {
+        "handle": "ring-h",
+        "fields": {
+          "label": "H",
+          "category": "ring",
+          "sort_order": "3",
+          "uk": "H",
+          "us": "4",
+          "eu": "47"
+        }
+      },
+      {
+        "handle": "ring-i",
+        "fields": {
+          "label": "I",
+          "category": "ring",
+          "sort_order": "4",
+          "uk": "I",
+          "us": "4.5",
+          "eu": "48"
+        }
+      },
+      {
+        "handle": "ring-j",
+        "fields": {
+          "label": "J",
+          "category": "ring",
+          "sort_order": "5",
+          "uk": "J",
+          "us": "5",
+          "eu": "49"
+        }
+      },
+      {
+        "handle": "ring-k",
+        "fields": {
+          "label": "K",
+          "category": "ring",
+          "sort_order": "6",
+          "uk": "K",
+          "us": "5.5",
+          "eu": "50"
+        }
+      },
+      {
+        "handle": "ring-l",
+        "fields": {
+          "label": "L",
+          "category": "ring",
+          "sort_order": "7",
+          "uk": "L",
+          "us": "6",
+          "eu": "51"
+        }
+      },
+      {
+        "handle": "ring-m",
+        "fields": {
+          "label": "M",
+          "category": "ring",
+          "sort_order": "8",
+          "uk": "M",
+          "us": "6.5",
+          "eu": "52"
+        }
+      },
+      {
+        "handle": "ring-n",
+        "fields": {
+          "label": "N",
+          "category": "ring",
+          "sort_order": "9",
+          "uk": "N",
+          "us": "7",
+          "eu": "54"
+        }
+      },
+      {
+        "handle": "ring-o",
+        "fields": {
+          "label": "O",
+          "category": "ring",
+          "sort_order": "10",
+          "uk": "O",
+          "us": "7.5",
+          "eu": "55"
+        }
+      },
+      {
+        "handle": "ring-p",
+        "fields": {
+          "label": "P",
+          "category": "ring",
+          "sort_order": "11",
+          "uk": "P",
+          "us": "8",
+          "eu": "56"
+        }
+      },
+      {
+        "handle": "ring-q",
+        "fields": {
+          "label": "Q",
+          "category": "ring",
+          "sort_order": "12",
+          "uk": "Q",
+          "us": "8.5",
+          "eu": "58"
+        }
+      },
+      {
+        "handle": "ring-r",
+        "fields": {
+          "label": "R",
+          "category": "ring",
+          "sort_order": "13",
+          "uk": "R",
+          "us": "9",
+          "eu": "59"
+        }
+      },
+      {
+        "handle": "ring-s",
+        "fields": {
+          "label": "S",
+          "category": "ring",
+          "sort_order": "14",
+          "uk": "S",
+          "us": "9.5",
+          "eu": "60"
+        }
+      },
+      {
+        "handle": "ring-t",
+        "fields": {
+          "label": "T",
+          "category": "ring",
+          "sort_order": "15",
+          "uk": "T",
+          "us": "10",
+          "eu": "61"
+        }
+      },
+      {
+        "handle": "ring-u",
+        "fields": {
+          "label": "U",
+          "category": "ring",
+          "sort_order": "16",
+          "uk": "U",
+          "us": "10.5",
+          "eu": "63"
+        }
+      },
+      {
+        "handle": "ring-v",
+        "fields": {
+          "label": "V",
+          "category": "ring",
+          "sort_order": "17",
+          "uk": "V",
+          "us": "11",
+          "eu": "64"
+        }
+      },
+      {
+        "handle": "ring-w",
+        "fields": {
+          "label": "W",
+          "category": "ring",
+          "sort_order": "18",
+          "uk": "W",
+          "us": "11.5",
+          "eu": "65"
+        }
+      },
+      {
+        "handle": "ring-x",
+        "fields": {
+          "label": "X",
+          "category": "ring",
+          "sort_order": "19",
+          "uk": "X",
+          "us": "12",
+          "eu": "67"
+        }
+      },
+      {
+        "handle": "ring-y",
+        "fields": {
+          "label": "Y",
+          "category": "ring",
+          "sort_order": "20",
+          "uk": "Y",
+          "us": "12.5",
+          "eu": "68"
+        }
+      },
+      {
+        "handle": "ring-z",
+        "fields": {
+          "label": "Z",
+          "category": "ring",
+          "sort_order": "21",
+          "uk": "Z",
+          "us": "13",
+          "eu": "69"
+        }
+      },
+      {
+        "handle": "necklace-35cm",
+        "fields": {
+          "label": "35cm",
+          "category": "necklace",
+          "sort_order": "1",
+          "length_cm": "35",
+          "length_inches": "13.8"
+        }
+      },
+      {
+        "handle": "necklace-40cm",
+        "fields": {
+          "label": "40cm",
+          "category": "necklace",
+          "sort_order": "2",
+          "length_cm": "40",
+          "length_inches": "15.7"
+        }
+      },
+      {
+        "handle": "necklace-45cm",
+        "fields": {
+          "label": "45cm",
+          "category": "necklace",
+          "sort_order": "3",
+          "length_cm": "45",
+          "length_inches": "17.7"
+        }
+      },
+      {
+        "handle": "necklace-50cm",
+        "fields": {
+          "label": "50cm",
+          "category": "necklace",
+          "sort_order": "4",
+          "length_cm": "50",
+          "length_inches": "19.7"
+        }
+      },
+      {
+        "handle": "necklace-55cm",
+        "fields": {
+          "label": "55cm",
+          "category": "necklace",
+          "sort_order": "5",
+          "length_cm": "55",
+          "length_inches": "21.7"
+        }
+      },
+      {
+        "handle": "necklace-60cm",
+        "fields": {
+          "label": "60cm",
+          "category": "necklace",
+          "sort_order": "6",
+          "length_cm": "60",
+          "length_inches": "23.6"
+        }
+      },
+      {
+        "handle": "necklace-70cm",
+        "fields": {
+          "label": "70cm",
+          "category": "necklace",
+          "sort_order": "7",
+          "length_cm": "70",
+          "length_inches": "27.6"
+        }
+      },
+      {
+        "handle": "necklace-90cm",
+        "fields": {
+          "label": "90cm",
+          "category": "necklace",
+          "sort_order": "8",
+          "length_cm": "90",
+          "length_inches": "35.4"
+        }
+      },
+      {
+        "handle": "bracelet-15cm",
+        "fields": {
+          "label": "15cm",
+          "category": "bracelet",
+          "sort_order": "1",
+          "length_cm": "15",
+          "length_inches": "5.9"
+        }
+      },
+      {
+        "handle": "bracelet-15-5cm",
+        "fields": {
+          "label": "15.5cm",
+          "category": "bracelet",
+          "sort_order": "2",
+          "length_cm": "15.5",
+          "length_inches": "6.1"
+        }
+      },
+      {
+        "handle": "bracelet-16cm",
+        "fields": {
+          "label": "16cm",
+          "category": "bracelet",
+          "sort_order": "3",
+          "length_cm": "16",
+          "length_inches": "6.3"
+        }
+      },
+      {
+        "handle": "bracelet-16-5cm",
+        "fields": {
+          "label": "16.5cm",
+          "category": "bracelet",
+          "sort_order": "4",
+          "length_cm": "16.5",
+          "length_inches": "6.5"
+        }
+      },
+      {
+        "handle": "bracelet-17cm",
+        "fields": {
+          "label": "17cm",
+          "category": "bracelet",
+          "sort_order": "5",
+          "length_cm": "17",
+          "length_inches": "6.7"
+        }
+      },
+      {
+        "handle": "bracelet-17-5cm",
+        "fields": {
+          "label": "17.5cm",
+          "category": "bracelet",
+          "sort_order": "6",
+          "length_cm": "17.5",
+          "length_inches": "6.9"
+        }
+      },
+      {
+        "handle": "bracelet-18cm",
+        "fields": {
+          "label": "18cm",
+          "category": "bracelet",
+          "sort_order": "7",
+          "length_cm": "18",
+          "length_inches": "7.1"
+        }
+      },
+      {
+        "handle": "bracelet-18-5cm",
+        "fields": {
+          "label": "18.5cm",
+          "category": "bracelet",
+          "sort_order": "8",
+          "length_cm": "18.5",
+          "length_inches": "7.3"
+        }
+      },
+      {
+        "handle": "bracelet-19cm",
+        "fields": {
+          "label": "19cm",
+          "category": "bracelet",
+          "sort_order": "9",
+          "length_cm": "19",
+          "length_inches": "7.5"
+        }
+      },
+      {
+        "handle": "bracelet-19-5cm",
+        "fields": {
+          "label": "19.5cm",
+          "category": "bracelet",
+          "sort_order": "10",
+          "length_cm": "19.5",
+          "length_inches": "7.7"
+        }
+      },
+      {
+        "handle": "bracelet-20cm",
+        "fields": {
+          "label": "20cm",
+          "category": "bracelet",
+          "sort_order": "11",
+          "length_cm": "20",
+          "length_inches": "7.9"
+        }
+      },
+      {
+        "handle": "bracelet-20-5cm",
+        "fields": {
+          "label": "20.5cm",
+          "category": "bracelet",
+          "sort_order": "12",
+          "length_cm": "20.5",
+          "length_inches": "8.1"
+        }
+      },
+      {
+        "handle": "bracelet-21cm",
+        "fields": {
+          "label": "21cm",
+          "category": "bracelet",
+          "sort_order": "13",
+          "length_cm": "21",
+          "length_inches": "8.3"
+        }
+      },
+      {
+        "handle": "bracelet-21-5cm",
+        "fields": {
+          "label": "21.5cm",
+          "category": "bracelet",
+          "sort_order": "14",
+          "length_cm": "21.5",
+          "length_inches": "8.5"
+        }
+      },
+      {
+        "handle": "bracelet-xs-s",
+        "fields": {
+          "label": "XS/S",
+          "category": "bracelet",
+          "sort_order": "90"
+        }
+      },
+      {
+        "handle": "bracelet-s-m",
+        "fields": {
+          "label": "S/M",
+          "category": "bracelet",
+          "sort_order": "91"
+        }
+      },
+      {
+        "handle": "bracelet-m-l",
+        "fields": {
+          "label": "M/L",
+          "category": "bracelet",
+          "sort_order": "92"
+        }
+      },
+      {
+        "handle": "bracelet-l-xl",
+        "fields": {
+          "label": "L/XL",
+          "category": "bracelet",
+          "sort_order": "93"
+        }
+      },
+      {
+        "handle": "ring-adjustable",
+        "fields": {
+          "label": "Adjustable",
+          "category": "ring",
+          "sort_order": "99"
+        }
+      },
+      {
+        "handle": "necklace-adjustable",
+        "fields": {
+          "label": "Adjustable",
+          "category": "necklace",
+          "sort_order": "99"
+        }
+      },
+      {
+        "handle": "bracelet-adjustable",
+        "fields": {
+          "label": "Adjustable",
+          "category": "bracelet",
+          "sort_order": "99"
+        }
+      }
+    ],
     "jewellery_finish": [
       {
         "handle": "solid-gold-18ct-yellow",

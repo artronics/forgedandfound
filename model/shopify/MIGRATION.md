@@ -18,8 +18,9 @@ spec (desired)  ──▶  snapshot live  ──▶  diff / plan  ──▶  dry
                         before.json      classify ops     (default)    (--apply)     after.json + changes.jsonl
 ```
 
-The **spec** is the single source of truth (declarative TS in `model/shopify`) describing
-desired metaobject and metafield definitions and their references. The reconciler fetches
+The **spec** is the single source of truth (declarative YAML in `model/shopify/spec/`,
+validated at load — see MODEL.md §4) describing desired metaobject and metafield
+definitions and their references. The reconciler fetches
 live state, diffs, and converges — creating what's missing, updating what's drifted,
 skipping what matches. It never assumes a clean store; every op re-checks live state, so
 re-runs are no-ops.
@@ -212,4 +213,4 @@ the full product + metaobject scope set before any Phase-2/3/4 run against live.
 | Required-field / type-change breaks existing entries | Medium | Classified DESTRUCTIVE; add fields optional-only |
 | Admin API cost throttling on bulk apply | Medium | Backoff/retry on 429; sequential within tiers |
 | Live credentials absent | Medium | Provision `forged-and-found-live` app + secret before Phase 4 |
-| Metaobject/metafield lacks storefront access → invisible to headless | Medium | Set storefront access on every definition (MODEL.md §4–5) |
+| Metaobject/metafield lacks storefront access → invisible to headless | Medium | Set storefront access on every definition (MODEL.md §4) |

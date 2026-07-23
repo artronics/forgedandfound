@@ -29,6 +29,7 @@ cd scripts && pnpm link --global
 ```
 ff shopify get-admin-token                                     # print the Shopify admin access token
 ff shopify seed products -d ./data [options]                   # create products from scraped data
+ff shopify seed products -d ./data -c ring --per-category 3    # a spread: 3 rings, or 3 of each category
 ff shopify seed products -d ./data --delete [--limit N]        # delete what was seeded from that data
 ff shopify model plan --store dev                              # dry-run the data-model migration (snapshot + plan)
 ff shopify model apply --store dev [--prune]                   # provision the metaobject/metafield model
@@ -81,7 +82,13 @@ through the shared [`@forgedandfound/shopify-admin-client`](../../../packages/sh
 
 Options:
 
-- `--limit N` — process at most N products.
+- `--limit N` — at most N products in total. **Spread across categories, not taken off the top**:
+  the tree is sorted by path, so a flat slice of 8 would be 8 bracelets and no rings. Categories
+  are taken one at a time in turn, so a small limit still shows you each.
+- `--per-category N` — at most N from each category. `--per-category 3` is the quickest way to
+  get a representative handful.
+- `-c, --category <id...>` — only these categories (`ring`, `necklace`, `earring`, `bracelet`).
+- `-s, --site <name...>` — only products scraped from these source sites.
 - `--status draft|active` — product status (default `draft`).
 - `--stock N` — inventory tracked and set to N available per variant (default `5`).
 - `--with-photos [N]` — also upload images (by URL, from `meta.json`); optional `N` caps how many.

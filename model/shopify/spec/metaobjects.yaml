@@ -1,0 +1,229 @@
+# Metaobject definitions — the controlled vocabularies that back every facet.
+#
+# This file IS the model (see MODEL.md for the reasoning behind it). The loader
+# validates it: refs must name a metaobject declared *earlier* in this file
+# (creation order), keys must be unique, and `ref` is required for reference
+# types and rejected elsewhere.
+#
+# Two documentation slots, deliberately different:
+#   description:  sent to Shopify — the person entering data reads this in the
+#                 admin, so it is worded for them, not for us.
+#   meta:         stays local; carried through the loader but not consumed, the
+#                 hook for doc-as-code. `meta.description` falls through to
+#                 `description` when no explicit one is given.
+
+metaobjects:
+  - type: jewellery_material
+    name: Material
+    description: The metal a piece is made from — solid gold, vermeil, plated or sterling silver.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The name customers see, e.g. "Gold Vermeil".
+        meta:
+          rationale: The storefront renders this directly; ids are never mapped in the frontend.
+      - key: description
+        name: Description
+        type: multi_line_text_field
+        description: Optional editorial copy about this material.
+
+  - type: jewellery_colour
+    name: Colour
+    description: The colour of a metal, with the swatch customers see.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The name customers see, e.g. "Rose Gold".
+      - key: swatch
+        name: Swatch
+        type: color
+        required: true
+        description: The colour shown in the swatch on the storefront.
+      - key: image
+        name: Image
+        type: file_reference
+        description: Optional swatch image. Use for textured or two-tone metals a flat colour can't show.
+
+  - type: jewellery_finish
+    name: Finish
+    description: >
+      A metal option customers choose between — material, purity and colour combined into a
+      single value, e.g. "18ct Rose Gold Vermeil". Only real combinations exist here, so an
+      impossible one can never be picked.
+    meta:
+      rationale: >
+        The composite variant axis. Collapsing material x purity x colour into one value keeps
+        metal to a single option axis and makes invalid combinations unrepresentable.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The name customers see, e.g. "18ct Rose Gold".
+      - key: material
+        name: Material
+        type: metaobject_reference
+        ref: jewellery_material
+        required: true
+        description: The metal this finish is made from.
+      - key: purity
+        name: Purity
+        type: single_line_text_field
+        choices: ["18ct", "14ct", "9ct", "925"]
+        description: The gold purity or silver standard, where it applies.
+      - key: colour
+        name: Colour
+        type: metaobject_reference
+        ref: jewellery_colour
+        description: The metal colour. Leave empty for finishes that don't vary by colour.
+      - key: swatch
+        name: Swatch
+        type: color
+        description: Optional override for the swatch. Leave empty to use the colour's own swatch.
+      - key: sort_order
+        name: Sort order
+        type: number_integer
+        description: Controls the order finishes are listed in.
+
+  - type: jewellery_size
+    name: Size
+    description: >
+      A size customers choose between — a ring size or a chain length — together with its
+      conversions. Each entry belongs to one category.
+    meta:
+      rationale: >
+        Ring size and chain length are one property, so they share a type. Unifying them is what
+        keeps metal + size to two option axes; being a metaobject is what makes conversions and
+        ordering available to the storefront.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The size customers see, e.g. "N" or "45cm".
+      - key: category
+        name: Category
+        type: single_line_text_field
+        required: true
+        choices: ["ring", "necklace", "earring", "bracelet"]
+        description: Which kind of product this size applies to. Must match the product's category.
+      - key: sort_order
+        name: Sort order
+        type: number_integer
+        description: Controls the order sizes are listed in — they must not sort alphabetically.
+      # Ring conversions
+      - key: uk
+        name: UK size
+        type: single_line_text_field
+        description: UK ring size, e.g. "N".
+      - key: us
+        name: US size
+        type: single_line_text_field
+        description: US ring size, e.g. "6.5".
+      - key: eu
+        name: EU size
+        type: single_line_text_field
+        description: EU ring size, e.g. "54".
+      # Length conversions (necklaces, bracelets)
+      - key: length_cm
+        name: Length (cm)
+        type: number_decimal
+        description: Length in centimetres, for chains and bracelets.
+      - key: length_inches
+        name: Length (inches)
+        type: number_decimal
+        description: Length in inches, for chains and bracelets.
+
+  - type: jewellery_design
+    name: Design
+    description: >
+      The physical form of a piece — Solitaire, Choker, Hoop, and so on. Each design belongs to
+      one category, so only pick designs that match the product's category.
+    meta:
+      rationale: >
+        Category scoping lives in the data because Shopify cannot show custom metafields
+        conditionally per category.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The name customers see, e.g. "Solitaire".
+      - key: category
+        name: Category
+        type: single_line_text_field
+        required: true
+        choices: ["ring", "necklace", "earring", "bracelet"]
+        description: Which kind of product this design applies to. Must match the product's category.
+      - key: description
+        name: Description
+        type: multi_line_text_field
+        description: Optional editorial copy about this design.
+
+  - type: jewellery_style
+    name: Style
+    description: >
+      The look or mood of a piece — Vintage, Chunky, Celestial. Styles cross categories and a
+      piece can have several.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The name customers see, e.g. "Vintage".
+      - key: description
+        name: Description
+        type: multi_line_text_field
+        description: Optional editorial copy about this style.
+
+  - type: jewellery_gemstone
+    name: Gemstone
+    description: A stone set into a piece — Diamond, Sapphire, Pearl, and so on.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The name customers see, e.g. "Sapphire".
+      - key: description
+        name: Description
+        type: multi_line_text_field
+        description: Optional editorial copy about this stone.
+
+  - type: jewellery_stone_shape
+    name: Stone Shape
+    description: The cut or shape of a stone — Round, Oval, Baguette, and so on.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The name customers see, e.g. "Baguette".
+
+  - type: jewellery_setting
+    name: Setting
+    description: How a stone is held in the metal — Claw, Bezel, Pavé, and so on.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The name customers see, e.g. "Bezel".
+      - key: description
+        name: Description
+        type: multi_line_text_field
+        description: Optional editorial copy about this setting.
+
+  - type: jewellery_chain_type
+    name: Chain Type
+    description: The link pattern of a chain — Curb, Belcher, Snake, and so on.
+    fields:
+      - key: label
+        name: Label
+        type: single_line_text_field
+        required: true
+        description: The name customers see, e.g. "Belcher".

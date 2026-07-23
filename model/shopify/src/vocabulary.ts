@@ -12,4 +12,8 @@ export interface VocabEntry {
 
 export type Vocabulary = Record<string, VocabEntry[]>;
 
-export const vocabulary: Vocabulary = vocabularyData.metaobjects as Vocabulary;
+// Cast through `unknown`: entries within a type are deliberately heterogeneous
+// (a ring size fills uk/us/eu, a chain length fills length_cm/length_inches), so
+// TS infers a union of object literals whose absent keys are `undefined` rather
+// than a plain Record<string, string>. Every value present at runtime is a string.
+export const vocabulary: Vocabulary = vocabularyData.metaobjects as unknown as Vocabulary;

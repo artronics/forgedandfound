@@ -31,13 +31,23 @@ export function diff(current: CurrentState, spec: Spec, opts: DiffOptions): Plan
     const currentKeys = new Set(co.fieldDefinitions.map((f) => f.key));
     const specKeys = new Set(so.fields.map((f) => f.key));
     const addFields = so.fields.filter((f) => !currentKeys.has(f.key));
+    // Existing fields: only name/description are safely updatable (type and
+    // required are identity-ish and handled as destructive elsewhere).
+    const currentByKey = new Map(co.fieldDefinitions.map((f) => [f.key, f]));
+    const updateFields = so.fields.filter((f) => {
+      const cf = currentByKey.get(f.key);
+      return cf && (cf.name !== f.name || (cf.description ?? "") !== (f.description ?? ""));
+    });
     const removeKeys = opts.prune ? co.fieldDefinitions.map((f) => f.key).filter((k) => !specKeys.has(k)) : [];
     const nameDrift = co.name !== so.name;
+    const descDrift = (co.description ?? "") !== (so.description ?? "");
 
-    if (addFields.length || removeKeys.length || nameDrift) {
+    if (addFields.length || updateFields.length || removeKeys.length || nameDrift || descDrift) {
       const reason = [
         nameDrift && "name",
+        descDrift && "description",
         addFields.length && `+${addFields.length} field(s)`,
+        updateFields.length && `~${updateFields.length} field(s)`,
         removeKeys.length && `-${removeKeys.length} field(s)`,
       ]
         .filter(Boolean)
@@ -50,7 +60,9 @@ export function diff(current: CurrentState, spec: Spec, opts: DiffOptions): Plan
         id: co.id,
         type: so.type,
         name: nameDrift ? so.name : undefined,
+        description: descDrift ? (so.description ?? "") : undefined,
         addFields,
+        updateFields,
         deleteFieldKeys: removeKeys,
       });
     }
@@ -76,9 +88,9 @@ export function diff(current: CurrentState, spec: Spec, opts: DiffOptions): Plan
   const currentMf = current.metafields.filter((m) => m.namespace === "custom");
   const currentMfByKey = new Map(currentMf.map((m) => [`${m.ownerType}:${m.key}`, m]));
   for (const sm of spec.metafields) {
-    const cm = currentMfByKey.get(`${sm.ownerType}:${sm.key}`);
+    const cm = currentMfByKey.get(`${sm.owner}:${sm.key}`);
     if (!cm) {
-      ops.push({kind: "create-metafield", class: "SAFE", resource: mfResource(sm.ownerType, sm.key), reason: "absent", spec: sm});
+      ops.push({kind: "create-metafield", class: "SAFE", resource: mfResource(sm.owner, sm.key), reason: "absent", spec: sm});
       continue;
     }
     if (cm.type.name !== sm.type) {
@@ -86,37 +98,40 @@ export function diff(current: CurrentState, spec: Spec, opts: DiffOptions): Plan
       ops.push({
         kind: "delete-metafield",
         class: "DESTRUCTIVE",
-        resource: mfResource(sm.ownerType, sm.key),
+        resource: mfResource(sm.owner, sm.key),
         reason: `type change ${cm.type.name}→${sm.type}`,
         id: cm.id,
-        ownerType: sm.ownerType,
+        owner: sm.owner,
         key: sm.key,
       });
       ops.push({
         kind: "create-metafield",
         class: "DESTRUCTIVE",
-        resource: mfResource(sm.ownerType, sm.key),
+        resource: mfResource(sm.owner, sm.key),
         reason: `recreate as ${sm.type}`,
         spec: sm,
       });
       continue;
     }
-    if (cm.name !== sm.name) {
+    const nameDrift = cm.name !== sm.name;
+    const descDrift = (cm.description ?? "") !== (sm.description ?? "");
+    if (nameDrift || descDrift) {
       ops.push({
         kind: "update-metafield",
         class: "SAFE",
-        resource: mfResource(sm.ownerType, sm.key),
-        reason: "name drift",
-        ownerType: sm.ownerType,
+        resource: mfResource(sm.owner, sm.key),
+        reason: [nameDrift && "name", descDrift && "description"].filter(Boolean).join(", ") + " drift",
+        owner: sm.owner,
         key: sm.key,
-        name: sm.name,
+        ...(nameDrift ? {name: sm.name} : {}),
+        ...(descDrift ? {description: sm.description ?? ""} : {}),
       });
     }
   }
 
   // --- Metafields: prune (managed custom, present, not in spec) ---
   if (opts.prune) {
-    const specKeys = new Set(spec.metafields.map((m) => `${m.ownerType}:${m.key}`));
+    const specKeys = new Set(spec.metafields.map((m) => `${m.owner}:${m.key}`));
     for (const cm of currentMf) {
       if (specKeys.has(`${cm.ownerType}:${cm.key}`)) continue;
       ops.push({
@@ -125,7 +140,7 @@ export function diff(current: CurrentState, spec: Spec, opts: DiffOptions): Plan
         resource: mfResource(cm.ownerType, cm.key),
         reason: "not in spec",
         id: cm.id,
-        ownerType: cm.ownerType as OwnerType,
+        owner: cm.ownerType as OwnerType,
         key: cm.key,
       });
     }

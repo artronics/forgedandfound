@@ -10,6 +10,7 @@ import type {MetafieldValidation, MetafieldValidationInput} from "./metafield-de
 export interface MetaobjectFieldDefinitionNode {
   key: string;
   name: string;
+  description: string | null;
   type: {name: string};
   required: boolean;
   validations: MetafieldValidation[];
@@ -19,6 +20,7 @@ export interface MetaobjectDefinitionNode {
   id: string;
   type: string;
   name: string;
+  description: string | null;
   fieldDefinitions: MetaobjectFieldDefinitionNode[];
   access: {storefront: string | null};
 }
@@ -27,9 +29,9 @@ const LIST = `
 query MetaobjectDefs($first: Int!, $after: String) {
   metaobjectDefinitions(first: $first, after: $after) {
     nodes {
-      id type name
+      id type name description
       access { storefront }
-      fieldDefinitions { key name type { name } required validations { name value } }
+      fieldDefinitions { key name description type { name } required validations { name value } }
     }
     pageInfo { hasNextPage endCursor }
   }
@@ -67,6 +69,7 @@ export interface MetaobjectFieldDefinitionInput {
 export interface CreateMetaobjectDefinitionInput {
   type: string;
   name: string;
+  description?: string;
   access?: {storefront?: "PUBLIC_READ" | "NONE"};
   capabilities?: {publishable?: {enabled: boolean}};
   fieldDefinitions: MetaobjectFieldDefinitionInput[];
@@ -100,12 +103,13 @@ export async function createMetaobjectDefinition(
 // create/update/delete per entry.
 export interface MetaobjectFieldOperationInput {
   create?: MetaobjectFieldDefinitionInput;
-  update?: {key: string; name?: string; required?: boolean; validations?: MetafieldValidationInput[]};
+  update?: {key: string; name?: string; description?: string; required?: boolean; validations?: MetafieldValidationInput[]};
   delete?: {key: string};
 }
 
 export interface UpdateMetaobjectDefinitionInput {
   name?: string;
+  description?: string;
   access?: {storefront?: "PUBLIC_READ" | "NONE"};
   fieldDefinitions?: MetaobjectFieldOperationInput[];
 }
@@ -193,6 +197,63 @@ export async function listMetaobjects(type: string): Promise<{id: string; handle
   while (hasNext) {
     const data: MetaobjectsPage = await shopifyAdminFetch(LIST_ENTRIES, {type, first: 250, after});
     out.push(...data.metaobjects.nodes);
+    hasNext = data.metaobjects.pageInfo.hasNextPage;
+    after = data.metaobjects.pageInfo.endCursor;
+  }
+  return out;
+}
+
+export interface MetaobjectEntry {
+  id: string;
+  handle: string;
+  /** Field key → value. Reference fields resolve to the referenced entry's
+   * handle rather than its GID, so callers can match on model handles. */
+  fields: Record<string, string>;
+}
+
+interface EntriesPage {
+  metaobjects: {
+    nodes: {
+      id: string;
+      handle: string;
+      fields: {key: string; value: string | null; reference: {handle?: string} | null}[];
+    }[];
+    pageInfo: {hasNextPage: boolean; endCursor: string | null};
+  };
+}
+
+const LIST_ENTRIES_WITH_FIELDS = `
+query MetaobjectEntries($type: String!, $first: Int!, $after: String) {
+  metaobjects(type: $type, first: $first, after: $after) {
+    nodes {
+      id
+      handle
+      fields { key value reference { ... on Metaobject { handle } } }
+    }
+    pageInfo { hasNextPage endCursor }
+  }
+}`;
+
+/** All entries of a type with their field values — for matching source data
+ * against a curated vocabulary. */
+export async function listMetaobjectEntries(type: string): Promise<MetaobjectEntry[]> {
+  const out: MetaobjectEntry[] = [];
+  let after: string | null = null;
+  let hasNext = true;
+  while (hasNext) {
+    const data: EntriesPage = await shopifyAdminFetch(LIST_ENTRIES_WITH_FIELDS, {
+      type,
+      first: 250,
+      after,
+    });
+    for (const node of data.metaobjects.nodes) {
+      const fields: Record<string, string> = {};
+      for (const f of node.fields) {
+        const value = f.reference?.handle ?? f.value;
+        if (value != null && value !== "") fields[f.key] = value;
+      }
+      out.push({id: node.id, handle: node.handle, fields});
+    }
     hasNext = data.metaobjects.pageInfo.hasNextPage;
     after = data.metaobjects.pageInfo.endCursor;
   }

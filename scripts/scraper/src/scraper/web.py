@@ -18,43 +18,76 @@ from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from .config import REQUEST_DELAY_SECONDS, RETRY_STATUS, USER_AGENT
+from .config import (
+    CDN_DELAY_SECONDS,
+    CDN_HOSTS,
+    GLOBAL_DELAY_SECONDS,
+    REQUEST_DELAY_SECONDS,
+    RETRY_STATUS,
+    USER_AGENT,
+)
 
 log = logging.getLogger("scraper.web")
 
 
-class _HostThrottle:
-    """Enforce a minimum interval between requests to each host, without
-    blocking requests to other hosts. Reserving the next slot is done under a
-    lock; the (possibly) blocking sleep happens outside it."""
+class _Throttle:
+    """Space requests out per host *and* overall.
 
-    def __init__(self, min_interval: float):
-        self.min_interval = min_interval
+    The per-host interval is what keeps us polite to any one shop; the global
+    one exists because Shopify storefronts and their CDN share rate limiting by
+    client IP, so nine well-behaved producers still add up to one impolite
+    client. Slots are reserved under a lock and the blocking sleep happens
+    outside it, so threads queue rather than pile up.
+    """
+
+    def __init__(self, per_host: float, global_gap: float):
+        self.per_host = per_host
+        self.global_gap = global_gap
         self._lock = threading.Lock()
         self._next: dict[str, float] = {}
+        self._next_any = 0.0
 
     def wait(self, host: str) -> None:
+        cdn = host.endswith(CDN_HOSTS)
         with self._lock:
             now = time.monotonic()
-            slot = max(now, self._next.get(host, 0.0))
-            self._next[host] = slot + self.min_interval
+            floor = 0.0 if cdn else self._next_any
+            slot = max(now, self._next.get(host, 0.0), floor)
+            self._next[host] = slot + (CDN_DELAY_SECONDS if cdn else self.per_host)
+            if not cdn:
+                self._next_any = slot + self.global_gap
         delay = slot - time.monotonic()
         if delay > 0:
             time.sleep(delay)
 
+    def penalise(self, host: str, seconds: float) -> None:
+        """After a 429, hold the whole client back — the limit is rarely just
+        for the host that reported it."""
+        with self._lock:
+            now = time.monotonic()
+            self._next[host] = max(self._next.get(host, 0.0), now + seconds)
+            self._next_any = max(self._next_any, now + seconds / 2)
 
-_throttle = _HostThrottle(REQUEST_DELAY_SECONDS)
+
+_throttle = _Throttle(REQUEST_DELAY_SECONDS, GLOBAL_DELAY_SECONDS)
 
 
-def fetch(url: str, attempts: int = 4) -> requests.Response:
-    """GET, throttled per host, with backoff on rate limiting (429/5xx)."""
+def fetch(url: str, attempts: int = 5) -> requests.Response:
+    """GET, throttled per host, backing off exponentially on rate limiting.
+
+    Smaller shops throttle hard, and a listing request costs us a whole category
+    if it fails, so we wait rather than give up — honouring `Retry-After` when
+    the server tells us how long.
+    """
     host = urlparse(url).netloc
     for attempt in range(1, attempts + 1):
         _throttle.wait(host)
         resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=30)
         if resp.status_code in RETRY_STATUS and attempt < attempts:
-            wait = 5 * attempt
-            log.info("  got %d for %s, retrying in %ds", resp.status_code, url, wait)
+            retry_after = resp.headers.get("Retry-After")
+            wait = float(retry_after) if (retry_after or "").isdigit() else min(90, 8 * 2 ** (attempt - 1))
+            log.info("  got %d for %s, retrying in %gs", resp.status_code, url, wait)
+            _throttle.penalise(host, wait)
             time.sleep(wait)
             continue
         resp.raise_for_status()
@@ -62,12 +95,28 @@ def fetch(url: str, attempts: int = 4) -> requests.Response:
     raise AssertionError("unreachable")
 
 
-def collection_products(site: dict, category: str, limit: int) -> list[dict]:
-    """Full Shopify product objects for a category, in collection order."""
-    handle = site["collections"][category]
-    url = urljoin(site["base_url"], f"/collections/{handle}/products.json?limit={limit}")
-    log.info("Fetching %s", url)
-    return fetch(url).json().get("products", [])[:limit]
+def collection_products(site, category: str, budget: int, max_pages: int, page_size: int = 100):
+    """Yield full Shopify product objects for a category, in collection order.
+
+    Pages lazily: strict filtering rejects most of what a collection lists, so we
+    have to look at far more products than we keep — but only as far as the
+    caller actually consumes, and never past `budget` candidates or `max_pages`
+    requests.
+    """
+    handle = site.collections[category]
+    seen = 0
+    for page in range(1, max_pages + 1):
+        url = urljoin(site.base_url,
+                      f"/collections/{handle}/products.json?limit={page_size}&page={page}")
+        log.info("Fetching %s", url)
+        products = fetch(url).json().get("products", [])
+        if not products:
+            return
+        for raw in products:
+            yield raw
+            seen += 1
+            if seen >= budget:
+                return
 
 
 def html_to_text(html: str) -> str:

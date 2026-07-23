@@ -81,10 +81,14 @@ async function execute(op: PlannedOp, typeToGid: Map<string, string>): Promise<v
     case "update-metaobject": {
       const fieldOps: MetaobjectFieldOperationInput[] = [
         ...op.addFields.map((f) => ({create: fieldInput(f, typeToGid)})),
+        ...op.updateFields.map((f) => ({
+          update: {key: f.key, name: f.name, ...(f.description ? {description: f.description} : {})},
+        })),
         ...op.deleteFieldKeys.map((key) => ({delete: {key}})),
       ];
       await updateMetaobjectDefinition(op.id, {
         ...(op.name ? {name: op.name} : {}),
+        ...(op.description ? {description: op.description} : {}),
         ...(fieldOps.length ? {fieldDefinitions: fieldOps} : {}),
       });
       return;
@@ -99,7 +103,7 @@ async function execute(op: PlannedOp, typeToGid: Map<string, string>): Promise<v
       await updateMetafieldDefinition({
         namespace: "custom",
         key: op.key,
-        ownerType: op.ownerType,
+        ownerType: op.owner,
         ...(op.name ? {name: op.name} : {}),
         ...(op.description ? {description: op.description} : {}),
       });
@@ -121,7 +125,7 @@ function refValidation(refType: string, typeToGid: Map<string, string>): Metafie
 
 function fieldInput(f: SpecField, typeToGid: Map<string, string>): MetaobjectFieldDefinitionInput {
   const validations: MetafieldValidationInput[] = [];
-  if (f.refType) validations.push(refValidation(f.refType, typeToGid));
+  if (f.ref) validations.push(refValidation(f.ref, typeToGid));
   if (f.choices) validations.push({name: "choices", value: JSON.stringify(f.choices)});
   return {
     key: f.key,
@@ -137,6 +141,7 @@ function metaobjectInput(s: SpecMetaobject, typeToGid: Map<string, string>): Cre
   return {
     type: s.type,
     name: s.name,
+    ...(s.description ? {description: s.description} : {}),
     access: {storefront: "PUBLIC_READ"},
     capabilities: {publishable: {enabled: true}},
     fieldDefinitions: s.fields.map((f) => fieldInput(f, typeToGid)),
@@ -145,13 +150,14 @@ function metaobjectInput(s: SpecMetaobject, typeToGid: Map<string, string>): Cre
 
 function metafieldInput(s: SpecMetafield, typeToGid: Map<string, string>): CreateMetafieldDefinitionInput {
   const validations: MetafieldValidationInput[] = [];
-  if (s.refType) validations.push(refValidation(s.refType, typeToGid));
+  if (s.ref) validations.push(refValidation(s.ref, typeToGid));
   return {
     name: s.name,
     namespace: "custom",
     key: s.key,
     type: s.type,
-    ownerType: s.ownerType,
+    ownerType: s.owner,
+    ...(s.description ? {description: s.description} : {}),
     access: {storefront: "PUBLIC_READ"},
     pin: s.pin ?? false,
     ...(validations.length ? {validations} : {}),

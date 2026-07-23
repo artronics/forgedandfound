@@ -88,7 +88,7 @@ material/purity/colour selectors. This is *simpler* than the old multi-facet han
 ### Denormalised filters
 Collection filtering reads **product-level** metafields, so material/metal-colour/purity are
 denormalised onto the product (`custom.material` / `custom.metal_colour` / `custom.purity`) in
-addition to living inside each finish (MODEL.md §8). The storefront filters on those product
+addition to living inside each finish (MODEL.md §7). The storefront filters on those product
 metafields; the finish drives *variant selection*. Enabling/ordering the filter UI is a
 **Search & Discovery** app step (manual) — the definitions already have storefront access.
 

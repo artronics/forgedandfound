@@ -31,7 +31,7 @@ function referenceFieldMap(): Map<string, Map<string, string>> {
   const byType = new Map<string, Map<string, string>>();
   for (const mo of spec.metaobjects) {
     const refs = new Map<string, string>();
-    for (const f of mo.fields) if (f.refType) refs.set(f.key, f.refType);
+    for (const f of mo.fields) if (f.ref) refs.set(f.key, f.ref);
     byType.set(mo.type, refs);
   }
   return byType;
