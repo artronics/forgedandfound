@@ -1,0 +1,45 @@
+# The facet vocabularies: every metaobject entry's handle -> gid, per facet.
+#
+# Filter links carry HANDLES (spec/menu.yaml convention — portable across
+# stores), but the Storefront filter engine wants metaobject GIDs. This one
+# query resolves the whole vocabulary (~60 entries) server-side so the
+# collection page can translate in both directions.
+
+query GetFacetEntries {
+    design: metaobjects(type: "jewellery_design", first: 100) {
+        nodes {
+            handle
+            id
+        }
+    }
+    style: metaobjects(type: "jewellery_style", first: 50) {
+        nodes {
+            handle
+            id
+        }
+    }
+    finish: metaobjects(type: "jewellery_finish", first: 50) {
+        nodes {
+            handle
+            id
+        }
+    }
+    material: metaobjects(type: "jewellery_material", first: 50) {
+        nodes {
+            handle
+            id
+        }
+    }
+    metal_colour: metaobjects(type: "jewellery_colour", first: 50) {
+        nodes {
+            handle
+            id
+        }
+    }
+    size: metaobjects(type: "jewellery_size", first: 100) {
+        nodes {
+            handle
+            id
+        }
+    }
+}

@@ -11,8 +11,7 @@ import {Spinner} from "@/components/ui/spinner";
 import {Skeleton} from "@/components/ui/skeleton";
 import {Price, Text} from "@/components/typography";
 import {useVariantPrice} from "@/lib/product/useVariantPrice";
-import {VariantModel} from "@/lib/model";
-import {useCandidateVariant} from "@/lib/product/useCandidateVariant";
+import {toVariant} from "@/lib/product/variant";
 
 type CartItemProps = {
   lineFragment: FragmentType<typeof CartLine_CartLineFragmentDoc>;
@@ -20,14 +19,14 @@ type CartItemProps = {
 
 export function CartLine({lineFragment}: CartItemProps) {
   const line = useFragment(CartLine_CartLineFragmentDoc, lineFragment);
-  const variant = useFragment(Variant_ProductVariantFragmentDoc, line?.merchandise);
-  const candidateVariant = useCandidateVariant(variant);
+  const raw = useFragment(Variant_ProductVariantFragmentDoc, line?.merchandise);
+  const variant = raw ? toVariant(raw) : null;
 
-  const productTitle = variant?.product.title;
-  const finishLabel = VariantModel.getVariantLabel(candidateVariant);
-  const image = variant?.image;
-  const size = VariantModel.getSizeOption(variant);
-  const {price, compareAtPrice} = useVariantPrice(variant);
+  const productTitle = raw?.product.title;
+  const finishLabel = variant?.finishLabel;
+  const image = raw?.image;
+  const size = variant?.sizeLabel;
+  const {price, compareAtPrice} = useVariantPrice(variant ?? []);
 
   const {quantity, isMaxStocked, loading, inc, dec, remove} = useCartLineActions(line);
 

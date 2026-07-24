@@ -42,65 +42,20 @@ query GetShopPolicies {
     }
 }
 
+# The nav is entirely the seeded menu resource (spec/menu.yaml): three levels of
+# title + url. What an item *is* (collection link, filter link, heading) is
+# already encoded in its url — no resources or metafields to walk.
 query GetMenu {
     menu(handle: "main-menu") {
-        main: items {
+        items {
             title
             url
-            resource {
-                ... on Collection {
-                    id
-                    handle
-                    description
-                    image {
-                        url
-                        altText
-                        width
-                        height
-                    }
-                }
-            }
-            filters: items {
+            items {
                 title
+                url
                 items {
-                    url
                     title
-                    resource {
-                        ... on Collection {
-                            id
-                            metafield(key: "styles", namespace: "custom") {
-                                value
-                                references(first: 32) {
-                                    edges {
-                                        node {
-                                            ... on Metaobject {
-                                                id
-                                                handle
-                                                type
-                                                fields {
-                                                    key
-                                                    references(first: 4) {
-                                                        edges {
-                                                            node {
-                                                                ... on MediaImage {
-                                                                    image {
-                                                                        url
-                                                                        altText
-                                                                        width
-                                                                        height
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    url
                 }
             }
         }

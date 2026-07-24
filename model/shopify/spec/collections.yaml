@@ -100,6 +100,93 @@ collections:
       category: necklace
       design: lariat
 
+  # --- Rings by design --------------------------------------------------------
+  - id: ring-bands
+    title: Bands
+    description: Plain and patterned bands, worn alone or stacked.
+    all:
+      category: ring
+      design: band
+
+  - id: ring-solitaires
+    title: Solitaires
+    description: Rings built around a single stone.
+    all:
+      category: ring
+      design: solitaire
+
+  - id: ring-cocktail
+    title: Cocktail
+    description: Statement rings with presence.
+    all:
+      category: ring
+      design: cocktail
+
+  - id: ring-stacking
+    title: Stacking
+    description: Slim rings made to be worn together.
+    all:
+      category: ring
+      design: stacking
+
+  # --- Earrings by design -----------------------------------------------------
+  - id: earring-hoops
+    title: Hoops
+    description: Hoops in every weight, from fine to bold.
+    all:
+      category: earring
+      design: hoop
+
+  - id: earring-studs
+    title: Studs
+    description: Single-point earrings that sit on the lobe.
+    all:
+      category: earring
+      design: stud
+
+  - id: earring-huggies
+    title: Huggies
+    description: Small hoops that hug the lobe.
+    all:
+      category: earring
+      design: huggie
+
+  - id: earring-drops
+    title: Drops
+    description: Earrings that fall below the lobe.
+    all:
+      category: earring
+      design: drop
+
+  # --- Bracelets by design ----------------------------------------------------
+  - id: bracelet-chains
+    title: Chain Bracelets
+    description: Bracelets worn as a chain.
+    all:
+      category: bracelet
+      design: chain-bracelet
+
+  - id: bracelet-bangles
+    title: Bangles
+    description: Rigid bracelets that slip over the hand.
+    all:
+      category: bracelet
+      design: bangle
+
+  - id: bracelet-cuffs
+    title: Cuffs
+    description: Open rigid bracelets.
+    all:
+      category: bracelet
+      design: cuff
+
+  - id: bracelet-tennis
+    title: Tennis Bracelets
+    description: Continuous lines of set stones.
+    all:
+      category: bracelet
+      design: tennis-bracelet
+
   # --- Cross-category finish --------------------------------------------------
   # `any` is legitimate here precisely BECAUSE there is no category rule to AND
   # against: this is one page spanning every category. Adding `category` to an

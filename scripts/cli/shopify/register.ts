@@ -2,7 +2,7 @@ import {Command} from "commander";
 
 import {getAdminToken} from "./get-admin-token.ts";
 import {modelApply, modelCollections, modelPlan, modelSeedEntries} from "./model.ts";
-import {deleteSeeded, publishSeeded, seedProducts} from "./seed/index.ts";
+import {deleteSeeded, photosSeeded, publishSeeded, seedProducts} from "./seed/index.ts";
 
 /** Wire up `ff shopify ...`. Commands live one-per-file under this directory and
  * are registered here (in-process), so they share the env/token/GraphQL client. */
@@ -32,6 +32,14 @@ export function registerShopify(program: Command): void {
     .option("--publication <name>", "sales channel to publish to (default: the store's configured one)")
     .option("--no-publish", "create without publishing to a sales channel")
     .action((opts) => (opts.delete ? deleteSeeded(opts) : seedProducts(opts)));
+
+  seed
+    .command("photos")
+    .description("Upload scraped photos to already-seeded products (repairs an imageless catalogue)")
+    .requiredOption("-d, --dir <path>", "data directory (reads its seed-lock.json)")
+    .option("--with-photos [n]", "optional n limits how many photos per product")
+    .option("--dry-run", "list what would be uploaded, without calling Shopify")
+    .action(photosSeeded);
 
   seed
     .command("publish")

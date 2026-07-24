@@ -1,120 +1,70 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {useState} from "react";
 import {cn} from "@/lib/utils";
 import {Button} from "@/components/ui/button";
 import {Separator} from "@/components/ui/separator";
-import {type Menu as MenuEntry, type MenuImage, type MenuItem} from "@/lib/menu/menu";
-import {CyclingImage} from "@/components/navbar/CyclingImage";
+import {type Menu as MenuEntry, type MenuGroup} from "@/lib/menu/menu";
 
-type NonNullMenuImage = NonNullable<MenuImage>;
-
-function MenuColumn(
-  {
-    heading,
-    items,
-    onItemHover,
-  }: {
-    heading: string;
-    items: MenuItem[];
-    onItemHover: (images: NonNullMenuImage[] | null) => void;
-  }) {
+function MenuColumn({group}: { group: MenuGroup }) {
   return (
     <div className="flex flex-col gap-2.5">
-      <p className="title-xs text-ring">{heading}</p>
+      {group.label && <p className="title-xs text-ring">{group.label}</p>}
       <ul className="flex flex-col gap-0.5">
-        {items.map(item => {
-          const images = (item.image ?? []).filter(
-            (img): img is NonNullMenuImage => img !== null,
-          );
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                onMouseEnter={() => onItemHover(images.length > 0 ? images : null)}
-                onMouseLeave={() => onItemHover(null)}
-                className="block py-1 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
-              >
-                {item.label}
-              </Link>
-            </li>
-          );
-        })}
+        {group.items.map(item => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              className="block py-1 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
+            >
+              {item.label}
+            </Link>
+          </li>
+        ))}
       </ul>
     </div>
   );
 }
 
-function FeaturedImage(
-  {
-    defaultImage,
-    hoveredImages,
-  }: {
-    defaultImage: NonNullMenuImage;
-    hoveredImages: NonNullMenuImage[] | null;
-  }) {
-  return (
-    <div className="aspect-3/4 w-40 overflow-hidden bg-muted">
-      {hoveredImages ? (
-        <CyclingImage images={hoveredImages} className="w-full h-full object-cover"/>
-      ) : (
-        <Image
-          src={defaultImage.url}
-          alt={defaultImage.altText ?? ""}
-          width={defaultImage.width ?? 400}
-          height={defaultImage.height ?? 400}
-          className="w-full h-full object-cover"
-        />
-      )}
-    </div>
-  );
-}
-
 function MegaMenuPanel({menuItem}: { menuItem: MenuEntry }) {
-  const defaultImage = menuItem.image ?? null;
-  const [hoveredImages, setHoveredImages] = useState<NonNullMenuImage[] | null>(null);
-
   return (
-    <div
-      className="flex gap-10 px-2 justify-self-center py-8 w-full max-w-7xl"
-      onMouseLeave={() => setHoveredImages(null)}
-    >
+    <div className="flex gap-10 px-2 justify-self-center py-8 w-full max-w-7xl">
       <div className="flex flex-col gap-2 min-w-30">
-        <Link
-          href={menuItem.href}
-          className="text-3xl font-serif text-foreground hover:text-secondary transition-colors duration-150"
-        >
-          {menuItem.label}
-        </Link>
-        <Link
-          href={menuItem.href}
-          className="title-xs text-ring hover:surface-foreground transition-colors duration-150"
-        >
-          View all →
-        </Link>
+        {menuItem.href === "#" ? (
+          <span className="text-3xl font-serif text-foreground">{menuItem.label}</span>
+        ) : (
+          <>
+            <Link
+              href={menuItem.href}
+              className="text-3xl font-serif text-foreground hover:text-secondary transition-colors duration-150"
+            >
+              {menuItem.label}
+            </Link>
+            <Link
+              href={menuItem.href}
+              className="title-xs text-ring hover:surface-foreground transition-colors duration-150"
+            >
+              View all →
+            </Link>
+          </>
+        )}
       </div>
 
       <Separator orientation="vertical"/>
 
       <div className="flex gap-10">
         {menuItem.groups.map(group => (
-          <MenuColumn
-            key={group.label}
-            heading={group.label}
-            items={group.items}
-            onItemHover={setHoveredImages}
-          />
+          <MenuColumn key={group.label} group={group}/>
         ))}
       </div>
 
-      {defaultImage && (
-        <>
-          <div className="ml-auto w-px shrink-0 bg-border"/>
-          <FeaturedImage defaultImage={defaultImage} hoveredImages={hoveredImages}/>
-        </>
-      )}
+      {/* Reserved slot for a featured product image per collection (later fed
+          by a collection metafield). A quiet block for now. */}
+      <div className="ml-auto flex gap-10">
+        <div className="w-px shrink-0 bg-border"/>
+        <div className="aspect-3/4 w-40 bg-muted"/>
+      </div>
     </div>
   );
 }
@@ -135,13 +85,14 @@ export function DesktopNav({menu, className}: { menu: MenuEntry[], className?: s
               "title-lg px-2 xl:px-4 hover:bg-transparent",
               activeLabel === item.label && "text-primary",
             )}
+            asChild={item.href !== "#"}
           >
-            {item.label}
+            {item.href === "#" ? item.label : <Link href={item.href}>{item.label}</Link>}
           </Button>
         ))}
       </nav>
 
-      {activeItem && (
+      {activeItem && activeItem.groups.length > 0 && (
         <div
           onMouseEnter={() => setActiveLabel(activeItem.label)}
           onMouseLeave={() => setActiveLabel(null)}

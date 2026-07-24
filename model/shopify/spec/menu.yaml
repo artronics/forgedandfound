@@ -89,32 +89,166 @@ menus:
 
           - title: By Style
             items:
-              - title: Minimalist
+              - title: Dainty
                 collection: necklaces
                 filters:
-                  style: [minimalist]
+                  style: [dainty]
               - title: Chunky
                 collection: necklaces
                 filters:
                   style: [chunky]
-
-          # The node that has no smart-collection equivalent at all:
-          # finish AND design AND (tag OR tag) mixes AND with OR.
-          - title: New Arrivals
-            collection: necklaces
-            filters:
-              finish: [gold-vermeil-yellow]
-              design: [chain]
-              tag: [new-in, ss26]
+              - title: Talisman
+                collection: necklaces
+                filters:
+                  style: [talisman]
+              - title: Everyday
+                collection: necklaces
+                filters:
+                  style: [everyday]
 
       - title: Rings
         collection: rings
+        items:
+          - title: By Design
+            items:
+              - title: Bands
+                collection: ring-bands
+              - title: Solitaires
+                collection: ring-solitaires
+              - title: Cocktail
+                collection: ring-cocktail
+              - title: Stacking
+                collection: ring-stacking
+
+          - title: By Finish
+            items:
+              - title: Gold Vermeil
+                collection: rings
+                filters:
+                  finish: [gold-vermeil-yellow, gold-vermeil-rose]
+              - title: Sterling Silver
+                collection: rings
+                filters:
+                  finish: [sterling-silver]
+              - title: Solid Gold
+                collection: rings
+                filters:
+                  finish: [solid-gold-18ct-yellow, solid-gold-18ct-white, solid-gold-18ct-rose, solid-gold-14ct-yellow, solid-gold-9ct-yellow]
+
+          - title: By Style
+            items:
+              - title: Classic
+                collection: rings
+                filters:
+                  style: [classic]
+              - title: Romantic
+                collection: rings
+                filters:
+                  style: [romantic]
+              - title: Chunky
+                collection: rings
+                filters:
+                  style: [chunky]
+              - title: Minimalist
+                collection: rings
+                filters:
+                  style: [minimalist]
 
       - title: Earrings
         collection: earrings
+        items:
+          - title: By Design
+            items:
+              - title: Hoops
+                collection: earring-hoops
+              - title: Studs
+                collection: earring-studs
+              - title: Huggies
+                collection: earring-huggies
+              - title: Drops
+                collection: earring-drops
+
+          - title: By Finish
+            items:
+              - title: Gold Vermeil
+                collection: earrings
+                filters:
+                  finish: [gold-vermeil-yellow, gold-vermeil-rose]
+              - title: Sterling Silver
+                collection: earrings
+                filters:
+                  finish: [sterling-silver]
+              - title: Solid Gold
+                collection: earrings
+                filters:
+                  finish: [solid-gold-18ct-yellow, solid-gold-14ct-yellow, solid-gold-9ct-yellow]
+
+          - title: By Style
+            items:
+              - title: Dainty
+                collection: earrings
+                filters:
+                  style: [dainty]
+              - title: Classic
+                collection: earrings
+                filters:
+                  style: [classic]
+              - title: Minimalist
+                collection: earrings
+                filters:
+                  style: [minimalist]
+              - title: Romantic
+                collection: earrings
+                filters:
+                  style: [romantic]
 
       - title: Bracelets
         collection: bracelets
+        items:
+          - title: By Design
+            items:
+              - title: Chain Bracelets
+                collection: bracelet-chains
+              - title: Bangles
+                collection: bracelet-bangles
+              - title: Cuffs
+                collection: bracelet-cuffs
+              - title: Tennis Bracelets
+                collection: bracelet-tennis
+
+          - title: By Finish
+            items:
+              - title: Gold Vermeil
+                collection: bracelets
+                filters:
+                  finish: [gold-vermeil-yellow, gold-vermeil-rose]
+              - title: Sterling Silver
+                collection: bracelets
+                filters:
+                  finish: [sterling-silver]
+              - title: Solid Gold
+                collection: bracelets
+                filters:
+                  finish: [solid-gold-18ct-yellow, solid-gold-14ct-yellow, solid-gold-9ct-yellow]
+
+          - title: By Style
+            items:
+              - title: Romantic
+                collection: bracelets
+                filters:
+                  style: [romantic]
+              - title: Classic
+                collection: bracelets
+                filters:
+                  style: [classic]
+              - title: Chunky
+                collection: bracelets
+                filters:
+                  style: [chunky]
+              - title: Everyday
+                collection: bracelets
+                filters:
+                  style: [everyday]
 
       # Cross-category pages: these ARE collections (no category rule to fight
       # with), so they link straight to the resource.

@@ -3,6 +3,70 @@
 # VariantSelector_Product and Variant_ProductVariant are the two fragments that
 # earn their keep: they are shared across product, collection, search, wishlist
 # and cart documents, and useVariantSelector/CartLine rely on their masked types.
+#
+# VariantMeta_ProductVariant carries the model bindings (MODEL.md): each variant
+# references a jewellery_finish (material/purity/colour composite) and a
+# jewellery_size metaobject. These are the source of truth for what a variant
+# *is* — option strings are only a display fallback for unresolved finishes.
+
+fragment VariantMeta_ProductVariant on ProductVariant {
+    finish: metafield(namespace: "custom", key: "finish") {
+        reference {
+            ... on Metaobject {
+                handle
+                label: field(key: "label") {
+                    value
+                }
+                purity: field(key: "purity") {
+                    value
+                }
+                material: field(key: "material") {
+                    reference {
+                        ... on Metaobject {
+                            handle
+                            label: field(key: "label") {
+                                value
+                            }
+                        }
+                    }
+                }
+                colour: field(key: "colour") {
+                    reference {
+                        ... on Metaobject {
+                            handle
+                            label: field(key: "label") {
+                                value
+                            }
+                            image: field(key: "image") {
+                                reference {
+                                    ... on MediaImage {
+                                        image {
+                                            url
+                                            altText
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    size: metafield(namespace: "custom", key: "size") {
+        reference {
+            ... on Metaobject {
+                handle
+                label: field(key: "label") {
+                    value
+                }
+                sortOrder: field(key: "sort_order") {
+                    value
+                }
+            }
+        }
+    }
+}
 
 fragment VariantSelector_Product on Product {
     id
@@ -46,6 +110,7 @@ fragment VariantSelector_Product on Product {
                     name
                     value
                 }
+                ...VariantMeta_ProductVariant
             }
         }
     }
@@ -86,6 +151,7 @@ fragment Variant_ProductVariant on ProductVariant {
         name
         value
     }
+    ...VariantMeta_ProductVariant
 }
 
 query GetProductByHandle($id: ID, $handle: String, $variantFirst: Int = 32, $imageFirst: Int = 12) {
@@ -116,25 +182,5 @@ query GetProductByHandle($id: ID, $handle: String, $variantFirst: Int = 32, $ima
             }
         }
         ...VariantSelector_Product
-    }
-}
-
-query GetProductMetafields($productId: ID, $identifiers: [HasMetafieldsIdentifier!]!) {
-    product(id: $productId) {
-        id
-        metafields(identifiers: $identifiers) {
-            references(first: 8) {
-                nodes {
-                    ... on Metaobject {
-                        id
-                        type
-                        fields {
-                            key
-                            value
-                        }
-                    }
-                }
-            }
-        }
     }
 }

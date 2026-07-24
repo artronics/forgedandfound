@@ -94,8 +94,9 @@ query GetProductByHanle($handle: String) {
 GRAPHQL {{gqlUrl}}
 X-Shopify-Storefront-Access-Token: {{storefront_pubic_access_token}}
 
-query GetProductByHanle {
-    product(handle: "necklace-1") {
+query GetProductBy {
+    product(id: "gid://shopify/Product/10964523647313") {
+#   product(handle: "necklace-1") {
         id
         title
         handle

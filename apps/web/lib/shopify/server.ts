@@ -2,6 +2,7 @@ import {HttpLink} from "@apollo/client";
 import {ApolloClient, InMemoryCache, registerApolloClient} from "@apollo/client-integration-nextjs";
 import {shopify} from "@/lib/env";
 import {
+  GetFacetEntriesDocument,
   GetMenuDocument,
   GetProductByHandleDocument,
   GetProductByHandleQuery,
@@ -11,6 +12,7 @@ import {
   GetShopQuery,
 } from "@/graphql/generated/graphql";
 import {buildMenu, Menu} from "@/lib/menu/menu";
+import {buildVocab, FacetVocab} from "@/lib/catalog/facets";
 
 // Storefront Apollo client for React Server Components. The browser client
 // lives in lib/shopify/client/storefront-client.ts.
@@ -51,6 +53,12 @@ export type Policy = GetShopPoliciesQuery["shop"][PolicyKind];
 export async function getPolicy(kind: PolicyKind): Promise<Policy> {
   const {data} = await query({query: GetShopPoliciesDocument});
   return data?.shop[kind] ?? null;
+}
+
+/** The facet vocabulary (handle <-> gid per facet), for filter-link URLs. */
+export async function getFacetVocab(): Promise<FacetVocab> {
+  const {data} = await query({query: GetFacetEntriesDocument});
+  return data ? buildVocab(data) : {};
 }
 
 export async function getProduct(handle: string): Promise<GetProductByHandleQuery["product"]> {

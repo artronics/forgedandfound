@@ -1,118 +1,67 @@
 import {GetMenuQuery} from "@/graphql/generated/graphql";
 
-export type MenuImage = {
-  url: string;
-  altText: string | null;
-  width: number | null;
-  height: number | null;
-} | null;
+// The nav domain: a straight read of the seeded menu (model/shopify/spec/
+// menu.yaml). Top-level items are the nav entries; their children are the
+// mega-menu columns ("By Design", "By Style", …); grandchildren are the links.
+// Filter links arrive as ordinary urls carrying ?facet=handle params — the
+// collection page interprets those (lib/catalog), not the menu.
 
-export interface MenuItem {
+export interface MenuLink {
   label: string;
   href: string;
-  image: MenuImage[] | null;
 }
 
-export interface FilterGroup {
+export interface MenuGroup {
   label: string;
-  items: MenuItem[];
+  items: MenuLink[];
 }
 
 export interface Menu {
   label: string;
   href: string;
-  groups: FilterGroup[];
-  image: MenuImage;
+  groups: MenuGroup[];
 }
 
-type MainItemResource = NonNullable<GetMenuQuery["menu"]>["main"][number]["resource"];
-type FilterItemResource = NonNullable<GetMenuQuery["menu"]>["main"][number]["filters"][number]["items"][number]["resource"];
-
-type CollectionFilterResource = Extract<FilterItemResource, { __typename: "Collection" }>;
-type MetaobjectNode = Extract<
-  NonNullable<NonNullable<CollectionFilterResource["metafield"]>["references"]>["edges"][number]["node"],
-  { __typename: "Metaobject" }
->;
-type MediaImageNode = Extract<
-  NonNullable<MetaobjectNode["fields"][number]["references"]>["edges"][number]["node"],
-  { __typename: "MediaImage" }
->;
-
+/** Shopify returns absolute urls on its own domain; the storefront wants the
+ * path. Heading items point at `#` (the nav-editor convention) — preserved, so
+ * the UI can render them as text rather than links. */
 function toRelativeUrl(url: string): string {
+  if (url.endsWith("#")) return "#";
   try {
-    const decoded = decodeURIComponent(url);
-    const u = new URL(decoded);
+    const u = new URL(decodeURIComponent(url));
     return u.pathname + u.search + u.hash;
   } catch {
     return url;
   }
 }
 
-function extractStyleHandle(url: string): string | null {
-  // URLs are encoded, e.g. /collections/rings/%3Ftag=chunky&style=ring_chunky
-  const decoded = decodeURIComponent(url);
-  const queryIndex = decoded.indexOf("?");
-  if (queryIndex === -1) return null;
-  const params = new URLSearchParams(decoded.slice(queryIndex + 1));
-  return params.get("style");
-}
-
-function extractItemImage(resource: FilterItemResource, url: string): MenuImage[] | null {
-  if (resource?.__typename !== "Collection") return null;
-
-  const styleHandle = extractStyleHandle(url);
-
-  const metaobjects = (resource.metafield?.references?.edges ?? [])
-    .map(edge => edge.node)
-    .filter((node): node is MetaobjectNode => node.__typename === "Metaobject");
-
-  const matchedMetaobject = styleHandle
-    ? metaobjects.find(m => m.handle === styleHandle) ?? null
-    : null;
-
-  const targets = matchedMetaobject ? [matchedMetaobject] : metaobjects;
-
-  const images = [];
-  for (const metaobject of targets) {
-    for (const field of metaobject.fields) {
-      const mediaImages = (field.references?.edges ?? [])
-        .map(edge => edge.node)
-        .filter((node): node is MediaImageNode => node.__typename === "MediaImage");
-
-      for (const mediaImage of mediaImages) {
-        if (mediaImage.image) {
-          images.push({
-            url: mediaImage.image.url,
-            altText: mediaImage.image.altText,
-            width: mediaImage.image.width,
-            height: mediaImage.image.height,
-          });
-        }
-      }
-    }
-  }
-
-  return images.length > 0 ? images : null;
-}
-
 export function buildMenu(data?: GetMenuQuery): Menu[] {
-  return data?.menu?.main.map((mainItem) => {
-    const col = mainItem.resource as Extract<MainItemResource, { __typename: "Collection" }>;
+  return (
+    data?.menu?.items.map((item) => {
+      const children = item.items ?? [];
 
-    const groups: FilterGroup[] = mainItem.filters.map(filter => ({
-      label: filter.title,
-      items: filter.items.map(item => ({
+      // Level-2 items with children are columns; level-2 items that are
+      // direct links (Shop by Metal -> Gold Vermeil) gather into one
+      // unlabelled column so they still render.
+      const links = children
+        .filter((child) => child.items.length === 0)
+        .map((link) => ({label: link.title, href: toRelativeUrl(link.url ?? "#")}));
+
+      const groups = children
+        .filter((child) => child.items.length > 0)
+        .map((group) => ({
+          label: group.title,
+          items: group.items.map((link) => ({
+            label: link.title,
+            href: toRelativeUrl(link.url ?? "#"),
+          })),
+        }));
+
+      return {
         label: item.title,
-        href: toRelativeUrl(item.url ?? ""),
-        image: extractItemImage(item.resource, item.url ?? ""),
-      })),
-    }));
-
-    return {
-      label: mainItem.title,
-      href: toRelativeUrl(mainItem.url ?? ""),
-      groups,
-      image: col?.image ?? null,
-    };
-  }) ?? [];
+        href: toRelativeUrl(item.url ?? "#"),
+        groups: links.length ? [{label: "", items: links}, ...groups] : groups,
+      };
+    }) ?? []
+  );
 }

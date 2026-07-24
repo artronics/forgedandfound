@@ -6,35 +6,53 @@ import {FragmentType} from "@/graphql/generated";
 import {useVariantSelector} from "@/lib/product/useVariantSelector";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Label} from "@/components/ui/label";
-import {Price} from "@/components/typography";
+import {Price, Text} from "@/components/typography";
 import {useVariantPrice} from "@/lib/product/useVariantPrice";
-import {SwatchGroup} from "@/components/ui/swatch";
-import {OptionGroup, OptionItem} from "@/components/ui/option";
-import {VariantModel} from "@/lib/model";
-import {useCandidateVariant} from "@/lib/product/useCandidateVariant";
-import {FinishSwatch} from "@/components/product/FinishSwatch";
+import {FinishPicker, SizePicker} from "@/components/product/VariantPicker";
 import {AddToCartButton} from "@/components/product/AddToCartButton";
 
+// The PDP selector surface: full pickers with headings, price, add to cart.
+// User selections are mirrored into the URL (?finish=…&size=…) in place —
+// shareable without navigation. The auto-selected default never writes.
+
 type VariantSelectorCardProps = {
-  selectedColour?: string,
-  selectedMaterial?: string,
-  fragment?: FragmentType<typeof VariantSelector_ProductFragmentDoc> | null
+  fragment?: FragmentType<typeof VariantSelector_ProductFragmentDoc> | null;
+  initialFinish?: string | null;
+  initialSize?: string | null;
 }
 
-export function VariantSelectorCard({fragment}: VariantSelectorCardProps) {
+export function VariantSelectorCard({fragment, initialFinish, initialSize}: VariantSelectorCardProps) {
   const {
     product,
-    colours,
-    materials,
+    finishes,
     sizes,
-    filter,
-    setFilter,
-    filteredVariants,
+    selected,
+    select,
     selectedVariant,
-  } = useVariantSelector({fragment: fragment ?? null});
-  const candidateVariant = useCandidateVariant(selectedVariant ?? filteredVariants[0]);
-  const variantLabel = VariantModel.getVariantLabel(candidateVariant);
-  const {price, compareAtPrice} = useVariantPrice(filteredVariants);
+    displayVariant,
+  } = useVariantSelector({fragment: fragment ?? null, initialFinish, initialSize});
+  const {price, compareAtPrice} = useVariantPrice(displayVariant ?? []);
+  const outOfStock = selectedVariant?.availability === "OUT_OF_STOCK";
+
+  const touched = React.useRef(false);
+  React.useEffect(() => {
+    if (!touched.current) return;
+    const params = new URLSearchParams();
+    if (selected.finish) params.set("finish", selected.finish);
+    if (selected.size) params.set("size", selected.size);
+    const search = params.size ? `?${params}` : "";
+    window.history.replaceState(null, "", window.location.pathname + search);
+  }, [selected.finish, selected.size]);
+  const selectTouched = {
+    finish: (key: string) => {
+      touched.current = true;
+      select.finish(key);
+    },
+    size: (key: string) => {
+      touched.current = true;
+      select.size(key);
+    },
+  };
 
   return (
     <Card>
@@ -43,82 +61,34 @@ export function VariantSelectorCard({fragment}: VariantSelectorCardProps) {
           <div className="flex items-start justify-between">
             <CardTitle>{product.title}</CardTitle>
           </div>
-          <Label className="tracking-wide text-sm">{variantLabel}</Label>
+          <Label className="tracking-wide text-sm">{displayVariant?.finishLabel}</Label>
           <Price className="text-xl ml-auto py-2" price={price} compareAtPrice={compareAtPrice}/>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* Colour */}
-        {colours.length > 1 && (
-          <div>
-            <Label variant="field" className="pb-1">
-              Select Colour
-            </Label>
-            <SwatchGroup>
-              {colours.map((colour) => (
-                <FinishSwatch
-                  key={colour}
-                  colour={colour}
-                  selected={filter.colour === colour}
-                  onSelect={() => setFilter.colour(colour)}
-                />
-              ))}
-            </SwatchGroup>
-          </div>
-        )}
-        {/* Material */}
-        {materials.length > 1 && (
-          <div>
-            <Label variant="field">Select Material</Label>
-            <OptionGroup className="pt-1">
-              {materials.map(material => (
-                <OptionItem
-                  key={material}
-                  onClick={() => setFilter.material(material)}
-                  selected={filter.material === material}>
-                  {material}
-                </OptionItem>
-              ))}
-            </OptionGroup>
-          </div>
-        )}
-        {/* Size */}
-        {sizes.length !== 0
-          ? (<div>
-            <Label variant="field">Select Size</Label>
-            <OptionGroup className="pt-1">
-              {sizes.map(size => (
-                <OptionItem
-                  key={size}
-                  onClick={() => setFilter.size(size)}
-                  selected={filter.size === size}>
-                  {size}
-                </OptionItem>
-              ))}
-            </OptionGroup>
-          </div>)
-          : (<div>
-              <Label variant="field">Size</Label>
-              <OptionGroup className="pt-1">
-                {[candidateVariant.size].map(size => (
-                  <OptionItem
-                    key={size}
-                    onClick={() => setFilter.size(size)}
-                    disabled={true}
-                    selected={true}>
-                    {size}
-                  </OptionItem>
-                ))}
-              </OptionGroup>
-            </div>
-
-          )}
+        <FinishPicker
+          title="Select Finish"
+          choices={finishes}
+          selected={selected.finish}
+          onSelect={selectTouched.finish}
+        />
+        <SizePicker
+          title="Select Size"
+          choices={sizes}
+          selected={selected.size}
+          onSelect={selectTouched.size}
+        />
         {/* Actions */}
         <div>
+          {outOfStock && (
+            <Text variant="label" className="text-sm opacity-75">
+              This option is out of stock.
+            </Text>
+          )}
           <AddToCartButton
             className="my-8"
             productId={product?.id}
-            variantId={selectedVariant?.id ?? null}
+            variantId={selectedVariant && !outOfStock ? selectedVariant.id : null}
           />
         </div>
       </CardContent>

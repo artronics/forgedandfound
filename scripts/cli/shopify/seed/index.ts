@@ -79,6 +79,11 @@ mutation DeleteProduct($input: ProductDeleteInput!) {
   productDelete(input: $input) { deletedProductId userErrors { field message } }
 }`;
 
+const PRODUCT_MEDIA_COUNT = `
+query MediaCount($id: ID!) {
+  product(id: $id) { id mediaCount { count } }
+}`;
+
 const PRIMARY_LOCATION = `query { locations(first: 1) { nodes { id } } }`;
 
 const PLACEHOLDER_LOCATION = "gid://shopify/Location/PRIMARY"; // stand-in for dry-run previews
@@ -396,6 +401,67 @@ export async function publishSeeded(opts: SeedOpts): Promise<void> {
   }
   console.log(String(published)); // stdout: how many are on the channel
   info(`Done. published=${published}/${keys.length}`);
+}
+
+/**
+ * Upload photos to products that are already in the store.
+ *
+ * Seeding without `--with-photos` leaves an imageless catalogue, and re-seeding
+ * cannot repair it — the lock makes it skip everything it has already created.
+ * This walks the lock instead, pairing each product with its scraped meta.json,
+ * and skips any product that already has media (so it is safe to re-run).
+ */
+export async function photosSeeded(opts: SeedOpts): Promise<void> {
+  const dir = resolve(opts.dir);
+  const photos = photoLimit(opts.withPhotos) ?? Infinity;
+  const lock = readLock(dir, shopify.shopDomain);
+  const keys = Object.keys(lock.products);
+  info(`${keys.length} seeded product(s) in ${lockPath(dir)}`);
+  if (lock.shop !== shopify.shopDomain) {
+    info(`WARNING: lock is for ${lock.shop}, current store is ${shopify.shopDomain}`);
+  }
+
+  const metaByKey = new Map(loadAll(dir).map((i) => [i.key, i.meta]));
+
+  let uploaded = 0;
+  let skipped = 0;
+  for (const key of keys) {
+    const {id, title} = lock.products[key];
+    const srcs = photoSources(metaByKey.get(key) ?? {}, photos);
+    if (!srcs.length) {
+      info(`skip ${key} (no scraped images)`);
+      skipped++;
+      continue;
+    }
+
+    if (opts.dryRun) {
+      info(`would upload ${srcs.length} photo(s) to ${key}`);
+      continue;
+    }
+
+    // Already has media -> already repaired (or seeded --with-photos): re-running
+    // must not duplicate the gallery.
+    const data = await shopifyAdminFetch<{product: {mediaCount: {count: number}} | null}>(
+      PRODUCT_MEDIA_COUNT,
+      {id},
+    );
+    if (!data.product) {
+      info(`WARN ${key}: ${id} no longer exists`);
+      skipped++;
+      continue;
+    }
+    if (data.product.mediaCount.count > 0) {
+      info(`skip ${key} (already has ${data.product.mediaCount.count} media)`);
+      skipped++;
+      continue;
+    }
+
+    await uploadPhotos(id, srcs, title);
+    console.log(id); // stdout: the product gid, one per line
+    info(`uploaded ${srcs.length} photo(s) to ${key}`);
+    uploaded++;
+  }
+  info(opts.dryRun ? "Dry run: no changes made." : `Done. uploaded=${uploaded} skipped=${skipped}`);
 }
 
 export async function deleteSeeded(opts: SeedOpts): Promise<void> {
